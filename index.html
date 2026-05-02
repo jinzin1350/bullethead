@@ -5,44 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BulletHead — Roblox Edition</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body {
+      width:100%; height:100%;
       background:#111;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      height:100vh;
-      font-family:'Arial Black','Arial',sans-serif;
       overflow:hidden;
       user-select:none;
+      touch-action:none;
+      font-family:'Arial Black','Arial',sans-serif;
+    }
+    #wrapper {
+      position:relative;
+      width:100%; height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     #gameCanvas {
-      border:3px solid #00b4d8;
-      box-shadow:0 0 40px #00b4d855;
       display:block;
       image-rendering:pixelated;
+      image-rendering:crisp-edges;
       cursor:pointer;
+      /* border + glow applied via JS after resize */
+      box-shadow:0 0 30px #00b4d855;
+      max-width:100%;
+      max-height:100%;
     }
-    #bottomBar {
-      color:#aaa;
-      font-size:11px;
-      margin-top:6px;
-      letter-spacing:1px;
+    /* ── TOUCH CONTROLS ── */
+    #controls {
+      position:absolute;
+      bottom:0; left:0; right:0;
+      height:130px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 12px 10px;
+      pointer-events:none;
     }
+    .btn-group { display:flex; gap:8px; pointer-events:auto; }
+    .ctrl-btn {
+      width:64px; height:64px;
+      border-radius:50%;
+      border:3px solid rgba(255,255,255,0.25);
+      background:rgba(0,0,0,0.55);
+      color:#fff;
+      font-size:26px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      -webkit-user-select:none;
+      transition:background 0.08s, transform 0.08s;
+      backdrop-filter:blur(4px);
+    }
+    .ctrl-btn:active, .ctrl-btn.pressed {
+      background:rgba(0,180,216,0.45);
+      transform:scale(0.92);
+      border-color:#00b4d8;
+    }
+    #btn-jump {
+      width:72px; height:72px;
+      font-size:30px;
+      border-color:rgba(0,255,136,0.4);
+    }
+    #btn-jump.pressed { background:rgba(0,255,136,0.35); border-color:#00ff88; }
+    #btn-shoot {
+      width:80px; height:80px;
+      font-size:32px;
+      border-color:rgba(255,80,80,0.5);
+      background:rgba(120,0,0,0.5);
+    }
+    #btn-shoot.pressed { background:rgba(255,60,60,0.5); border-color:#ff4444; }
+    /* Portrait warning */
+    #portrait-warn {
+      display:none;
+      position:fixed; inset:0;
+      background:#000;
+      color:#fff;
+      font-size:22px;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:16px;
+      z-index:999;
+      text-align:center;
+      padding:30px;
+    }
+    #portrait-warn span { font-size:60px; }
+    @media (orientation:portrait) and (max-width:600px) {
+      #portrait-warn { display:flex; }
+    }
+    /* Hide bottom bar on mobile */
+    #bottomBar { display:none; }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="620" height="480"></canvas>
-<div id="bottomBar">A/D MOVE &nbsp;|&nbsp; W JUMP &nbsp;|&nbsp; S/J SHOOT &nbsp;|&nbsp; Earn 🪙coins to unlock guns, characters & outfits!</div>
+<!-- Portrait warning -->
+<div id="portrait-warn">
+  <span>📱</span>
+  <div>Please rotate your device</div>
+  <div style="font-size:14px;color:#aaa">This game plays best in landscape mode</div>
+</div>
+
+<div id="wrapper">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- On-screen touch controls (shown only during gameplay) -->
+  <div id="controls" style="display:none">
+    <div class="btn-group">
+      <div class="ctrl-btn" id="btn-left">◀</div>
+      <div class="ctrl-btn" id="btn-right">▶</div>
+    </div>
+    <div class="btn-group" style="flex-direction:column;align-items:center;gap:6px">
+      <div class="ctrl-btn" id="btn-jump">⬆</div>
+    </div>
+    <div class="btn-group">
+      <div class="ctrl-btn" id="btn-shoot">🔫</div>
+    </div>
+  </div>
+</div>
+<div id="bottomBar"></div>
 
 <script>
 // ═══════════════════════════════════════════════
-//  CANVAS
+//  CANVAS — fixed logical size, CSS scales it
 // ═══════════════════════════════════════════════
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
+// Fixed logical resolution — game coordinates never change
+const W = 620, H = 480;
+canvas.width  = W;
+canvas.height = H;
+
+// Scale canvas to fill screen while keeping aspect ratio
+function resizeCanvas() {
+  const ww = window.innerWidth, wh = window.innerHeight;
+  // Reserve space for touch controls if on mobile
+  const isMobile = ('ontouchstart' in window);
+  const availH   = isMobile ? wh - 130 : wh;
+  const scale    = Math.min(ww / W, availH / H);
+  canvas.style.width  = Math.floor(W * scale) + 'px';
+  canvas.style.height = Math.floor(H * scale) + 'px';
+  // Reposition controls bar to sit right below canvas
+  const ctrl = document.getElementById('controls');
+  if (ctrl) ctrl.style.height = (isMobile ? '130px' : '0');
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 // ═══════════════════════════════════════════════
 //  LOCALSTORAGE PERSISTENCE
@@ -304,21 +412,88 @@ document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(state==='title'   &&(e.code==='Space'||e.code==='Enter')) startGame();
   if(state==='gameover'&&(e.code==='Space'||e.code==='Enter')) goToShop();
+  if(state==='gameover'&&e.code==='KeyR') startGame();
   if(state==='shop'    &&(e.code==='Escape')) state='title';
   if(state==='playing' &&(e.code==='KeyJ'||e.code==='ArrowUp')) shootPlayer();
   e.preventDefault();
 });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 
-// Mouse click for shop
-canvas.addEventListener('click',e=>{
-  if(state!=='shop'&&state!=='title')return;
-  const rect=canvas.getBoundingClientRect();
-  const mx=(e.clientX-rect.left)*(W/rect.width);
-  const my=(e.clientY-rect.top)*(H/rect.height);
-  if(state==='title')  handleTitleClick(mx,my);
-  if(state==='shop')   handleShopClick(mx,my);
+// ── Mouse / Touch click for shop & title ──
+function canvasCoords(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left) * (W / rect.width),
+    y: (clientY - rect.top)  * (H / rect.height),
+  };
+}
+function handleCanvasInteract(cx, cy) {
+  if (state === 'title')    handleTitleClick(cx, cy);
+  if (state === 'shop')     handleShopClick(cx, cy);
+  if (state === 'gameover') handleGameOverClick(cx, cy);
+}
+function handleGameOverClick(mx, my) {
+  // SHOP button area
+  if (mx > W/2-120 && mx < W/2+120 && my > 312 && my < 372) goToShop();
+  // PLAY AGAIN button area
+  if (mx > W/2-80  && mx < W/2+80  && my > 385 && my < 425) startGame();
+}
+canvas.addEventListener('click', e => {
+  const {x, y} = canvasCoords(e.clientX, e.clientY);
+  handleCanvasInteract(x, y);
 });
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const {x, y} = canvasCoords(t.clientX, t.clientY);
+  handleCanvasInteract(x, y);
+}, {passive: false});
+
+// ── On-screen button touch controls ──
+function setupTouchControls() {
+  const map = {
+    'btn-left':  () => { keys['KeyA'] = true; },
+    'btn-right': () => { keys['KeyD'] = true; },
+    'btn-jump':  () => { keys['KeyW'] = true; },
+    'btn-shoot': () => { keys['KeyJ'] = true; shootPlayer(); },
+  };
+  const unmap = {
+    'btn-left':  () => { keys['KeyA'] = false; },
+    'btn-right': () => { keys['KeyD'] = false; },
+    'btn-jump':  () => { keys['KeyW'] = false; },
+    'btn-shoot': () => { keys['KeyJ'] = false; },
+  };
+  Object.keys(map).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      el.classList.add('pressed');
+      map[id]();
+      // Jump fires once on tap
+      if (id === 'btn-jump' && P && P.onGround) { P.vy = -12.5; P.onGround = false; }
+    }, {passive: false});
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      el.classList.remove('pressed');
+      unmap[id]();
+    }, {passive: false});
+    el.addEventListener('touchcancel', e => {
+      el.classList.remove('pressed');
+      unmap[id]();
+    }, {passive: false});
+  });
+}
+setupTouchControls();
+
+// Show/hide controls based on state
+function syncControlsVisibility() {
+  const ctrl = document.getElementById('controls');
+  if (!ctrl) return;
+  const show = state === 'playing' && ('ontouchstart' in window);
+  ctrl.style.display = show ? 'flex' : 'none';
+  if (show) resizeCanvas();
+}
 
 // ═══════════════════════════════════════════════
 //  PHYSICS
@@ -359,6 +534,7 @@ function killTarget(){    return level; }
 // ═══════════════════════════════════════════════
 function startGame(){
   state='playing';
+  syncControlsVisibility();
   score=0;level=1;kills=0;killsThisLevel=0;
   frame=0;spawnTimer=0;
   levelUpTimer=0;mapChangeBannerTimer=0;rewardBannerTimer=0;
@@ -373,6 +549,7 @@ function startGame(){
 }
 
 function goToShop(){
+  syncControlsVisibility();
   // Give end-of-run coins bonus from score
   const bonus=Math.floor(score/80);
   if(bonus>0){
@@ -797,36 +974,48 @@ function drawHUD(){
 //  TITLE SCREEN
 // ═══════════════════════════════════════════════
 function handleTitleClick(mx,my){
-  // PLAY button: centered ~y=390
-  if(mx>W/2-90&&mx<W/2+90&&my>375&&my<410) startGame();
-  // SHOP button: ~y=430
-  if(mx>W/2-90&&mx<W/2+90&&my>418&&my<452){ state='shop'; shopTab='chars'; }
+  if(mx>W/2-110&&mx<W/2+110&&my>310&&my<360) startGame();
+  if(mx>W/2-110&&mx<W/2+110&&my>370&&my<420){ state='shop';shopTab='chars';syncControlsVisibility(); }
 }
 
 function drawTitle(){
   drawBackground();
   ctx.textAlign='center';
-  ctx.font='bold 60px Arial Black';ctx.fillStyle='#000';ctx.fillText('BULLETHEAD',W/2+3,122);
-  const tg=ctx.createLinearGradient(0,75,0,130);tg.addColorStop(0,'#00ff88');tg.addColorStop(1,'#00b4d8');
-  ctx.fillStyle=tg;ctx.shadowColor='#00ff88';ctx.shadowBlur=30;ctx.fillText('BULLETHEAD',W/2,119);ctx.shadowBlur=0;
-  ctx.font='bold 16px Arial Black';ctx.fillStyle='#ffcc00';ctx.shadowColor='#ffcc00';ctx.shadowBlur=10;
-  ctx.fillText('✦  ROBLOX EDITION  ✦',W/2,148);ctx.shadowBlur=0;
-  // Two characters
+
+  // Title
+  ctx.font='bold 58px Arial Black';ctx.fillStyle='#000';ctx.fillText('BULLETHEAD',W/2+3,90);
+  const tg=ctx.createLinearGradient(0,48,0,100);tg.addColorStop(0,'#00ff88');tg.addColorStop(1,'#00b4d8');
+  ctx.fillStyle=tg;ctx.shadowColor='#00ff88';ctx.shadowBlur=28;ctx.fillText('BULLETHEAD',W/2,87);ctx.shadowBlur=0;
+  ctx.font='bold 15px Arial Black';ctx.fillStyle='#ffcc00';ctx.shadowColor='#ffcc00';ctx.shadowBlur=8;
+  ctx.fillText('✦  ROBLOX EDITION  ✦',W/2,112);ctx.shadowBlur=0;
+
+  // Two characters (smaller, tighter)
   const ch=CHARS[selChar]||CHARS.noob;
-  drawRobloxChar(175,188,selShirt,selPants,ch.head,ch.hat,1,Math.floor(frame/15)%2,1.3);
-  drawRobloxChar(365,188,'#00b4d8','#1a1a1a','#ffcc99',null,-1,Math.floor(frame/15)%2,1.3);
-  // Stats
-  ctx.fillStyle='#ffcc44';ctx.font='bold 14px Arial Black';
-  ctx.fillText('🪙 '+coins+' coins',W/2,342);
-  if(bestScore>0){ctx.fillStyle='#aaaaaa';ctx.font='12px Arial';ctx.fillText('Best: '+bestScore+' pts',W/2,360);}
-  ctx.fillStyle='#888';ctx.font='12px Arial';
-  ctx.fillText('A/D move  W jump  S/J shoot',W/2,375);
-  // Buttons
-  const blink=Math.floor(Date.now()/520)%2===0;
-  roundRect(W/2-90,378,180,32,8,blink?'#00ff88':'#009944','#00ff88',2);
-  ctx.fillStyle='#000';ctx.font='bold 16px Arial Black';ctx.fillText('▶ PLAY',W/2,400);
-  roundRect(W/2-90,418,180,32,8,'#1a1a2e','#ffcc00',2);
-  ctx.fillStyle='#ffcc00';ctx.fillText('🏪 SHOP',W/2,440);
+  drawRobloxChar(190,122,selShirt,selPants,ch.head,ch.hat, 1,Math.floor(frame/15)%2,1.15);
+  drawRobloxChar(350,122,'#00b4d8','#1a1a1a','#ffcc99',null,-1,Math.floor(frame/15)%2,1.15);
+
+  // Coins + best
+  ctx.fillStyle='#ffcc44';ctx.font='bold 16px Arial Black';
+  ctx.fillText('🪙 '+coins+' coins',W/2,248);
+  if(bestScore>0){ctx.fillStyle='#aaa';ctx.font='13px Arial';ctx.fillText('🏆 Best: '+bestScore+' pts',W/2,268);}
+
+  // PLAY button — big, tap-friendly
+  const blink=Math.floor(Date.now()/480)%2===0;
+  ctx.shadowColor='#00ff88';ctx.shadowBlur=blink?20:8;
+  roundRect(W/2-110,285,220,52,12,blink?'#00cc66':'#008844','#00ff88',2.5);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#000';ctx.font='bold 22px Arial Black';ctx.textBaseline='middle';
+  ctx.fillText('▶  PLAY',W/2,311);
+
+  // SHOP button — big
+  roundRect(W/2-110,348,220,52,12,'#1a1a2e','#ffcc00',2);
+  ctx.fillStyle='#ffcc00';ctx.font='bold 20px Arial Black';
+  ctx.fillText('🏪  SHOP',W/2,374);
+
+  // Controls hint (small, bottom)
+  ctx.fillStyle='#555';ctx.font='11px Arial';ctx.textBaseline='alphabetic';
+  ctx.fillText('A/D or ◀▶ move  •  W/⬆ jump  •  S/J/🔫 shoot',W/2,440);
+
   ctx.textAlign='left';
 }
 
@@ -835,24 +1024,44 @@ function drawTitle(){
 // ═══════════════════════════════════════════════
 function drawGameOver(){
   drawBackground();
-  ctx.textAlign='center';
-  ctx.font='bold 54px Arial Black';ctx.fillStyle='#ff2244';ctx.shadowColor='#ff0000';ctx.shadowBlur=40;
-  ctx.fillText('GAME OVER',W/2,150);ctx.shadowBlur=0;
   if(score>bestScore){bestScore=score;saveAll();}
-  ctx.font='bold 22px Arial Black';ctx.fillStyle='#ffcc00';ctx.fillText('Score: '+score,W/2,200);
-  ctx.font='16px Arial';ctx.fillStyle='#aaa';
-  ctx.fillText('Level: '+level+'   Kills: '+kills,W/2,232);
-  if(bestScore>0){ctx.fillStyle='#888';ctx.fillText('Best Score: '+bestScore,W/2,258);}
-  // Coins earned
-  ctx.fillStyle='#ffcc44';ctx.font='bold 20px Arial Black';
-  ctx.fillText('🪙 +'+gameOverCoinsEarned+' coins earned!',W/2,295);
-  ctx.fillStyle='#aaa';ctx.font='13px Arial';
-  ctx.fillText('Total coins: '+coins,W/2,318);
-  // Button
-  const blink=Math.floor(Date.now()/520)%2===0;
-  roundRect(W/2-100,355,200,38,8,blink?'#ffcc00':'#aa8800','#ffcc00',2);
-  ctx.fillStyle='#000';ctx.font='bold 17px Arial Black';ctx.fillText('🏪 GO TO SHOP',W/2,380);
-  ctx.fillStyle='#555';ctx.font='11px Arial';ctx.fillText('SPACE / ENTER',W/2,408);
+  ctx.textAlign='center';
+
+  ctx.font='bold 52px Arial Black';ctx.fillStyle='#ff2244';ctx.shadowColor='#ff0000';ctx.shadowBlur=40;
+  ctx.fillText('GAME OVER',W/2,115);ctx.shadowBlur=0;
+
+  ctx.font='bold 24px Arial Black';ctx.fillStyle='#ffcc00';
+  ctx.fillText('Score: '+score,W/2,162);
+
+  ctx.font='15px Arial';ctx.fillStyle='#aaa';
+  ctx.fillText('Level '+level+'  •  '+kills+' kills',W/2,190);
+  if(bestScore>0){ctx.fillStyle='#777';ctx.font='13px Arial';ctx.fillText('🏆 Best: '+bestScore,W/2,212);}
+
+  // Coins box
+  roundRect(W/2-140,228,280,68,10,'#1a1400','#ffcc44',2);
+  ctx.fillStyle='#ffcc44';ctx.font='bold 22px Arial Black';ctx.textBaseline='middle';
+  ctx.fillText('🪙 +'+gameOverCoinsEarned+' coins!',W/2,252);
+  ctx.fillStyle='#888';ctx.font='13px Arial';
+  ctx.fillText('Wallet: '+coins+' total',W/2,278);
+  ctx.textBaseline='alphabetic';
+
+  // Big SHOP button — tap-friendly
+  const blink=Math.floor(Date.now()/480)%2===0;
+  ctx.shadowColor='#ffcc00';ctx.shadowBlur=blink?18:6;
+  roundRect(W/2-120,312,240,60,12,blink?'#ffcc00':'#aa8800','#ffcc00',2.5);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#000';ctx.font='bold 22px Arial Black';ctx.textBaseline='middle';
+  ctx.fillText('🏪  GO TO SHOP',W/2,342);
+  ctx.textBaseline='alphabetic';
+
+  // Also play again shortcut
+  roundRect(W/2-80,385,160,40,8,'#112211','#44ff88',1.5);
+  ctx.fillStyle='#44ff88';ctx.font='bold 15px Arial Black';ctx.textBaseline='middle';
+  ctx.fillText('▶ PLAY AGAIN',W/2,405);
+  ctx.textBaseline='alphabetic';
+
+  ctx.fillStyle='#444';ctx.font='10px Arial';
+  ctx.fillText('Tap button or press SPACE',W/2,442);
   ctx.textAlign='left';
 }
 
