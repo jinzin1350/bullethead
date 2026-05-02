@@ -32,66 +32,118 @@
       max-height:100%;
     }
     /* ── TOUCH CONTROLS ── */
+    /* کنترل‌ها روی canvas float می‌کنن — canvas تمام صفحه می‌شه */
     #controls {
-      position:absolute;
+      position:fixed;
       bottom:0; left:0; right:0;
-      height:130px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:0 12px 10px;
+      height:140px;
       pointer-events:none;
+      z-index:10;
     }
-    .btn-group { display:flex; gap:8px; pointer-events:auto; }
+    /* گروه چپ — حرکت */
+    #ctrl-left-group {
+      position:absolute;
+      bottom:18px; left:16px;
+      display:flex; gap:10px;
+      pointer-events:auto;
+    }
+    /* گروه راست — jump + shoot (کلاستر مثل Dead Cells) */
+    #ctrl-right-group {
+      position:absolute;
+      bottom:18px; right:16px;
+      display:flex; gap:10px;
+      pointer-events:auto;
+      flex-direction:row;
+      align-items:flex-end;
+    }
     .ctrl-btn {
-      width:64px; height:64px;
+      width:72px; height:72px;
       border-radius:50%;
-      border:3px solid rgba(255,255,255,0.25);
-      background:rgba(0,0,0,0.55);
+      border:3px solid rgba(255,255,255,0.22);
+      background:rgba(0,0,0,0.45);
       color:#fff;
-      font-size:26px;
+      font-size:28px;
       display:flex; align-items:center; justify-content:center;
       cursor:pointer;
       user-select:none;
       -webkit-user-select:none;
-      transition:background 0.08s, transform 0.08s;
-      backdrop-filter:blur(4px);
+      transition:background 0.07s, transform 0.07s;
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
     }
     .ctrl-btn:active, .ctrl-btn.pressed {
-      background:rgba(0,180,216,0.45);
-      transform:scale(0.92);
-      border-color:#00b4d8;
+      transform:scale(0.88);
     }
+    /* دکمه چپ */
+    #btn-left  { border-color:rgba(0,180,216,0.5); }
+    #btn-left.pressed  { background:rgba(0,180,216,0.4); border-color:#00b4d8; }
+    /* دکمه راست */
+    #btn-right { border-color:rgba(0,180,216,0.5); }
+    #btn-right.pressed { background:rgba(0,180,216,0.4); border-color:#00b4d8; }
+    /* دکمه jump — کمی بزرگتر، سبز */
     #btn-jump {
-      width:72px; height:72px;
+      width:76px; height:76px;
       font-size:30px;
-      border-color:rgba(0,255,136,0.4);
+      border-color:rgba(0,255,136,0.5);
+      margin-bottom:8px; /* بالاتر از shoot */
     }
-    #btn-jump.pressed { background:rgba(0,255,136,0.35); border-color:#00ff88; }
+    #btn-jump.pressed { background:rgba(0,255,136,0.4); border-color:#00ff88; }
+    /* دکمه shoot — بزرگترین، قرمز */
     #btn-shoot {
-      width:80px; height:80px;
-      font-size:32px;
-      border-color:rgba(255,80,80,0.5);
-      background:rgba(120,0,0,0.5);
+      width:86px; height:86px;
+      font-size:34px;
+      border-color:rgba(255,70,70,0.6);
+      background:rgba(100,0,0,0.45);
     }
-    #btn-shoot.pressed { background:rgba(255,60,60,0.5); border-color:#ff4444; }
-    /* Portrait warning */
+    #btn-shoot.pressed { background:rgba(255,50,50,0.5); border-color:#ff3333; }
+
+    /* ── PORTRAIT WARNING ── */
     #portrait-warn {
       display:none;
       position:fixed; inset:0;
       background:#000;
       color:#fff;
-      font-size:22px;
       align-items:center;
       justify-content:center;
       flex-direction:column;
-      gap:16px;
-      z-index:999;
+      gap:20px;
+      z-index:9999;
       text-align:center;
-      padding:30px;
+      padding:40px;
     }
-    #portrait-warn span { font-size:60px; }
-    @media (orientation:portrait) and (max-width:600px) {
+    #portrait-warn .pw-title {
+      font-size:24px;
+      font-weight:900;
+      font-family:'Arial Black',Arial,sans-serif;
+      letter-spacing:1px;
+    }
+    #portrait-warn .pw-sub {
+      font-size:14px;
+      color:#888;
+      font-family:Arial,sans-serif;
+    }
+    /* آیکون چرخان با انیمیشن */
+    #portrait-warn .pw-phone {
+      font-size:72px;
+      animation: rotate-hint 1.4s ease-in-out infinite;
+      display:inline-block;
+      transform-origin:center;
+    }
+    @keyframes rotate-hint {
+      0%   { transform:rotate(0deg);   }
+      30%  { transform:rotate(-90deg); }
+      60%  { transform:rotate(-90deg); }
+      90%  { transform:rotate(0deg);   }
+      100% { transform:rotate(0deg);   }
+    }
+    /* نوار پایین با gradient */
+    #portrait-warn .pw-bar {
+      width:60px; height:4px;
+      border-radius:2px;
+      background:linear-gradient(90deg,#00b4d8,#00ff88);
+      margin-top:4px;
+    }
+    @media (orientation:portrait) {
       #portrait-warn { display:flex; }
     }
     /* Hide bottom bar on mobile */
@@ -99,30 +151,32 @@
   </style>
 </head>
 <body>
-<!-- Portrait warning -->
+<!-- Portrait warning — با انیمیشن چرخش -->
 <div id="portrait-warn">
-  <span>📱</span>
-  <div>Please rotate your device</div>
-  <div style="font-size:14px;color:#aaa">This game plays best in landscape mode</div>
+  <div class="pw-phone">📱</div>
+  <div class="pw-title">ROTATE YOUR DEVICE</div>
+  <div class="pw-bar"></div>
+  <div class="pw-sub">This game requires landscape mode</div>
 </div>
 
 <div id="wrapper">
   <canvas id="gameCanvas"></canvas>
+</div>
 
-  <!-- On-screen touch controls (shown only during gameplay) -->
-  <div id="controls" style="display:none">
-    <div class="btn-group">
-      <div class="ctrl-btn" id="btn-left">◀</div>
-      <div class="ctrl-btn" id="btn-right">▶</div>
-    </div>
-    <div class="btn-group" style="flex-direction:column;align-items:center;gap:6px">
-      <div class="ctrl-btn" id="btn-jump">⬆</div>
-    </div>
-    <div class="btn-group">
-      <div class="ctrl-btn" id="btn-shoot">🔫</div>
-    </div>
+<!-- کنترل‌های لمسی — float روی صفحه، خارج از wrapper -->
+<div id="controls" style="display:none">
+  <!-- چپ: حرکت -->
+  <div id="ctrl-left-group">
+    <div class="ctrl-btn" id="btn-left">◀</div>
+    <div class="ctrl-btn" id="btn-right">▶</div>
+  </div>
+  <!-- راست: jump بالا، shoot پایین (مثل Dead Cells) -->
+  <div id="ctrl-right-group">
+    <div class="ctrl-btn" id="btn-jump">▲</div>
+    <div class="ctrl-btn" id="btn-shoot">🔫</div>
   </div>
 </div>
+
 <div id="bottomBar"></div>
 
 <script>
@@ -136,18 +190,12 @@ const W = 620, H = 480;
 canvas.width  = W;
 canvas.height = H;
 
-// Scale canvas to fill screen while keeping aspect ratio
+// Scale canvas to fill full screen — کنترل‌ها float هستن روی بازی
 function resizeCanvas() {
   const ww = window.innerWidth, wh = window.innerHeight;
-  // Reserve space for touch controls if on mobile
-  const isMobile = ('ontouchstart' in window);
-  const availH   = isMobile ? wh - 130 : wh;
-  const scale    = Math.min(ww / W, availH / H);
+  const scale = Math.min(ww / W, wh / H);
   canvas.style.width  = Math.floor(W * scale) + 'px';
   canvas.style.height = Math.floor(H * scale) + 'px';
-  // Reposition controls bar to sit right below canvas
-  const ctrl = document.getElementById('controls');
-  if (ctrl) ctrl.style.height = (isMobile ? '130px' : '0');
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -491,8 +539,7 @@ function syncControlsVisibility() {
   const ctrl = document.getElementById('controls');
   if (!ctrl) return;
   const show = state === 'playing' && ('ontouchstart' in window);
-  ctrl.style.display = show ? 'flex' : 'none';
-  if (show) resizeCanvas();
+  ctrl.style.display = show ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════
