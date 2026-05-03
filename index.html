@@ -307,18 +307,20 @@ let coins    = lsGet('coins',   0);
 let unlocks  = lsGet('unlocks', ['noob','pistol']);
 let selChar  = lsGet('char',    'noob');
 let selGun   = lsGet('gun',     'pistol');
-let selShirt = lsGet('shirt',   '#e82020');
-let selPants = lsGet('pants',   '#00329e');
-let bestScore= lsGet('best',    0);
+let selShirt  = lsGet('shirt', '#e82020');
+let selPants  = lsGet('pants', '#00329e');
+let bestScore = lsGet('best',  0);
+// unlockedColors is initialized after PALETTE is defined (see below)
 
 function saveAll() {
-  lsSet('coins',  coins);
-  lsSet('unlocks',unlocks);
-  lsSet('char',   selChar);
-  lsSet('gun',    selGun);
-  lsSet('shirt',  selShirt);
-  lsSet('pants',  selPants);
-  lsSet('best',   bestScore);
+  lsSet('coins',   coins);
+  lsSet('unlocks', unlocks);
+  lsSet('char',    selChar);
+  lsSet('gun',     selGun);
+  lsSet('shirt',   selShirt);
+  lsSet('pants',   selPants);
+  lsSet('ucolors', unlockedColors);
+  lsSet('best',    bestScore);
 }
 
 // ═══════════════════════════════════════════════
@@ -355,13 +357,24 @@ const GUNS = {
 };
 
 // ═══════════════════════════════════════════════
-//  OUTFIT PALETTE
+//  OUTFIT PALETTE  — {col, cost}  cost=0 → free
 // ═══════════════════════════════════════════════
 const PALETTE = [
-  '#e82020','#ff6600','#ffcc00','#22cc44',
-  '#00ccff','#2244dd','#9900cc','#ff44aa',
-  '#ffffff','#888888','#8B4513','#111111',
+  // Row 1 — free starter colors
+  {col:'#e82020',cost:0},  {col:'#ff6600',cost:0},  {col:'#ffcc00',cost:0},  {col:'#22cc44',cost:0},
+  {col:'#00ccff',cost:0},  {col:'#2244dd',cost:0},
+  // Row 2 — 150🪙 each
+  {col:'#9900cc',cost:150},{col:'#ff44aa',cost:150},{col:'#ffffff',cost:150},{col:'#888888',cost:150},
+  {col:'#8B4513',cost:150},{col:'#111111',cost:150},
+  // Row 3 — 300🪙 each
+  {col:'#ff0066',cost:300},{col:'#ff9900',cost:300},{col:'#aaff00',cost:300},{col:'#00ffcc',cost:300},
+  {col:'#0044ff',cost:300},{col:'#cc00ff',cost:300},
+  // Row 4 — 500🪙 each (premium)
+  {col:'#ff4488',cost:500},{col:'#ffee55',cost:500},{col:'#44ffaa',cost:500},{col:'#55aaff',cost:500},
+  {col:'#dd88ff',cost:500},{col:'#ff8855',cost:500},
 ];
+// Colors unlocked by the player (free ones always unlocked)
+let unlockedColors = lsGet('ucolors', PALETTE.filter(p=>p.cost===0).map(p=>p.col));
 
 // ═══════════════════════════════════════════════
 //  10 MAP THEMES
@@ -1587,49 +1600,105 @@ function drawShopGuns(startY){
 }
 
 function drawShopOutfit(startY){
-  // Live preview character (left side)
-  const ch=CHARS[selChar]||CHARS.noob;
-  ctx.fillStyle='#111122';
-  roundRect(10,startY,200,H-startY-10,8,'#111122','#333',1);
-  ctx.fillStyle='#888';ctx.font='11px Arial';ctx.textAlign='center';
-  ctx.fillText('PREVIEW',110,startY+20);
-  drawRobloxChar(74,startY+28,selShirt,selPants,ch.head,ch.hat,1,Math.floor(frame/20)%2,1.8);
-  ctx.fillStyle='#666';ctx.font='10px Arial';
-  ctx.fillText(CHARS[selChar].name,110,startY+175);
-  ctx.fillText(GUNS[selGun].name+' equipped',110,startY+190);
+  const ch = CHARS[selChar] || CHARS.noob;
+  const isSpecial = !!ch.special;
+
+  // ── LEFT: character preview panel ──
+  const pvW=170, pvH=H-startY-10;
+  roundRect(10,startY,pvW,pvH,10,'#0d0d1a','#334',1.5);
+  ctx.fillStyle='#aaa';ctx.font='bold 11px Arial Black';ctx.textAlign='center';
+  ctx.fillText('PREVIEW',10+pvW/2,startY+18);
+
+  // Draw selected character large
+  const previewShirt = isSpecial ? ch.shirt : selShirt;
+  const previewPants = isSpecial ? ch.pants : selPants;
+  drawCharSpecial(selChar, 10+pvW/2-20, startY+26, previewShirt, previewPants, ch.head, ch.hat, Math.floor(frame/20)%2, 1.9);
+
+  ctx.fillStyle='#ffcc00';ctx.font='bold 12px Arial Black';ctx.textAlign='center';
+  ctx.fillText(ch.name, 10+pvW/2, startY+pvH-38);
+  ctx.fillStyle='#555';ctx.font='10px Arial';
+  ctx.fillText(GUNS[selGun].name+' equipped', 10+pvW/2, startY+pvH-24);
+
+  if(isSpecial){
+    // Lock badge — special chars have fixed colors
+    roundRect(18,startY+pvH-14,pvW-16,12,4,'#220000','#ff4444',1);
+    ctx.fillStyle='#ff6666';ctx.font='bold 9px Arial Black';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🔒 FIXED COLORS — CHAR STYLE',10+pvW/2,startY+pvH-8);
+    ctx.textBaseline='alphabetic';
+  }
   ctx.textAlign='left';
 
-  // Color pickers (right side)
-  const rx=220,sw=32,sg=6,cols2=6;
+  // ── RIGHT: color picker panels ──
+  if(isSpecial){
+    // Grey out the right panel
+    roundRect(188,startY,W-196,pvH,10,'#0a0a0a','#222',1);
+    ctx.fillStyle='#444';ctx.font='bold 13px Arial Black';ctx.textAlign='center';
+    ctx.fillText('🔒 This character has a fixed outfit.',W/2+90,startY+pvH/2-10);
+    ctx.fillStyle='#333';ctx.font='11px Arial';
+    ctx.fillText('Select a non-special character to customize colors.',W/2+90,startY+pvH/2+10);
+    ctx.textAlign='left';
+    return;
+  }
 
-  ctx.fillStyle='#ffcc44';ctx.font='bold 13px Arial Black';
-  ctx.fillText('👕 Shirt Color',rx,startY+20);
-  PALETTE.forEach((c,i)=>{
-    const col=i%cols2,row=Math.floor(i/cols2);
-    const sx=rx+col*(sw+sg),sy=startY+28+row*(sw+sg);
-    shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selShirt=c;saveAll();if(P)P.shirt=c;}});
-    ctx.shadowColor=c;ctx.shadowBlur=selShirt===c?12:0;
-    roundRect(sx,sy,sw,sw,4,c,selShirt===c?'#ffffff':'#333',selShirt===c?2.5:1);
+  const rx=190, sw=30, sg=5, cols2=6;
+
+  // Shirt section
+  ctx.fillStyle='#ffcc44';ctx.font='bold 12px Arial Black';
+  ctx.fillText('👕 Shirt Color',rx,startY+18);
+  PALETTE.forEach((entry,i)=>{
+    const {col,cost}=entry;
+    const owned = unlockedColors.includes(col);
+    const colIdx=i%cols2, rowIdx=Math.floor(i/cols2);
+    const sx=rx+colIdx*(sw+sg), sy=startY+24+rowIdx*(sw+sg);
+    const isSelShirt = selShirt===col;
+    ctx.shadowColor=col;ctx.shadowBlur=isSelShirt?14:0;
+    roundRect(sx,sy,sw,sw,4,owned?col:'#1a1a1a',isSelShirt?'#fff':owned?'#333':'#444',isSelShirt?2.5:1);
     ctx.shadowBlur=0;
-    if(selShirt===c){ctx.fillStyle='#fff';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
+    if(!owned){
+      // lock icon + price
+      ctx.fillStyle='#555';ctx.font='8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🪙'+cost,sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{
+        if(coins>=cost&&!unlockedColors.includes(col)){coins-=cost;unlockedColors.push(col);saveAll();}
+      }});
+    } else {
+      if(isSelShirt){ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selShirt=col;saveAll();if(P)P.shirt=col;}});
+    }
   });
 
-  ctx.fillStyle='#ffcc44';ctx.font='bold 13px Arial Black';
-  ctx.fillText('👖 Pants Color',rx,startY+130);
-  PALETTE.forEach((c,i)=>{
-    const col=i%cols2,row=Math.floor(i/cols2);
-    const sx=rx+col*(sw+sg),sy=startY+138+row*(sw+sg);
-    shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selPants=c;saveAll();if(P)P.pants=c;}});
-    ctx.shadowColor=c;ctx.shadowBlur=selPants===c?12:0;
-    roundRect(sx,sy,sw,sw,4,c,selPants===c?'#ffffff':'#333',selPants===c?2.5:1);
+  // Pants section
+  const pantsY = startY+24+Math.ceil(PALETTE.length/cols2)*(sw+sg)+14;
+  ctx.fillStyle='#ffcc44';ctx.font='bold 12px Arial Black';
+  ctx.fillText('👖 Pants Color',rx,pantsY-4);
+  PALETTE.forEach((entry,i)=>{
+    const {col,cost}=entry;
+    const owned = unlockedColors.includes(col);
+    const colIdx=i%cols2, rowIdx=Math.floor(i/cols2);
+    const sx=rx+colIdx*(sw+sg), sy=pantsY+rowIdx*(sw+sg);
+    const isSelPants = selPants===col;
+    ctx.shadowColor=col;ctx.shadowBlur=isSelPants?14:0;
+    roundRect(sx,sy,sw,sw,4,owned?col:'#1a1a1a',isSelPants?'#fff':owned?'#333':'#444',isSelPants?2.5:1);
     ctx.shadowBlur=0;
-    if(selPants===c){ctx.fillStyle='#fff';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
+    if(!owned){
+      ctx.fillStyle='#555';ctx.font='8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🪙'+cost,sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{
+        if(coins>=cost&&!unlockedColors.includes(col)){coins-=cost;unlockedColors.push(col);saveAll();}
+      }});
+    } else {
+      if(isSelPants){ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selPants=col;saveAll();if(P)P.pants=col;}});
+    }
   });
 
   // Reset button
-  shopBtn('RESET OUTFIT',rx,startY+242,180,28,'#1a0000','#ff6666',()=>{
-    selShirt='#e82020';selPants='#00329e';saveAll();if(P){P.shirt=selShirt;P.pants=selPants;}
-  });
+  const resetY = pantsY + Math.ceil(PALETTE.length/cols2)*(sw+sg)+6;
+  if(resetY < H-14){
+    shopBtn('↺ RESET',rx,resetY,100,24,'#1a0000','#ff6666',()=>{
+      selShirt='#e82020';selPants='#00329e';saveAll();if(P){P.shirt=selShirt;P.pants=selPants;}
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════
