@@ -252,12 +252,21 @@ async function saveScore(score, wave) {
 
 async function loadLeaderboard() {
   if (!GAME_CFG.slug) return;
+  // Fetch more rows so we can deduplicate — keep only best score per player
   const { data } = await sb.from('scores')
     .select('player_name, score, wave')
     .eq('game_slug', GAME_CFG.slug)
     .order('score', { ascending: false })
-    .limit(10);
-  leaderboardData = data || [];
+    .limit(100);
+  // Deduplicate: one entry per player, highest score wins
+  const best = new Map();
+  for (const row of (data || [])) {
+    const prev = best.get(row.player_name);
+    if (!prev || row.score > prev.score) best.set(row.player_name, row);
+  }
+  leaderboardData = [...best.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
 }
 
 // ═══════════════════════════════════════════════
@@ -1242,7 +1251,7 @@ function drawGameOver(){
   } else if(GAME_CFG.slug) {
     roundRect(10,208,W-20,40,10,'#0a0a1a','#00b4d822',1);
     ctx.fillStyle='#555';ctx.font='11px Arial';
-    ctx.fillText('در حال بارگذاری leaderboard...', W/2, 233);
+    ctx.fillText('Loading leaderboard...', W/2, 233);
   }
 
   // ── BUTTONS ── همیشه ثابت پایین صفحه
