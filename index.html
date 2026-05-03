@@ -536,7 +536,8 @@ function spawnGuaranteedReward(){
 // ═══════════════════════════════════════════════
 const keys={};
 document.addEventListener('keydown',e=>{
-  keys[e.code]=true;
+  // فقط توی playing کلیدها رو ثبت کن
+  if(state==='playing') keys[e.code]=true;
   if(state==='title'   &&(e.code==='Space'||e.code==='Enter')) startGame();
   if(state==='gameover'&&(e.code==='Space'||e.code==='Enter')) goToShop();
   if(state==='gameover'&&e.code==='KeyR') startGame();
@@ -560,10 +561,11 @@ function handleCanvasInteract(cx, cy) {
   if (state === 'gameover') handleGameOverClick(cx, cy);
 }
 function handleGameOverClick(mx, my) {
-  // SHOP button area
-  if (mx > W/2-120 && mx < W/2+120 && my > 312 && my < 372) goToShop();
-  // PLAY AGAIN button area
-  if (mx > W/2-80  && mx < W/2+80  && my > 385 && my < 425) startGame();
+  const btnY = GAME_CFG.slug ? 420 : 220;
+  // GO TO SHOP button
+  if (mx > W/2-110 && mx < W/2+110 && my > btnY && my < btnY+46) goToShop();
+  // PLAY AGAIN button
+  if (mx > W/2-80  && mx < W/2+80  && my > btnY+56 && my < btnY+92) startGame();
 }
 canvas.addEventListener('click', e => {
   const {x, y} = canvasCoords(e.clientX, e.clientY);
@@ -659,6 +661,8 @@ function killTarget(){    return level; }
 //  GAME FLOW
 // ═══════════════════════════════════════════════
 function startGame(){
+  // پاک کردن همه کلیدها تا از صفحه قبل چیزی نمونه
+  Object.keys(keys).forEach(k => keys[k] = false);
   // اگه slug داره و اسم نداره → صفحه اسم نشون بده
   if(GAME_CFG.slug && !playerName){
     state='enterName';
@@ -680,6 +684,7 @@ function startGame(){
 }
 
 function goToShop(){
+  Object.keys(keys).forEach(k => keys[k] = false);
   syncControlsVisibility();
   // Give end-of-run coins bonus from score
   const bonus=Math.floor(score/80);
