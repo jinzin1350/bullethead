@@ -1090,12 +1090,21 @@ function drawHUD(){
   if(pct>0)roundRect(bx,34,bw*pct,7,4,th.ambientC,'');
   ctx.shadowBlur=0;ctx.fillStyle='#aaa';ctx.font='9px Arial';ctx.textAlign='left';
   ctx.fillText(killsThisLevel+'/'+kt+' kills',bx,47);
-  // Lives
+  // Player name (top-right corner)
+  if(playerName){
+    ctx.textAlign='right';
+    ctx.shadowColor='#00b4d8';ctx.shadowBlur=8;
+    ctx.fillStyle='#00b4d8';ctx.font='bold 11px Arial Black';
+    ctx.fillText('👤 '+playerName, W-8, 14);
+    ctx.shadowBlur=0;
+  }
+  // Lives (below name if name exists, otherwise centered vertically)
   ctx.textAlign='right';
+  const heartsY = playerName ? 36 : 27;
   for(let i=0;i<Math.max(0,P.lives);i++){
-    const hx=W-10-i*21;ctx.font='17px Arial';
+    const hx=W-10-i*21;ctx.font='14px Arial';
     ctx.fillStyle=i<3?'#ff4466':'#ffaa00';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
-    ctx.fillText('♥',hx,27);
+    ctx.fillText('♥',hx,heartsY);
   }
   ctx.shadowBlur=0;
   // Powerup bar
