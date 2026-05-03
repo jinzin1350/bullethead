@@ -309,6 +309,8 @@ let selChar  = lsGet('char',    'noob');
 let selGun   = lsGet('gun',     'pistol');
 let selShirt  = lsGet('shirt', '#e82020');
 let selPants  = lsGet('pants', '#00329e');
+let selHat    = lsGet('hat',   '#333333');
+let selShoes  = lsGet('shoes', '#001a66');
 let bestScore = lsGet('best',  0);
 // unlockedColors is initialized after PALETTE is defined (see below)
 
@@ -319,6 +321,8 @@ function saveAll() {
   lsSet('gun',     selGun);
   lsSet('shirt',   selShirt);
   lsSet('pants',   selPants);
+  lsSet('hat',     selHat);
+  lsSet('shoes',   selShoes);
   lsSet('ucolors', unlockedColors);
   lsSet('best',    bestScore);
 }
@@ -453,9 +457,6 @@ rebuildStars();
 // ═══════════════════════════════════════════════
 function makePlayer(){
   const ch = CHARS[selChar] || CHARS.noob;
-  // Special chars use their own fixed colors; normal chars use outfit selection
-  const shirt = ch.special ? ch.shirt : selShirt;
-  const pants = ch.special ? ch.pants : selPants;
   return {
     x:290,y:395,w:24,h:36,
     vx:0,vy:0,onGround:false,facing:1,
@@ -464,10 +465,11 @@ function makePlayer(){
     shield:0,
     dead:false,deathTimer:0,
     walkFrame:0,walkTimer:0,
-    head: ch.head,
-    hat:  ch.hat,
-    shirt,
-    pants,
+    head:  ch.head,
+    shirt: selShirt,
+    pants: selPants,
+    hat:   selHat,
+    shoes: selShoes,
     gunType: selGun,
   };
 }
@@ -608,6 +610,11 @@ function handleGameOverClick(mx, my) {
   // PLAY AGAIN
   if (mx > W/2-90  && mx < W/2+90  && my > btnY+50 && my < btnY+88) startGame();
 }
+let mouseX=0,mouseY=0;
+canvas.addEventListener('mousemove', e => {
+  const {x,y}=canvasCoords(e.clientX,e.clientY);
+  mouseX=x;mouseY=y;
+});
 canvas.addEventListener('click', e => {
   const {x, y} = canvasCoords(e.clientX, e.clientY);
   handleCanvasInteract(x, y);
@@ -926,8 +933,9 @@ function roundRect(x,y,w,h,r,fill,stroke,lw){
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1.5;ctx.stroke();}
 }
 
-function drawRobloxChar(ox,oy,shirt,pants,headC,hatC,facing,walkFrame,scale,flash){
+function drawRobloxChar(ox,oy,shirt,pants,headC,hatC,facing,walkFrame,scale,flash,shoesC){
   scale=scale||1;flash=flash||false;
+  const shoeCol = shoesC||'#001a66';
   ctx.save();
   ctx.translate(ox+(facing>0?0:24*scale),oy);ctx.scale(facing*scale,scale);
   const s=c=>flash?'#ffffff':c;
@@ -937,8 +945,8 @@ function drawRobloxChar(ox,oy,shirt,pants,headC,hatC,facing,walkFrame,scale,flas
   ctx.fillStyle=flash?'#fff':'#111';ctx.fillRect(7,6,2,2);ctx.fillRect(15,6,2,2);
   ctx.strokeStyle=flash?'#fff':'#555';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(12,13,3,0.2,Math.PI-0.2);ctx.stroke();
-  // Hat
-  ctx.fillStyle=s(hatC||shirt);ctx.fillRect(2,-7,20,7);ctx.fillRect(5,-10,14,4);
+  // Hat (only draw if hatC provided)
+  if(hatC){ ctx.fillStyle=s(hatC);ctx.fillRect(2,-7,20,7);ctx.fillRect(5,-10,14,4); }
   // Torso
   roundRect(2,18,20,18,2,s(shirt),'#00000033');
   // Arms
@@ -949,8 +957,9 @@ function drawRobloxChar(ox,oy,shirt,pants,headC,hatC,facing,walkFrame,scale,flas
   const lL=walkFrame?5:0,lR=walkFrame?0:5;
   roundRect(3,36,8,14+lL,2,s(pants),'#00000033');
   roundRect(13,36,8,14+lR,2,s(pants),'#00000033');
-  roundRect(3,50+lL,8,5,1,s('#001a66'),'');
-  roundRect(13,50+lR,8,5,1,s('#001a66'),'');
+  // Shoes
+  roundRect(3,50+lL,8,5,1,s(shoeCol),'');
+  roundRect(13,50+lR,8,5,1,s(shoeCol),'');
   // Gun
   roundRect(22,24,12,6,2,flash?'#fff':'#888','');
   ctx.fillStyle=flash?'#fff':'#aaa';ctx.fillRect(31,24,5,4);
@@ -1011,7 +1020,7 @@ function drawPlayer(){
     ctx.shadowBlur=0;
   }
   const ch=CHARS[selChar]||CHARS.noob;
-  drawCharSpecial(selChar,Math.round(P.x),Math.round(P.y),getShirtColor(),P.pants,P.head,ch.hat,P.walkFrame,1);
+  drawCharSpecial(selChar,Math.round(P.x),Math.round(P.y),getShirtColor(),P.pants,P.head,P.hat,P.walkFrame,1,P.shoes);
 }
 
 function drawEnemies(){
@@ -1214,9 +1223,7 @@ function drawTitle(){
 
   // Two characters (smaller, tighter)
   const ch=CHARS[selChar]||CHARS.noob;
-  const titleShirt = ch.special ? ch.shirt : selShirt;
-  const titlePants = ch.special ? ch.pants : selPants;
-  drawCharSpecial(selChar,190,122,titleShirt,titlePants,ch.head,ch.hat,Math.floor(frame/15)%2,1.15);
+  drawCharSpecial(selChar,190,122,selShirt,selPants,ch.head,selHat,Math.floor(frame/15)%2,1.15,selShoes);
   drawRobloxChar(350,122,'#00b4d8','#1a1a1a','#ffcc99',null,-1,Math.floor(frame/15)%2,1.15);
 
   // Coins + best
@@ -1376,139 +1383,96 @@ function drawShop(){
   if(shopTab==='outfit')drawShopOutfit(contentY);
 }
 
-// Draws character with special overrides for unique looks
-function drawCharSpecial(id, ox, oy, shirt, pants, headC, hatC, walkFrame, scale){
+// Draws character — all chars use player outfit (shirt/pants/hat/shoes)
+// Special chars only add face overlays on top of the base roblox body
+function drawCharSpecial(id, ox, oy, shirt, pants, headC, hatC, walkFrame, scale, shoesC){
+  const sc = scale||1;
   const ch = CHARS[id];
   const sp = ch ? ch.special : null;
-  ctx.save();
-  ctx.translate(ox,oy);
-  const s = scale||1;
 
+  // Creeper & Impostor: fully custom body shape, but still use outfit colors
   if(sp === 'creeper'){
-    // All-green blocky Creeper face
-    ctx.scale(s,s);
-    ctx.fillStyle='#44cc44'; ctx.fillRect(3,0,18,18);          // head
-    ctx.fillStyle='#226622'; ctx.fillRect(5,4,4,5); ctx.fillRect(13,4,4,5); // eyes dark
-    ctx.fillStyle='#1a4d1a'; ctx.fillRect(7,10,8,6);           // mouth
-    ctx.fillStyle='#44cc44'; ctx.fillRect(2,18,20,18);         // torso
-    ctx.fillStyle='#226622';
+    ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);
+    // head — always green face
+    ctx.fillStyle='#44cc44'; ctx.fillRect(3,0,18,18);
+    ctx.fillStyle='#226622'; ctx.fillRect(5,4,4,5);ctx.fillRect(13,4,4,5);
+    ctx.fillStyle='#1a4d1a'; ctx.fillRect(7,10,8,6);
+    // hat on top (player's hat color)
+    if(hatC){ctx.fillStyle=hatC;ctx.fillRect(2,-7,20,7);ctx.fillRect(5,-10,14,4);}
+    // body with player shirt
+    ctx.fillStyle=shirt; ctx.fillRect(2,18,20,18);
+    ctx.fillRect(-4,walkFrame?21:15,7,16);ctx.fillRect(21,walkFrame?15:21,7,16);
+    // legs with player pants
     const lL=walkFrame?5:0,lR=walkFrame?0:5;
-    ctx.fillRect(3,36,8,14+lL); ctx.fillRect(13,36,8,14+lR);  // legs
-    ctx.restore();
-    return;
+    ctx.fillStyle=pants;ctx.fillRect(3,36,8,14+lL);ctx.fillRect(13,36,8,14+lR);
+    // shoes
+    ctx.fillStyle=shoesC||selShoes||'#001a66';
+    ctx.fillRect(3,50+lL,8,5);ctx.fillRect(13,50+lR,8,5);
+    ctx.restore();return;
   }
 
   if(sp === 'impostor'){
-    // Among Us — round body, visor
-    ctx.scale(s,s);
-    ctx.fillStyle='#cc2222';
-    // body (egg shape via arc)
-    ctx.beginPath(); ctx.ellipse(12,26,11,16,0,0,Math.PI*2); ctx.fill();
-    // backpack
-    ctx.fillRect(19,14,7,18);
-    // visor
+    ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);
+    // Among Us body shape with player shirt color
+    ctx.fillStyle=shirt;
+    ctx.beginPath();ctx.ellipse(12,26,11,16,0,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(19,14,7,18); // backpack
+    // visor always cyan
     ctx.fillStyle='#88ccff';
-    ctx.beginPath(); ctx.ellipse(11,18,8,6,0,Math.PI,Math.PI*2); ctx.fill();
-    // legs
-    ctx.fillStyle='#991111';
+    ctx.beginPath();ctx.ellipse(11,18,8,6,0,Math.PI,Math.PI*2);ctx.fill();
+    // legs with pants color
+    ctx.fillStyle=pants;
     const lL=walkFrame?5:0,lR=walkFrame?0:5;
-    ctx.fillRect(4,38,7,14+lL); ctx.fillRect(13,38,7,14+lR);
-    ctx.restore();
-    return;
+    ctx.fillRect(4,38,7,14+lL);ctx.fillRect(13,38,7,14+lR);
+    // shoes
+    ctx.fillStyle=shoesC||selShoes||'#001a66';
+    ctx.fillRect(4,52+lL,7,5);ctx.fillRect(13,52+lR,7,5);
+    ctx.restore();return;
   }
 
-  if(sp === 'zombie'){
-    // Green skin, torn clothes, dark eyes
-    ctx.restore();
-    ctx.save();
-    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
-    // overlay dark eyes on zombie
-    ctx.save();
-    ctx.translate(ox+(s>0?0:24*s),oy);ctx.scale(s,s);
+  // All other chars: draw base body with player outfit, then overlay special face details
+  drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,sc,false,shoesC||selShoes);
+
+  // Face overlays for special chars
+  if(!sp) return;
+  const s2=sc;
+  ctx.save();ctx.translate(ox,oy);ctx.scale(s2,s2);
+
+  if(sp==='zombie'){
     ctx.fillStyle='#ff2200';
-    ctx.fillRect(Math.round(6),Math.round(5),4,4);
-    ctx.fillRect(Math.round(14),Math.round(5),4,4);
-    ctx.restore();
-    return;
+    ctx.fillRect(6,5,4,4);ctx.fillRect(14,5,4,4); // red zombie eyes
+    ctx.fillStyle='#224400';
+    ctx.fillRect(7,13,2,3);ctx.fillRect(10,13,2,3);ctx.fillRect(13,13,2,3); // dark teeth
   }
-
-  if(sp === 'skeleton'){
-    // White/grey with dark hollow eyes
-    ctx.restore();
-    ctx.save();
-    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
-    ctx.save();
-    ctx.translate(ox,oy);ctx.scale(s,s);
-    ctx.fillStyle='#222222';
-    ctx.fillRect(6,5,4,5); ctx.fillRect(14,5,4,5);  // hollow eyes
-    ctx.fillStyle='#444'; ctx.fillRect(7,13,2,2); ctx.fillRect(10,13,2,2); ctx.fillRect(13,13,2,2); // teeth
-    ctx.restore();
-    return;
-  }
-
-  if(sp === 'steve'){
-    // Minecraft Steve — pixelated brown face, no hat
-    ctx.scale(s,s);
-    ctx.fillStyle='#c8a882'; ctx.fillRect(3,0,18,18);   // head
-    ctx.fillStyle='#5a3d1e'; ctx.fillRect(5,4,4,4); ctx.fillRect(13,4,4,4); // eyes
-    ctx.fillStyle='#7a4f28'; ctx.fillRect(6,12,10,3);   // mouth
-    ctx.fillStyle='#3e6fa6'; ctx.fillRect(2,18,20,18);  // torso (blue shirt)
-    ctx.fillStyle='#5580b0'; ctx.fillRect(-4,18,7,16); ctx.fillRect(21,18,7,16); // arms
-    ctx.fillStyle='#2e4f8c';
-    const lL=walkFrame?5:0,lR=walkFrame?0:5;
-    ctx.fillRect(3,36,8,14+lL); ctx.fillRect(13,36,8,14+lR);  // pants
-    ctx.fillStyle='#888'; ctx.fillRect(22,24,12,6); ctx.fillStyle='#aaa'; ctx.fillRect(31,24,5,4); // gun
-    ctx.restore();
-    return;
-  }
-
-  if(sp === 'alien'){
-    // Big black eyes, slim green head
-    ctx.restore();
-    ctx.save();
-    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
-    ctx.save();
-    ctx.translate(ox,oy);ctx.scale(s,s);
+  else if(sp==='skeleton'){
     ctx.fillStyle='#111';
-    ctx.beginPath(); ctx.ellipse(8,8,4,6,0,0,Math.PI*2); ctx.fill();   // left big eye
-    ctx.beginPath(); ctx.ellipse(16,8,4,6,0,0,Math.PI*2); ctx.fill();  // right big eye
-    ctx.fillStyle='#88ffaa'; ctx.fillRect(10,14,4,2);   // thin mouth
-    ctx.restore();
-    return;
+    ctx.fillRect(6,5,4,5);ctx.fillRect(14,5,4,5); // hollow eyes
+    ctx.fillStyle='#555';
+    ctx.fillRect(7,13,2,2);ctx.fillRect(10,13,2,2);ctx.fillRect(13,13,2,2); // teeth
+  }
+  else if(sp==='steve'){
+    // Steve pixelated eyes (override default eyes)
+    ctx.fillStyle='#5a3d1e';ctx.fillRect(5,4,4,4);ctx.fillRect(13,4,4,4);
+    ctx.fillStyle='#7a4f28';ctx.fillRect(6,12,10,3); // mouth
+  }
+  else if(sp==='alien'){
+    ctx.fillStyle='#111';
+    ctx.beginPath();ctx.ellipse(8,8,4,6,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(16,8,4,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#88ffaa';ctx.fillRect(10,14,4,2);
+  }
+  else if(sp==='knight'){
+    // Helmet visor over face
+    ctx.fillStyle='#aaaaaa';ctx.fillRect(3,-2,18,10);
+    ctx.fillStyle='#333';ctx.fillRect(5,2,14,5);
+  }
+  else if(sp==='pirate'){
+    ctx.fillStyle='#111';ctx.fillRect(13,4,5,5); // eyepatch
+    ctx.strokeStyle='#111';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(11,6);ctx.lineTo(13,6);ctx.stroke();
   }
 
-  if(sp === 'knight'){
-    // Silver helmet covers head
-    ctx.restore();
-    ctx.save();
-    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
-    ctx.save();
-    ctx.translate(ox,oy);ctx.scale(s,s);
-    ctx.fillStyle='#aaaaaa';
-    ctx.fillRect(3,-7,18,25);   // full helmet
-    ctx.fillStyle='#333'; ctx.fillRect(6,6,12,5);  // visor slit
-    ctx.fillStyle='#888'; ctx.fillRect(2,-8,20,4); // helmet top plate
-    ctx.restore();
-    return;
-  }
-
-  if(sp === 'pirate'){
-    // Eyepatch on right eye
-    ctx.restore();
-    ctx.save();
-    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
-    ctx.save();
-    ctx.translate(ox,oy);ctx.scale(s,s);
-    ctx.fillStyle='#111'; ctx.fillRect(13,4,5,5);  // eyepatch
-    ctx.strokeStyle='#111'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(11,6); ctx.lineTo(13,6); ctx.stroke(); // patch string
-    ctx.restore();
-    return;
-  }
-
-  // Default fallback
   ctx.restore();
-  drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
 }
 
 function drawShopChars(startY){
@@ -1527,10 +1491,8 @@ function drawShopChars(startY){
       roundRect(cx,cy,cardW,cardH,8,'','#ffcc00',2.5);ctx.shadowBlur=0;
     }
 
-    // Character preview — use char's own shirt/pants color
-    const previewShirt = ch.shirt || selShirt;
-    const previewPants = ch.pants || selPants;
-    drawCharSpecial(id, cx+cardW/2-12, cy+8, previewShirt, previewPants, ch.head, ch.hat, Math.floor(frame/20)%2, 0.88);
+    // Character preview — always use player's current outfit
+    drawCharSpecial(id, cx+cardW/2-12, cy+8, selShirt, selPants, ch.head, selHat, Math.floor(frame/20)%2, 0.88, selShoes);
 
     // Name
     ctx.fillStyle=selected?'#ffcc00':owned?'#fff':'#888';
@@ -1599,104 +1561,118 @@ function drawShopGuns(startY){
   });
 }
 
+let outfitTab = 'shirt'; // 'shirt'|'pants'|'hat'|'shoes'
+
 function drawShopOutfit(startY){
   const ch = CHARS[selChar] || CHARS.noob;
-  const isSpecial = !!ch.special;
+  const pvW=178, pvH=H-startY-10;
+  const rx=pvW+18, rw=W-rx-8;
 
-  // ── LEFT: character preview panel ──
-  const pvW=170, pvH=H-startY-10;
-  roundRect(10,startY,pvW,pvH,10,'#0d0d1a','#334',1.5);
-  ctx.fillStyle='#aaa';ctx.font='bold 11px Arial Black';ctx.textAlign='center';
-  ctx.fillText('PREVIEW',10+pvW/2,startY+18);
+  // ── LEFT: live character preview ──
+  roundRect(8,startY,pvW,pvH,10,'#0d0d1a','#2a2a4a',1.5);
+  ctx.fillStyle='#888';ctx.font='bold 10px Arial Black';ctx.textAlign='center';
+  ctx.fillText('PREVIEW',8+pvW/2,startY+14);
 
-  // Draw selected character large
-  const previewShirt = isSpecial ? ch.shirt : selShirt;
-  const previewPants = isSpecial ? ch.pants : selPants;
-  drawCharSpecial(selChar, 10+pvW/2-20, startY+26, previewShirt, previewPants, ch.head, ch.hat, Math.floor(frame/20)%2, 1.9);
+  // Detect which slot is hovered for preview
+  let hShirt=selShirt,hPants=selPants,hHat=selHat,hShoes=selShoes;
+  // (hover colors set inside palette loop below)
 
-  ctx.fillStyle='#ffcc00';ctx.font='bold 12px Arial Black';ctx.textAlign='center';
-  ctx.fillText(ch.name, 10+pvW/2, startY+pvH-38);
-  ctx.fillStyle='#555';ctx.font='10px Arial';
-  ctx.fillText(GUNS[selGun].name+' equipped', 10+pvW/2, startY+pvH-24);
+  drawCharSpecial(selChar, 8+pvW/2-18, startY+20, hShirt, hPants, ch.head, hHat, Math.floor(frame/20)%2, 1.75, hShoes);
 
-  if(isSpecial){
-    // Lock badge — special chars have fixed colors
-    roundRect(18,startY+pvH-14,pvW-16,12,4,'#220000','#ff4444',1);
-    ctx.fillStyle='#ff6666';ctx.font='bold 9px Arial Black';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('🔒 FIXED COLORS — CHAR STYLE',10+pvW/2,startY+pvH-8);
-    ctx.textBaseline='alphabetic';
-  }
+  ctx.fillStyle='#ffcc00';ctx.font='bold 11px Arial Black';ctx.textAlign='center';
+  ctx.fillText(ch.name, 8+pvW/2, startY+pvH-26);
+  ctx.fillStyle='#444';ctx.font='9px Arial';
+  ctx.fillText(GUNS[selGun].name+' equipped', 8+pvW/2, startY+pvH-13);
   ctx.textAlign='left';
 
-  // ── RIGHT: color picker panels ──
-  if(isSpecial){
-    // Grey out the right panel
-    roundRect(188,startY,W-196,pvH,10,'#0a0a0a','#222',1);
-    ctx.fillStyle='#444';ctx.font='bold 13px Arial Black';ctx.textAlign='center';
-    ctx.fillText('🔒 This character has a fixed outfit.',W/2+90,startY+pvH/2-10);
-    ctx.fillStyle='#333';ctx.font='11px Arial';
-    ctx.fillText('Select a non-special character to customize colors.',W/2+90,startY+pvH/2+10);
+  // ── OUTFIT SLOT TABS (top of right panel) ──
+  const slotTabs=[['👕','shirt'],['👖','pants'],['🎩','hat'],['👟','shoes']];
+  const tabW=Math.floor(rw/4)-2;
+  slotTabs.forEach(([icon,id],i)=>{
+    const tx=rx+i*(tabW+3),ty=startY,th2=26;
+    const active=outfitTab===id;
+    shopZones.push({x:tx,y:ty,w:tabW,h:th2,action:()=>{outfitTab=id;}});
+    roundRect(tx,ty,tabW,th2,6,active?'#1a2a44':'#0a0a1a','#00b4d8'+(active?'ff':'44'),active?2:1);
+    ctx.fillStyle=active?'#fff':'#556';ctx.font=active?'bold 12px Arial':'11px Arial';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(icon+' '+id.toUpperCase(),tx+tabW/2,ty+th2/2);
+    ctx.textBaseline='alphabetic';ctx.textAlign='left';
+  });
+
+  // ── PALETTE GRID for active slot ──
+  const sw=30,sg=5,cols2=6;
+  const gridY=startY+32;
+  let curSel, onSelect, label;
+  if(outfitTab==='shirt') { curSel=selShirt; label='👕 Shirt Color'; onSelect=c=>{selShirt=c;if(P)P.shirt=c;}; }
+  else if(outfitTab==='pants'){ curSel=selPants; label='👖 Pants Color'; onSelect=c=>{selPants=c;if(P)P.pants=c;}; }
+  else if(outfitTab==='hat')  { curSel=selHat;   label='🎩 Hat Color';   onSelect=c=>{selHat=c;if(P)P.hat=c;}; }
+  else                        { curSel=selShoes;  label='👟 Shoes Color'; onSelect=c=>{selShoes=c;if(P)P.shoes=c;}; }
+
+  ctx.fillStyle='#ffcc44';ctx.font='bold 11px Arial Black';
+  ctx.fillText(label, rx, gridY-2);
+
+  // Track hovered swatch for live preview
+  let hoveredCol = null;
+  PALETTE.forEach((entry,i)=>{
+    const {col,cost}=entry;
+    const owned=unlockedColors.includes(col);
+    const ci=i%cols2, ri=Math.floor(i/cols2);
+    const sx=rx+ci*(sw+sg), sy=gridY+6+ri*(sw+sg);
+    const isSelected=curSel===col;
+    const isHovered=mouseX>=sx&&mouseX<=sx+sw&&mouseY>=sy&&mouseY<=sy+sw;
+    if(isHovered&&owned) hoveredCol=col;
+
+    ctx.shadowColor=col;ctx.shadowBlur=(isSelected||isHovered)&&owned?14:0;
+    roundRect(sx,sy,sw,sw,5,owned?col:'#111',isSelected?'#fff':isHovered&&owned?'#ffffffaa':'#333',isSelected?2.5:isHovered&&owned?2:1);
+    ctx.shadowBlur=0;
+
+    if(!owned){
+      // Price tag
+      ctx.fillStyle='#555';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🪙'+cost,sx+sw/2,sy+sw/2-3);
+      ctx.fillStyle='#333';ctx.font='7px Arial';
+      ctx.fillText('TAP',sx+sw/2,sy+sw/2+6);
+      ctx.textBaseline='alphabetic';ctx.textAlign='left';
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{
+        if(coins>=cost&&!unlockedColors.includes(col)){
+          coins-=cost;unlockedColors.push(col);
+          onSelect(col);saveAll();
+        }
+      }});
+    } else {
+      if(isSelected){
+        ctx.fillStyle='#fff';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
+      }
+      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{onSelect(col);saveAll();}});
+    }
+  });
+
+  // Apply hover preview to the char on the left (re-draw over it)
+  if(hoveredCol){
+    let hs=selShirt,hp=selPants,hh=selHat,hsh=selShoes;
+    if(outfitTab==='shirt') hs=hoveredCol;
+    else if(outfitTab==='pants') hp=hoveredCol;
+    else if(outfitTab==='hat')   hh=hoveredCol;
+    else                         hsh=hoveredCol;
+    // redraw preview with hover color
+    roundRect(8,startY,pvW,pvH,10,'#0d0d1a','#2a2a4a',1.5);
+    ctx.fillStyle='#00e5ff';ctx.font='bold 10px Arial Black';ctx.textAlign='center';
+    ctx.fillText('PREVIEW',8+pvW/2,startY+14);
+    drawCharSpecial(selChar, 8+pvW/2-18, startY+20, hs, hp, ch.head, hh, Math.floor(frame/20)%2, 1.75, hsh);
+    ctx.fillStyle='#ffcc00';ctx.font='bold 11px Arial Black';ctx.textAlign='center';
+    ctx.fillText(ch.name, 8+pvW/2, startY+pvH-26);
+    ctx.fillStyle='#444';ctx.font='9px Arial';
+    ctx.fillText(GUNS[selGun].name+' equipped', 8+pvW/2, startY+pvH-13);
     ctx.textAlign='left';
-    return;
   }
 
-  const rx=190, sw=30, sg=5, cols2=6;
-
-  // Shirt section
-  ctx.fillStyle='#ffcc44';ctx.font='bold 12px Arial Black';
-  ctx.fillText('👕 Shirt Color',rx,startY+18);
-  PALETTE.forEach((entry,i)=>{
-    const {col,cost}=entry;
-    const owned = unlockedColors.includes(col);
-    const colIdx=i%cols2, rowIdx=Math.floor(i/cols2);
-    const sx=rx+colIdx*(sw+sg), sy=startY+24+rowIdx*(sw+sg);
-    const isSelShirt = selShirt===col;
-    ctx.shadowColor=col;ctx.shadowBlur=isSelShirt?14:0;
-    roundRect(sx,sy,sw,sw,4,owned?col:'#1a1a1a',isSelShirt?'#fff':owned?'#333':'#444',isSelShirt?2.5:1);
-    ctx.shadowBlur=0;
-    if(!owned){
-      // lock icon + price
-      ctx.fillStyle='#555';ctx.font='8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🪙'+cost,sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
-      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{
-        if(coins>=cost&&!unlockedColors.includes(col)){coins-=cost;unlockedColors.push(col);saveAll();}
-      }});
-    } else {
-      if(isSelShirt){ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
-      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selShirt=col;saveAll();if(P)P.shirt=col;}});
-    }
-  });
-
-  // Pants section
-  const pantsY = startY+24+Math.ceil(PALETTE.length/cols2)*(sw+sg)+14;
-  ctx.fillStyle='#ffcc44';ctx.font='bold 12px Arial Black';
-  ctx.fillText('👖 Pants Color',rx,pantsY-4);
-  PALETTE.forEach((entry,i)=>{
-    const {col,cost}=entry;
-    const owned = unlockedColors.includes(col);
-    const colIdx=i%cols2, rowIdx=Math.floor(i/cols2);
-    const sx=rx+colIdx*(sw+sg), sy=pantsY+rowIdx*(sw+sg);
-    const isSelPants = selPants===col;
-    ctx.shadowColor=col;ctx.shadowBlur=isSelPants?14:0;
-    roundRect(sx,sy,sw,sw,4,owned?col:'#1a1a1a',isSelPants?'#fff':owned?'#333':'#444',isSelPants?2.5:1);
-    ctx.shadowBlur=0;
-    if(!owned){
-      ctx.fillStyle='#555';ctx.font='8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🪙'+cost,sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
-      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{
-        if(coins>=cost&&!unlockedColors.includes(col)){coins-=cost;unlockedColors.push(col);saveAll();}
-      }});
-    } else {
-      if(isSelPants){ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✓',sx+sw/2,sy+sw/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
-      shopZones.push({x:sx,y:sy,w:sw,h:sw,action:()=>{selPants=col;saveAll();if(P)P.pants=col;}});
-    }
-  });
-
   // Reset button
-  const resetY = pantsY + Math.ceil(PALETTE.length/cols2)*(sw+sg)+6;
-  if(resetY < H-14){
-    shopBtn('↺ RESET',rx,resetY,100,24,'#1a0000','#ff6666',()=>{
-      selShirt='#e82020';selPants='#00329e';saveAll();if(P){P.shirt=selShirt;P.pants=selPants;}
+  const resetY=gridY+6+Math.ceil(PALETTE.length/cols2)*(sw+sg)+8;
+  if(resetY+24<H-4){
+    shopBtn('↺ RESET ALL',rx,resetY,110,24,'#1a0000','#ff6666',()=>{
+      selShirt='#e82020';selPants='#00329e';selHat='#333333';selShoes='#001a66';
+      saveAll();if(P){P.shirt=selShirt;P.pants=selPants;P.hat=selHat;P.shoes=selShoes;}
     });
   }
 }
