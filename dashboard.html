@@ -32,13 +32,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 16px;
     }
     .login-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 40px;
-      width: 380px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 380px;
       box-shadow: 0 0 40px #00b4d822;
     }
     .login-card h1 {
@@ -54,12 +56,12 @@
       text-align: center;
       color: var(--muted);
       font-size: 13px;
-      margin-bottom: 30px;
+      margin-bottom: 28px;
     }
-    .field { margin-bottom: 18px; }
+    .field { margin-bottom: 16px; }
     .field label {
       display: block;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--muted);
       margin-bottom: 6px;
@@ -68,12 +70,12 @@
     }
     .field input {
       width: 100%;
-      padding: 12px 14px;
+      padding: 13px 14px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       transition: border-color 0.2s;
     }
@@ -109,26 +111,35 @@
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 14px 28px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
     }
     header .logo {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 900;
       font-family: 'Arial Black', Arial, sans-serif;
       color: var(--accent);
+      white-space: nowrap;
     }
     header .user-info {
       display: flex;
       align-items: center;
-      gap: 14px;
-      font-size: 13px;
+      gap: 10px;
+      font-size: 12px;
       color: var(--muted);
+      min-width: 0;
+    }
+    header .user-email {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 160px;
     }
     .btn-logout {
-      padding: 7px 16px;
+      padding: 6px 14px;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -136,16 +147,28 @@
       font-size: 12px;
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
+    /* ── MAIN LAYOUT ── */
     .main-layout {
       display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 24px;
-      padding: 24px 28px;
-      max-width: 1200px;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1100px;
       margin: 0 auto;
+    }
+    @media (max-width: 768px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+        padding: 12px;
+        gap: 14px;
+      }
+      /* Preview panel goes below on mobile */
+      .preview-panel { order: -1; }
     }
 
     /* ── EDITOR ── */
@@ -156,9 +179,9 @@
       overflow: hidden;
     }
     .panel-header {
-      padding: 18px 22px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--accent);
     }
@@ -167,26 +190,32 @@
     .tabs {
       display: flex;
       border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab {
       flex: 1;
-      padding: 14px 10px;
+      min-width: 70px;
+      padding: 12px 8px;
       text-align: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--muted);
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
     }
     .tab:hover { color: var(--text); }
     .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-    .tab-content { display: none; padding: 22px; }
+    .tab-content { display: none; padding: 18px; }
     .tab-content.active { display: block; }
 
     /* form fields */
-    .form-group { margin-bottom: 20px; }
+    .form-group { margin-bottom: 18px; }
     .form-group label {
       display: block;
       font-size: 11px;
@@ -204,21 +233,18 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
-      font-size: 14px;
+      font-size: 15px;
       outline: none;
       transition: border-color 0.2s;
       font-family: inherit;
+      -webkit-appearance: none;
     }
     .form-group input[type="text"]:focus,
     .form-group textarea:focus { border-color: var(--accent); }
     .form-group textarea { resize: vertical; min-height: 60px; }
 
     /* color row */
-    .color-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .color-row { display: flex; align-items: center; gap: 12px; }
     .color-row input[type="color"] {
       width: 44px; height: 44px;
       padding: 2px;
@@ -226,27 +252,27 @@
       border: 1px solid var(--border);
       background: var(--card);
       cursor: pointer;
+      flex-shrink: 0;
     }
-    .color-row input[type="text"] {
-      flex: 1;
-    }
+    .color-row input[type="text"] { flex: 1; }
 
     /* grid 2 col */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
 
     .section-title {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--yellow);
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       margin-top: 4px;
     }
     .divider {
       border: none;
       border-top: 1px solid var(--border);
-      margin: 20px 0;
+      margin: 18px 0;
     }
 
     /* theme selector */
@@ -269,11 +295,58 @@
     .theme-swatch:hover  { transform: scale(1.08); }
     .theme-swatch.active { border-color: #fff; }
 
+    /* players list */
+    .player-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .player-row input {
+      flex: 1;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      -webkit-appearance: none;
+    }
+    .player-row input:focus { border-color: var(--accent); }
+    .btn-remove {
+      width: 36px; height: 36px;
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid #ff444466;
+      border-radius: 8px;
+      color: #ff4444;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-remove:hover { background: #ff444422; }
+    .btn-add-player {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px dashed var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-add-player:hover { background: #00b4d811; }
+
     /* ── PREVIEW PANEL ── */
     .preview-panel {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
     .preview-card {
       background: var(--surface);
@@ -281,13 +354,12 @@
       border-radius: 14px;
       overflow: hidden;
     }
-    .preview-card .panel-header { padding: 14px 18px; font-size: 13px; }
+    .preview-card .panel-header { padding: 13px 18px; font-size: 13px; }
 
-    /* game preview canvas */
     #preview-canvas {
       display: block;
       width: 100%;
-      height: 180px;
+      height: 170px;
       background: #0a0a18;
     }
 
@@ -306,19 +378,19 @@
     .stat-value.green { color: var(--green); }
     .stat-value.yellow { color: var(--yellow); }
 
-    /* action buttons */
+    /* action card */
     .action-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 20px;
+      padding: 18px;
     }
     .btn-create {
       width: 100%;
       padding: 16px;
       background: linear-gradient(135deg, var(--green), var(--accent));
       color: #000;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       font-family: 'Arial Black', Arial, sans-serif;
       border: none;
@@ -340,7 +412,7 @@
       border: 1px solid var(--green);
       border-radius: 10px;
     }
-    .link-box .link-label {
+    .link-label {
       font-size: 11px;
       color: var(--green);
       font-weight: 700;
@@ -348,19 +420,16 @@
       letter-spacing: 1px;
       margin-bottom: 8px;
     }
-    .link-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    .link-row { display: flex; gap: 8px; align-items: center; }
     .link-row input {
       flex: 1;
+      min-width: 0;
       padding: 9px 11px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--green);
-      font-size: 12px;
+      font-size: 11px;
       font-family: monospace;
       outline: none;
     }
@@ -375,6 +444,7 @@
       cursor: pointer;
       white-space: nowrap;
       transition: opacity 0.15s;
+      flex-shrink: 0;
     }
     .btn-copy:hover { opacity: 0.8; }
 
@@ -388,22 +458,14 @@
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       transition: background 0.12s;
+      gap: 10px;
     }
     .game-item:last-child { border-bottom: none; }
     .game-item:hover { background: var(--card); }
     .game-item-title { font-size: 14px; font-weight: 700; }
     .game-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .game-item-plays {
-      font-size: 12px;
-      color: var(--yellow);
-      font-weight: 700;
-    }
-    .empty-state {
-      padding: 30px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-    }
+    .game-item-plays { font-size: 12px; color: var(--yellow); font-weight: 700; flex-shrink: 0; }
+    .empty-state { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
 
     .toast {
       position: fixed;
@@ -419,6 +481,7 @@
       transition: transform 0.3s;
       z-index: 999;
       pointer-events: none;
+      white-space: nowrap;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
@@ -430,7 +493,6 @@
   <div class="login-card">
     <h1>🎮 BulletHead</h1>
     <div class="subtitle">Dashboard — Game Creator</div>
-
     <div class="field">
       <label>Email</label>
       <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
@@ -439,10 +501,10 @@
       <label>Password</label>
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
     </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">ورود</button>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Login</button>
     <button class="btn-primary" id="signup-btn" onclick="doSignup()"
       style="margin-top:10px;background:#1a3a1a;color:var(--green);border:1px solid var(--green);">
-      ساخت حساب جدید
+      Create Account
     </button>
     <div class="error-msg" id="login-error"></div>
   </div>
@@ -451,10 +513,10 @@
 <!-- ══════════════ DASHBOARD ══════════════ -->
 <div id="dashboard-screen">
   <header>
-    <div class="logo">🎮 BulletHead Dashboard</div>
+    <div class="logo">🎮 BulletHead</div>
     <div class="user-info">
-      <span id="user-email-display"></span>
-      <button class="btn-logout" onclick="doLogout()">خروج</button>
+      <span class="user-email" id="user-email-display"></span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
     </div>
   </header>
 
@@ -463,139 +525,128 @@
     <!-- ── EDITOR ── -->
     <div>
       <div class="editor-panel">
-        <div class="panel-header">✏️ ساخت نسخه جدید</div>
+        <div class="panel-header">✏️ Create New Game</div>
 
         <div class="tabs">
-          <div class="tab active" onclick="switchTab('game')">🎮 بازی</div>
-          <div class="tab" onclick="switchTab('chars')">🧑 شخصیت‌ها</div>
-          <div class="tab" onclick="switchTab('items')">🔫 آیتم‌ها</div>
-          <div class="tab" onclick="switchTab('theme')">🎨 تم</div>
+          <div class="tab active" onclick="switchTab('game')">🎮 Game</div>
+          <div class="tab" onclick="switchTab('chars')">🧑 Characters</div>
+          <div class="tab" onclick="switchTab('items')">🔫 Weapons</div>
+          <div class="tab" onclick="switchTab('theme')">🎨 Theme</div>
         </div>
 
-        <!-- تب ۱: بازی -->
+        <!-- Tab 1: Game -->
         <div class="tab-content active" id="tab-game">
           <div class="form-group">
-            <label>اسم بازی</label>
-            <input type="text" id="f-game-title" placeholder="مثلاً: AliWars" maxlength="30"
+            <label>Game Title</label>
+            <input type="text" id="f-game-title" placeholder="e.g. AliWars" maxlength="30"
               oninput="livePreview()"/>
           </div>
           <div class="form-group">
-            <label>پیام شروع (زیر عنوان title screen)</label>
-            <textarea id="f-msg-start" placeholder="مثلاً: ساخته شده توسط علی 😎" maxlength="60"
+            <label>Start Message (shown on title screen)</label>
+            <textarea id="f-msg-start" placeholder="e.g. Made by Ali 😎" maxlength="60"
               oninput="livePreview()"></textarea>
           </div>
           <div class="form-group">
-            <label>پیام Game Over</label>
-            <textarea id="f-msg-gameover" placeholder="مثلاً: دوباره امتحان کن!" maxlength="60"
+            <label>Game Over Message</label>
+            <textarea id="f-msg-gameover" placeholder="e.g. Try again!" maxlength="60"
               oninput="livePreview()"></textarea>
           </div>
           <div class="form-group">
-            <label>👥 بازیکن‌ها</label>
+            <label>👥 Players</label>
             <div id="players-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
-            <button onclick="addPlayer()" style="
-              width:100%;padding:10px;
-              background:transparent;
-              border:1px dashed var(--accent);
-              border-radius:8px;
-              color:var(--accent);
-              font-size:13px;font-weight:700;
-              cursor:pointer;transition:background 0.15s;
-            " onmouseover="this.style.background='#00b4d811'"
-               onmouseout="this.style.background='transparent'">
-              + اضافه کردن بازیکن
-            </button>
+            <button class="btn-add-player" onclick="addPlayer()">+ Add Player</button>
             <div style="font-size:11px;color:var(--muted);margin-top:8px;">
-              بازیکنا موقع شروع بازی اسمشون رو از dropdown انتخاب می‌کنن
+              Players will pick their name from a dropdown when the game starts.
             </div>
           </div>
         </div>
 
-        <!-- تب ۲: شخصیت‌ها -->
+        <!-- Tab 2: Characters -->
         <div class="tab-content" id="tab-chars">
           <div class="section-title">🦸 Hero</div>
           <div class="grid-2">
             <div class="form-group">
-              <label>اسم Hero</label>
-              <input type="text" id="f-hero-name" placeholder="مثلاً: علی" maxlength="20"
+              <label>Hero Name</label>
+              <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>رنگ Hero</label>
+              <label>Hero Color</label>
               <div class="color-row">
                 <input type="color" id="f-hero-color-pick" value="#e82020"
                   oninput="syncColor('hero')"/>
-                <input type="text"  id="f-hero-color" value="#e82020" maxlength="7"
+                <input type="text" id="f-hero-color" value="#e82020" maxlength="7"
                   oninput="syncColorFromText('hero')"/>
               </div>
             </div>
           </div>
 
           <hr class="divider"/>
-          <div class="section-title">👾 دشمن‌ها</div>
+          <div class="section-title">👾 Enemies</div>
           <div class="grid-2">
             <div class="form-group">
-              <label>دشمن ۱ (Drone)</label>
+              <label>Enemy 1 (Drone)</label>
               <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>دشمن ۲ (Bomber)</label>
+              <label>Enemy 2 (Bomber)</label>
               <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>دشمن ۳ (Speeder)</label>
+              <label>Enemy 3 (Speeder)</label>
               <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20"
                 oninput="livePreview()"/>
             </div>
           </div>
         </div>
 
-        <!-- تب ۳: آیتم‌ها -->
+        <!-- Tab 3: Weapons -->
         <div class="tab-content" id="tab-items">
-          <div class="section-title">🔫 اسلحه‌ها</div>
+          <div class="section-title">🔫 Weapons</div>
           <div class="grid-2">
             <div class="form-group">
-              <label>تفنگ ۱ (Pistol)</label>
+              <label>Gun 1 (Pistol)</label>
               <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>تفنگ ۲ (SMG)</label>
+              <label>Gun 2 (SMG)</label>
               <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>تفنگ ۳ (Shotgun)</label>
+              <label>Gun 3 (Shotgun)</label>
               <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>تفنگ ۴ (Sniper)</label>
+              <label>Gun 4 (Sniper)</label>
               <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20"
                 oninput="livePreview()"/>
             </div>
             <div class="form-group">
-              <label>تفنگ ۵ (Rocket)</label>
+              <label>Gun 5 (Rocket)</label>
               <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20"
                 oninput="livePreview()"/>
             </div>
           </div>
         </div>
 
-        <!-- تب ۴: تم -->
+        <!-- Tab 4: Theme -->
         <div class="tab-content" id="tab-theme">
-          <div class="section-title">🎨 تم رنگی بازی</div>
+          <div class="section-title">🎨 Color Theme</div>
           <div class="theme-grid" id="theme-grid"></div>
         </div>
 
       </div><!-- /editor-panel -->
 
-      <!-- بازی‌های من -->
-      <div class="editor-panel" style="margin-top:20px;">
-        <div class="panel-header">📋 بازی‌های من</div>
+      <!-- My Games -->
+      <div class="editor-panel" style="margin-top:16px;">
+        <div class="panel-header">📋 My Games</div>
         <div class="games-list" id="my-games-list">
-          <div class="empty-state">در حال بارگذاری...</div>
+          <div class="empty-state">Loading...</div>
         </div>
       </div>
     </div>
@@ -605,23 +656,23 @@
 
       <!-- Preview canvas -->
       <div class="preview-card">
-        <div class="panel-header">👁️ پیش‌نمایش</div>
-        <canvas id="preview-canvas" width="340" height="180"></canvas>
+        <div class="panel-header">👁️ Preview</div>
+        <canvas id="preview-canvas" width="320" height="170"></canvas>
       </div>
 
       <!-- Stats -->
       <div class="preview-card" id="stats-card" style="display:none">
-        <div class="panel-header">📊 آمار این بازی</div>
+        <div class="panel-header">📊 Game Stats</div>
         <div class="stat-row">
-          <span class="stat-label">بازی‌ها</span>
+          <span class="stat-label">Total Plays</span>
           <span class="stat-value green" id="stat-plays">0</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">بالاترین امتیاز</span>
+          <span class="stat-label">High Score</span>
           <span class="stat-value yellow" id="stat-best">—</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">آخرین بازیکن</span>
+          <span class="stat-label">Last Player</span>
           <span class="stat-value" id="stat-last">—</span>
         </div>
       </div>
@@ -629,14 +680,13 @@
       <!-- Action -->
       <div class="action-card">
         <button class="btn-create" id="create-btn" onclick="createGame()">
-          🚀 بساز و لینک بگیر!
+          🚀 Build & Get Link!
         </button>
-
         <div class="link-box" id="link-box">
-          <div class="link-label">✅ لینک بازیت آماده‌ست!</div>
+          <div class="link-label">✅ Your game link is ready!</div>
           <div class="link-row">
             <input type="text" id="game-link" readonly/>
-            <button class="btn-copy" onclick="copyLink()">کپی</button>
+            <button class="btn-copy" onclick="copyLink()">Copy</button>
           </div>
         </div>
       </div>
@@ -665,10 +715,10 @@ async function doLogin() {
   const pass  = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   const btn   = document.getElementById('login-btn');
-  if (!email || !pass) { errEl.textContent = 'ایمیل و رمز رو پر کن'; return; }
-  btn.disabled = true; btn.textContent = 'در حال ورود...';
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Logging in...';
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'ورود';
+  btn.disabled = false; btn.textContent = 'Login';
   if (error) { errEl.textContent = error.message; return; }
   showDashboard();
 }
@@ -677,12 +727,12 @@ async function doSignup() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
-  if (!email || !pass) { errEl.textContent = 'ایمیل و رمز رو پر کن'; return; }
-  if (pass.length < 6) { errEl.textContent = 'رمز باید حداقل ۶ کاراکتر باشه'; return; }
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
   const { error } = await sb.auth.signUp({ email, password: pass });
   if (error) { errEl.textContent = error.message; return; }
   errEl.style.color = 'var(--green)';
-  errEl.textContent = '✅ حساب ساخته شد! وارد شو.';
+  errEl.textContent = '✅ Account created! Please log in.';
 }
 
 async function doLogout() {
@@ -691,7 +741,6 @@ async function doLogout() {
   document.getElementById('login-screen').style.display    = 'flex';
 }
 
-// چک کن اگه session داره
 sb.auth.onAuthStateChange((event, session) => {
   if (session) showDashboard(session);
 });
@@ -745,11 +794,7 @@ function buildThemeGrid() {
     el.style.borderColor = t.id === selectedTheme ? t.accent : 'transparent';
     el.textContent = t.icon;
     el.title = t.id;
-    el.onclick = () => {
-      selectedTheme = t.id;
-      buildThemeGrid();
-      livePreview();
-    };
+    el.onclick = () => { selectedTheme = t.id; buildThemeGrid(); livePreview(); };
     grid.appendChild(el);
   });
 }
@@ -772,14 +817,7 @@ function syncColorFromText(key) {
 }
 
 // ═══════════════════════════════════════════════
-//  LIVE PREVIEW CANVAS
-// ═══════════════════════════════════════════════
-const pCanvas = document.getElementById('preview-canvas');
-const pCtx    = pCanvas.getContext('2d');
-let previewAnim = 0;
-
-// ═══════════════════════════════════════════════
-//  PLAYERS LIST MANAGER
+//  PLAYERS LIST
 // ═══════════════════════════════════════════════
 let playersList = [];
 
@@ -789,24 +827,19 @@ function renderPlayersList() {
   container.innerHTML = '';
   playersList.forEach((name, i) => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:8px;align-items:center;';
-    row.innerHTML = `
-      <input type="text" value="${name}" maxlength="20"
-        placeholder="اسم بازیکن..."
-        style="flex:1;padding:9px 12px;background:var(--card);border:1px solid var(--border);
-               border-radius:8px;color:var(--text);font-size:14px;outline:none;
-               transition:border-color 0.2s;font-family:inherit;"
-        onfocus="this.style.borderColor='var(--accent)'"
-        onblur="this.style.borderColor='var(--border)'"
-        oninput="playersList[${i}]=this.value;livePreview()"/>
-      <button onclick="removePlayer(${i})" style="
-        width:34px;height:34px;flex-shrink:0;
-        background:transparent;border:1px solid #ff444466;
-        border-radius:8px;color:#ff4444;font-size:16px;
-        cursor:pointer;transition:background 0.15s;"
-        onmouseover="this.style.background='#ff444422'"
-        onmouseout="this.style.background='transparent'">✕</button>
-    `;
+    row.className = 'player-row';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = name;
+    inp.maxLength = 20;
+    inp.placeholder = 'Player name...';
+    inp.oninput = () => { playersList[i] = inp.value; };
+    const btn = document.createElement('button');
+    btn.className = 'btn-remove';
+    btn.textContent = '✕';
+    btn.onclick = () => removePlayer(i);
+    row.appendChild(inp);
+    row.appendChild(btn);
     container.appendChild(row);
   });
 }
@@ -814,20 +847,23 @@ function renderPlayersList() {
 function addPlayer() {
   playersList.push('');
   renderPlayersList();
-  // focus روی آخرین input
   const inputs = document.getElementById('players-list').querySelectorAll('input');
-  if (inputs.length) inputs[inputs.length-1].focus();
+  if (inputs.length) inputs[inputs.length - 1].focus();
 }
 
 function removePlayer(i) {
   playersList.splice(i, 1);
   renderPlayersList();
-  livePreview();
 }
 
-function getFormConfig() {
-  const players = playersList.map(s=>s.trim()).filter(s=>s.length>0);
+// ═══════════════════════════════════════════════
+//  LIVE PREVIEW CANVAS
+// ═══════════════════════════════════════════════
+const pCanvas = document.getElementById('preview-canvas');
+const pCtx    = pCanvas.getContext('2d');
 
+function getFormConfig() {
+  const players = playersList.map(s => s.trim()).filter(s => s.length > 0);
   return {
     game_title:   document.getElementById('f-game-title').value    || 'BulletHead',
     hero_name:    document.getElementById('f-hero-name').value     || 'Hero',
@@ -856,74 +892,59 @@ function livePreview() {
   const theme = THEMES.find(t => t.id === cfg.color_theme) || THEMES[0];
   const W = pCanvas.width, H = pCanvas.height;
 
-  // bg
   const g = pCtx.createLinearGradient(0,0,0,H);
   g.addColorStop(0, theme.bg);
   g.addColorStop(1, shadeColor(theme.bg, 20));
   pCtx.fillStyle = g;
   pCtx.fillRect(0,0,W,H);
 
-  // title
   pCtx.textAlign = 'center';
   pCtx.shadowColor = theme.accent;
   pCtx.shadowBlur = 14;
   pCtx.fillStyle = theme.accent;
-  pCtx.font = 'bold 22px Arial Black';
-  pCtx.fillText(cfg.game_title, W/2, 44);
+  pCtx.font = 'bold 20px Arial Black';
+  pCtx.fillText(cfg.game_title, W/2, 38);
   pCtx.shadowBlur = 0;
 
-  // sub
   pCtx.fillStyle = '#aaa';
-  pCtx.font = '11px Arial';
-  pCtx.fillText(cfg.msg_start, W/2, 64);
+  pCtx.font = '10px Arial';
+  pCtx.fillText(cfg.msg_start, W/2, 55);
 
-  // mini hero (Roblox style simplified)
-  drawMiniHero(pCtx, W/2 - 30, 82, cfg.hero_color, theme.accent);
-
-  // hero name
+  drawMiniHero(pCtx, W/2 - 30, 68, cfg.hero_color, theme.accent);
   pCtx.fillStyle = '#fff';
-  pCtx.font = 'bold 11px Arial';
-  pCtx.fillText(cfg.hero_name, W/2 - 30 + 12, 140);
+  pCtx.font = 'bold 10px Arial';
+  pCtx.fillText(cfg.hero_name, W/2 - 30 + 12, 122);
 
-  // enemies
   const enemies = [
-    { name: cfg.enemy_names.drone,   color: '#ff4466', x: W/2 + 20 },
-    { name: cfg.enemy_names.bomber,  color: '#ff8800', x: W/2 + 60 },
-    { name: cfg.enemy_names.speeder, color: '#ff00cc', x: W/2 + 100 },
+    { name: cfg.enemy_names.drone,   color: '#ff4466', x: W/2 + 18 },
+    { name: cfg.enemy_names.bomber,  color: '#ff8800', x: W/2 + 55 },
+    { name: cfg.enemy_names.speeder, color: '#ff00cc', x: W/2 + 92 },
   ];
   enemies.forEach(e => {
-    drawMiniHero(pCtx, e.x, 82, e.color, e.color);
+    drawMiniHero(pCtx, e.x, 68, e.color, e.color);
     pCtx.fillStyle = '#888';
-    pCtx.font = '9px Arial';
-    pCtx.fillText(e.name, e.x + 12, 140);
+    pCtx.font = '8px Arial';
+    pCtx.fillText(e.name, e.x + 12, 122);
   });
 
-  // platform lines
   pCtx.strokeStyle = theme.accent + '44';
   pCtx.lineWidth = 2;
   pCtx.shadowColor = theme.accent;
-  pCtx.shadowBlur = 6;
-  [[20,155,140],[180,165,150],[20,175,W-40]].forEach(([x,y,w])=>{
+  pCtx.shadowBlur = 5;
+  [[16,134,120],[160,142,135],[16,152,W-32]].forEach(([x,y,w])=>{
     pCtx.beginPath(); pCtx.moveTo(x,y); pCtx.lineTo(x+w,y); pCtx.stroke();
   });
   pCtx.shadowBlur = 0;
-
   pCtx.textAlign = 'left';
 }
 
 function drawMiniHero(ctx, x, y, shirtColor, glowColor) {
-  // glow
-  ctx.shadowColor = glowColor; ctx.shadowBlur = 8;
-  // head
-  ctx.fillStyle = '#ffcc99';
-  ctx.fillRect(x+6, y, 12, 12);
-  // body
-  ctx.fillStyle = shirtColor;
-  ctx.fillRect(x+5, y+12, 14, 10);
-  // legs
+  ctx.shadowColor = glowColor; ctx.shadowBlur = 7;
+  ctx.fillStyle = '#ffcc99'; ctx.fillRect(x+5, y, 11, 10);
+  ctx.fillStyle = shirtColor; ctx.fillRect(x+4, y+10, 13, 9);
   ctx.fillStyle = '#333';
-  ctx.fillRect(x+5,  y+22, 5, 8);
-  ctx.fillRect(x+12, y+22, 5, 8);
+  ctx.fillRect(x+4,  y+19, 5, 7);
+  ctx.fillRect(x+11, y+19, 5, 7);
   ctx.shadowBlur = 0;
 }
 
@@ -948,16 +969,16 @@ function genSlug() {
 // ═══════════════════════════════════════════════
 async function createGame() {
   const { data: { user } } = await sb.auth.getUser();
-  if (!user) { showToast('اول وارد شو!'); return; }
+  if (!user) { showToast('Please log in first!'); return; }
 
   const cfg = getFormConfig();
-  if (!cfg.game_title.trim()) { showToast('اسم بازی رو بنویس!'); return; }
+  if (!cfg.game_title.trim()) { showToast('Please enter a game title!'); return; }
 
   const btn = document.getElementById('create-btn');
-  btn.disabled = true; btn.textContent = '⏳ در حال ساخت...';
+  btn.disabled = true; btn.textContent = '⏳ Creating...';
 
   const slug = genSlug();
-  const { error } = await sb.insert('game_configs', {
+  const { error } = await sb.from('game_configs').insert({
     user_id:      user.id,
     slug,
     game_title:   cfg.game_title,
@@ -971,14 +992,13 @@ async function createGame() {
     players:      cfg.players,
   });
 
-  btn.disabled = false; btn.textContent = '🚀 بساز و لینک بگیر!';
-
-  if (error) { showToast('خطا: ' + error.message); return; }
+  btn.disabled = false; btn.textContent = '🚀 Build & Get Link!';
+  if (error) { showToast('Error: ' + error.message); return; }
 
   const link = `${location.origin}/index.html?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('link-box').style.display = 'block';
-  showToast('✅ بازی ساخته شد!');
+  showToast('✅ Game created!');
   loadMyGames();
 }
 
@@ -996,7 +1016,7 @@ async function loadMyGames() {
 
   const el = document.getElementById('my-games-list');
   if (error || !data || data.length === 0) {
-    el.innerHTML = '<div class="empty-state">هنوز هیچ بازی نساختی 🎮</div>';
+    el.innerHTML = '<div class="empty-state">No games yet 🎮</div>';
     return;
   }
 
@@ -1004,7 +1024,7 @@ async function loadMyGames() {
     <div class="game-item" onclick="loadGame('${g.slug}')">
       <div>
         <div class="game-item-title">${g.game_title}</div>
-        <div class="game-item-meta">/${g.slug} — ${new Date(g.created_at).toLocaleDateString('fa-IR')}</div>
+        <div class="game-item-meta">/${g.slug} — ${new Date(g.created_at).toLocaleDateString('en-US')}</div>
       </div>
       <div class="game-item-plays">${g.play_count} 🎮</div>
     </div>
@@ -1018,12 +1038,12 @@ async function loadGame(slug) {
   const { data, error } = await sb.from('game_configs').select('*').eq('slug', slug).single();
   if (error || !data) return;
 
-  document.getElementById('f-game-title').value    = data.game_title;
-  document.getElementById('f-hero-name').value     = data.hero_name;
-  document.getElementById('f-hero-color').value    = data.hero_color;
-  document.getElementById('f-hero-color-pick').value = data.hero_color;
-  document.getElementById('f-msg-start').value    = data.msg_start;
-  document.getElementById('f-msg-gameover').value = data.msg_gameover;
+  document.getElementById('f-game-title').value      = data.game_title   || '';
+  document.getElementById('f-hero-name').value        = data.hero_name    || '';
+  document.getElementById('f-hero-color').value       = data.hero_color   || '#e82020';
+  document.getElementById('f-hero-color-pick').value  = data.hero_color   || '#e82020';
+  document.getElementById('f-msg-start').value        = data.msg_start    || '';
+  document.getElementById('f-msg-gameover').value     = data.msg_gameover || '';
 
   const en = data.enemy_names || {};
   document.getElementById('f-enemy-drone').value   = en.drone   || '';
@@ -1037,24 +1057,18 @@ async function loadGame(slug) {
   document.getElementById('f-gun-sniper').value  = gn.sniper  || '';
   document.getElementById('f-gun-rocket').value  = gn.rocket  || '';
 
-  selectedTheme = data.color_theme || 'default';
-
-  // لود players
   playersList = data.players || [];
   renderPlayersList();
 
+  selectedTheme = data.color_theme || 'default';
   buildThemeGrid();
   livePreview();
 
-  // نمایش link و stats
   const link = `${location.origin}/index.html?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('link-box').style.display = 'block';
-
-  // load scores
   loadStats(slug);
-
-  showToast('بازی لود شد: ' + data.game_title);
+  showToast('Loaded: ' + data.game_title);
 }
 
 async function loadStats(slug) {
@@ -1069,8 +1083,8 @@ async function loadStats(slug) {
   document.getElementById('stats-card').style.display = 'block';
   document.getElementById('stat-plays').textContent = plays.data?.play_count ?? 0;
   if (data && data.length > 0) {
-    document.getElementById('stat-best').textContent  = data[0].score;
-    document.getElementById('stat-last').textContent  = data[0].player_name;
+    document.getElementById('stat-best').textContent = data[0].score;
+    document.getElementById('stat-last').textContent = data[0].player_name;
   }
 }
 
@@ -1080,7 +1094,7 @@ async function loadStats(slug) {
 function copyLink() {
   const input = document.getElementById('game-link');
   input.select();
-  navigator.clipboard.writeText(input.value).then(() => showToast('📋 لینک کپی شد!'));
+  navigator.clipboard.writeText(input.value).then(() => showToast('📋 Link copied!'));
 }
 
 // ═══════════════════════════════════════════════
@@ -1095,11 +1109,6 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ── fix: use sb.from().insert() not sb.insert() ──
-const origInsert = sb.from.bind(sb);
-sb.insert = (table, data) => sb.from(table).insert(data);
-
-// اجرای preview اولیه
 livePreview();
 </script>
 </body>
