@@ -681,6 +681,7 @@ function startGame(){
   levelUpTimer=0;mapChangeBannerTimer=0;rewardBannerTimer=0;
   rewardTimer=0;rewardBurstTimer=0;
   gameOverCoinsEarned=0;
+  bonusGiven=false;
   currentThemeIdx=0;
   PLAT_LAYOUT=ALL_LAYOUTS[0].map(p=>({...p,isGround:!!p.isGround}));
   platLayoutIdx=0;platTransition=0;platOldLayout=platNewLayout=null;
@@ -689,22 +690,36 @@ function startGame(){
   rebuildStars();
 }
 
+let bonusGiven = false; // فقط یه بار bonus بدیم
+
 function goToShop(){
   Object.keys(keys).forEach(k => keys[k] = false);
   syncControlsVisibility();
-  // Give end-of-run coins bonus from score
-  const bonus=Math.floor(score/80);
-  if(bonus>0){
-    coins+=bonus;
-    gameOverCoinsEarned+=bonus;
-    saveAll();
+
+  // اگه از gameover صدا زده شده → مستقیم بره shop
+  if(state === 'gameover'){
+    state = 'shop';
+    shopTab = 'chars';
+    return;
   }
-  // اگه slug داره → gameover نشون بده (با leaderboard)، وگرنه مستقیم shop
+
+  // Give end-of-run coins bonus from score — فقط یه بار
+  if(!bonusGiven){
+    bonusGiven = true;
+    const bonus = Math.floor(score/80);
+    if(bonus > 0){
+      coins += bonus;
+      gameOverCoinsEarned += bonus;
+      saveAll();
+    }
+  }
+
+  // اگه slug داره → اول gameover (leaderboard) نشون بده
   if(GAME_CFG.slug){
-    state='gameover';
+    state = 'gameover';
   } else {
-    state='shop';
-    shopTab='chars';
+    state = 'shop';
+    shopTab = 'chars';
   }
 }
 
