@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BulletHead — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg:      #0a0a14;
+      --surface: #12122a;
+      --card:    #1a1a35;
+      --border:  #2a2a50;
+      --accent:  #00b4d8;
+      --green:   #00ff88;
+      --yellow:  #ffcc00;
+      --red:     #ff4444;
+      --text:    #e0e0ff;
+      --muted:   #666688;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Arial', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 380px;
+      box-shadow: 0 0 40px #00b4d822;
+    }
+    .login-card h1 {
+      font-size: 26px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      text-align: center;
+      margin-bottom: 6px;
+      color: var(--accent);
+      text-shadow: 0 0 20px #00b4d855;
+    }
+    .login-card .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #000;
+      font-size: 15px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 1px;
+    }
+    .btn-primary:hover  { opacity: 0.85; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    /* ── DASHBOARD ── */
+    #dashboard-screen { display: none; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .logo {
+      font-size: 20px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      color: var(--accent);
+    }
+    header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-logout {
+      padding: 7px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      padding: 24px 28px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── EDITOR ── */
+    .editor-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1;
+      padding: 14px 10px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content { display: none; padding: 22px; }
+    .tab-content.active { display: block; }
+
+    /* form fields */
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .form-group input[type="text"],
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 13px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+
+    /* color row */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .color-row input[type="color"] {
+      width: 44px; height: 44px;
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      cursor: pointer;
+    }
+    .color-row input[type="text"] {
+      flex: 1;
+    }
+
+    /* grid 2 col */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--yellow);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      margin-top: 4px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* theme selector */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .theme-swatch {
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .theme-swatch:hover  { transform: scale(1.08); }
+    .theme-swatch.active { border-color: #fff; }
+
+    /* ── PREVIEW PANEL ── */
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .preview-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .preview-card .panel-header { padding: 14px 18px; font-size: 13px; }
+
+    /* game preview canvas */
+    #preview-canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      background: #0a0a18;
+    }
+
+    /* stats */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--muted); }
+    .stat-value { font-weight: 700; color: var(--text); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.yellow { color: var(--yellow); }
+
+    /* action buttons */
+    .action-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .btn-create {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--green), var(--accent));
+      color: #000;
+      font-size: 16px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+    .btn-create:hover  { opacity: 0.88; }
+    .btn-create:active { transform: scale(0.97); }
+    .btn-create:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* link box */
+    .link-box {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--green);
+      border-radius: 10px;
+    }
+    .link-box .link-label {
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .link-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .link-row input {
+      flex: 1;
+      padding: 9px 11px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--green);
+      font-size: 12px;
+      font-family: monospace;
+      outline: none;
+    }
+    .btn-copy {
+      padding: 9px 14px;
+      background: var(--green);
+      color: #000;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    .btn-copy:hover { opacity: 0.8; }
+
+    /* my games list */
+    .games-list { padding: 0; }
+    .game-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .game-item:last-child { border-bottom: none; }
+    .game-item:hover { background: var(--card); }
+    .game-item-title { font-size: 14px; font-weight: 700; }
+    .game-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .game-item-plays {
+      font-size: 12px;
+      color: var(--yellow);
+      font-weight: 700;
+    }
+    .empty-state {
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #000;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: transform 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🎮 BulletHead</h1>
+    <div class="subtitle">Dashboard — Game Creator</div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">ورود</button>
+    <button class="btn-primary" id="signup-btn" onclick="doSignup()"
+      style="margin-top:10px;background:#1a3a1a;color:var(--green);border:1px solid var(--green);">
+      ساخت حساب جدید
+    </button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="dashboard-screen">
+  <header>
+    <div class="logo">🎮 BulletHead Dashboard</div>
+    <div class="user-info">
+      <span id="user-email-display"></span>
+      <button class="btn-logout" onclick="doLogout()">خروج</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- ── EDITOR ── -->
+    <div>
+      <div class="editor-panel">
+        <div class="panel-header">✏️ ساخت نسخه جدید</div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('game')">🎮 بازی</div>
+          <div class="tab" onclick="switchTab('chars')">🧑 شخصیت‌ها</div>
+          <div class="tab" onclick="switchTab('items')">🔫 آیتم‌ها</div>
+          <div class="tab" onclick="switchTab('theme')">🎨 تم</div>
+        </div>
+
+        <!-- تب ۱: بازی -->
+        <div class="tab-content active" id="tab-game">
+          <div class="form-group">
+            <label>اسم بازی</label>
+            <input type="text" id="f-game-title" placeholder="مثلاً: AliWars" maxlength="30"
+              oninput="livePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>پیام شروع (زیر عنوان title screen)</label>
+            <textarea id="f-msg-start" placeholder="مثلاً: ساخته شده توسط علی 😎" maxlength="60"
+              oninput="livePreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label>پیام Game Over</label>
+            <textarea id="f-msg-gameover" placeholder="مثلاً: دوباره امتحان کن!" maxlength="60"
+              oninput="livePreview()"></textarea>
+          </div>
+        </div>
+
+        <!-- تب ۲: شخصیت‌ها -->
+        <div class="tab-content" id="tab-chars">
+          <div class="section-title">🦸 Hero</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>اسم Hero</label>
+              <input type="text" id="f-hero-name" placeholder="مثلاً: علی" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>رنگ Hero</label>
+              <div class="color-row">
+                <input type="color" id="f-hero-color-pick" value="#e82020"
+                  oninput="syncColor('hero')"/>
+                <input type="text"  id="f-hero-color" value="#e82020" maxlength="7"
+                  oninput="syncColorFromText('hero')"/>
+              </div>
+            </div>
+          </div>
+
+          <hr class="divider"/>
+          <div class="section-title">👾 دشمن‌ها</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>دشمن ۱ (Drone)</label>
+              <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>دشمن ۲ (Bomber)</label>
+              <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>دشمن ۳ (Speeder)</label>
+              <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- تب ۳: آیتم‌ها -->
+        <div class="tab-content" id="tab-items">
+          <div class="section-title">🔫 اسلحه‌ها</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>تفنگ ۱ (Pistol)</label>
+              <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>تفنگ ۲ (SMG)</label>
+              <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>تفنگ ۳ (Shotgun)</label>
+              <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>تفنگ ۴ (Sniper)</label>
+              <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>تفنگ ۵ (Rocket)</label>
+              <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20"
+                oninput="livePreview()"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- تب ۴: تم -->
+        <div class="tab-content" id="tab-theme">
+          <div class="section-title">🎨 تم رنگی بازی</div>
+          <div class="theme-grid" id="theme-grid"></div>
+        </div>
+
+      </div><!-- /editor-panel -->
+
+      <!-- بازی‌های من -->
+      <div class="editor-panel" style="margin-top:20px;">
+        <div class="panel-header">📋 بازی‌های من</div>
+        <div class="games-list" id="my-games-list">
+          <div class="empty-state">در حال بارگذاری...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PREVIEW + ACTION ── -->
+    <div class="preview-panel">
+
+      <!-- Preview canvas -->
+      <div class="preview-card">
+        <div class="panel-header">👁️ پیش‌نمایش</div>
+        <canvas id="preview-canvas" width="340" height="180"></canvas>
+      </div>
+
+      <!-- Stats -->
+      <div class="preview-card" id="stats-card" style="display:none">
+        <div class="panel-header">📊 آمار این بازی</div>
+        <div class="stat-row">
+          <span class="stat-label">بازی‌ها</span>
+          <span class="stat-value green" id="stat-plays">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">بالاترین امتیاز</span>
+          <span class="stat-value yellow" id="stat-best">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">آخرین بازیکن</span>
+          <span class="stat-value" id="stat-last">—</span>
+        </div>
+      </div>
+
+      <!-- Action -->
+      <div class="action-card">
+        <button class="btn-create" id="create-btn" onclick="createGame()">
+          🚀 بساز و لینک بگیر!
+        </button>
+
+        <div class="link-box" id="link-box">
+          <div class="link-label">✅ لینک بازیت آماده‌ست!</div>
+          <div class="link-row">
+            <input type="text" id="game-link" readonly/>
+            <button class="btn-copy" onclick="copyLink()">کپی</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /preview-panel -->
+
+  </div><!-- /main-layout -->
+</div><!-- /dashboard-screen -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  SUPABASE INIT
+// ═══════════════════════════════════════════════
+const SUPA_URL = 'https://oshkqzxmnqvbfkuvxwbc.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+// ═══════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  if (!email || !pass) { errEl.textContent = 'ایمیل و رمز رو پر کن'; return; }
+  btn.disabled = true; btn.textContent = 'در حال ورود...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'ورود';
+  if (error) { errEl.textContent = error.message; return; }
+  showDashboard();
+}
+
+async function doSignup() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (!email || !pass) { errEl.textContent = 'ایمیل و رمز رو پر کن'; return; }
+  if (pass.length < 6) { errEl.textContent = 'رمز باید حداقل ۶ کاراکتر باشه'; return; }
+  const { error } = await sb.auth.signUp({ email, password: pass });
+  if (error) { errEl.textContent = error.message; return; }
+  errEl.style.color = 'var(--green)';
+  errEl.textContent = '✅ حساب ساخته شد! وارد شو.';
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display    = 'flex';
+}
+
+// چک کن اگه session داره
+sb.auth.onAuthStateChange((event, session) => {
+  if (session) showDashboard(session);
+});
+
+async function showDashboard(session) {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  document.getElementById('login-screen').style.display    = 'none';
+  document.getElementById('dashboard-screen').style.display = 'block';
+  document.getElementById('user-email-display').textContent = user.email;
+  loadMyGames();
+  livePreview();
+}
+
+// ═══════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['game','chars','items','theme'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+//  THEMES
+// ═══════════════════════════════════════════════
+const THEMES = [
+  { id:'default', icon:'🌿', bg:'#0a1a0a', accent:'#00ff88' },
+  { id:'ice',     icon:'❄️', bg:'#0a1020', accent:'#00c8ff' },
+  { id:'lava',    icon:'🔥', bg:'#1a0500', accent:'#ff4400' },
+  { id:'space',   icon:'🌌', bg:'#05000f', accent:'#cc44ff' },
+  { id:'desert',  icon:'🏜️', bg:'#1a1200', accent:'#ffcc00' },
+  { id:'ocean',   icon:'🌊', bg:'#001020', accent:'#0088ff' },
+  { id:'electric',icon:'⚡', bg:'#080018', accent:'#8844ff' },
+  { id:'castle',  icon:'🏰', bg:'#111118', accent:'#aaaacc' },
+  { id:'forest',  icon:'🌲', bg:'#051005', accent:'#44cc44' },
+  { id:'candy',   icon:'🍬', bg:'#1a0010', accent:'#ff44cc' },
+];
+let selectedTheme = 'default';
+
+function buildThemeGrid() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = '';
+  THEMES.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'theme-swatch' + (t.id === selectedTheme ? ' active' : '');
+    el.style.background = t.bg;
+    el.style.borderColor = t.id === selectedTheme ? t.accent : 'transparent';
+    el.textContent = t.icon;
+    el.title = t.id;
+    el.onclick = () => {
+      selectedTheme = t.id;
+      buildThemeGrid();
+      livePreview();
+    };
+    grid.appendChild(el);
+  });
+}
+buildThemeGrid();
+
+// ═══════════════════════════════════════════════
+//  COLOR SYNC
+// ═══════════════════════════════════════════════
+function syncColor(key) {
+  const pick = document.getElementById('f-' + key + '-color-pick');
+  const txt  = document.getElementById('f-' + key + '-color');
+  txt.value = pick.value;
+  livePreview();
+}
+function syncColorFromText(key) {
+  const pick = document.getElementById('f-' + key + '-color-pick');
+  const txt  = document.getElementById('f-' + key + '-color');
+  if (/^#[0-9a-fA-F]{6}$/.test(txt.value)) pick.value = txt.value;
+  livePreview();
+}
+
+// ═══════════════════════════════════════════════
+//  LIVE PREVIEW CANVAS
+// ═══════════════════════════════════════════════
+const pCanvas = document.getElementById('preview-canvas');
+const pCtx    = pCanvas.getContext('2d');
+let previewAnim = 0;
+
+function getFormConfig() {
+  return {
+    game_title:   document.getElementById('f-game-title').value    || 'BulletHead',
+    hero_name:    document.getElementById('f-hero-name').value     || 'Hero',
+    hero_color:   document.getElementById('f-hero-color').value    || '#e82020',
+    msg_start:    document.getElementById('f-msg-start').value     || 'Good luck!',
+    msg_gameover: document.getElementById('f-msg-gameover').value  || 'Game Over!',
+    enemy_names: {
+      drone:   document.getElementById('f-enemy-drone').value   || 'Drone',
+      bomber:  document.getElementById('f-enemy-bomber').value  || 'Bomber',
+      speeder: document.getElementById('f-enemy-speeder').value || 'Speeder',
+    },
+    gun_names: {
+      pistol:  document.getElementById('f-gun-pistol').value  || 'Pistol',
+      smg:     document.getElementById('f-gun-smg').value     || 'SMG',
+      shotgun: document.getElementById('f-gun-shotgun').value || 'Shotgun',
+      sniper:  document.getElementById('f-gun-sniper').value  || 'Sniper',
+      rocket:  document.getElementById('f-gun-rocket').value  || 'Rocket',
+    },
+    color_theme: selectedTheme,
+  };
+}
+
+function livePreview() {
+  const cfg = getFormConfig();
+  const theme = THEMES.find(t => t.id === cfg.color_theme) || THEMES[0];
+  const W = pCanvas.width, H = pCanvas.height;
+
+  // bg
+  const g = pCtx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, theme.bg);
+  g.addColorStop(1, shadeColor(theme.bg, 20));
+  pCtx.fillStyle = g;
+  pCtx.fillRect(0,0,W,H);
+
+  // title
+  pCtx.textAlign = 'center';
+  pCtx.shadowColor = theme.accent;
+  pCtx.shadowBlur = 14;
+  pCtx.fillStyle = theme.accent;
+  pCtx.font = 'bold 22px Arial Black';
+  pCtx.fillText(cfg.game_title, W/2, 44);
+  pCtx.shadowBlur = 0;
+
+  // sub
+  pCtx.fillStyle = '#aaa';
+  pCtx.font = '11px Arial';
+  pCtx.fillText(cfg.msg_start, W/2, 64);
+
+  // mini hero (Roblox style simplified)
+  drawMiniHero(pCtx, W/2 - 30, 82, cfg.hero_color, theme.accent);
+
+  // hero name
+  pCtx.fillStyle = '#fff';
+  pCtx.font = 'bold 11px Arial';
+  pCtx.fillText(cfg.hero_name, W/2 - 30 + 12, 140);
+
+  // enemies
+  const enemies = [
+    { name: cfg.enemy_names.drone,   color: '#ff4466', x: W/2 + 20 },
+    { name: cfg.enemy_names.bomber,  color: '#ff8800', x: W/2 + 60 },
+    { name: cfg.enemy_names.speeder, color: '#ff00cc', x: W/2 + 100 },
+  ];
+  enemies.forEach(e => {
+    drawMiniHero(pCtx, e.x, 82, e.color, e.color);
+    pCtx.fillStyle = '#888';
+    pCtx.font = '9px Arial';
+    pCtx.fillText(e.name, e.x + 12, 140);
+  });
+
+  // platform lines
+  pCtx.strokeStyle = theme.accent + '44';
+  pCtx.lineWidth = 2;
+  pCtx.shadowColor = theme.accent;
+  pCtx.shadowBlur = 6;
+  [[20,155,140],[180,165,150],[20,175,W-40]].forEach(([x,y,w])=>{
+    pCtx.beginPath(); pCtx.moveTo(x,y); pCtx.lineTo(x+w,y); pCtx.stroke();
+  });
+  pCtx.shadowBlur = 0;
+
+  pCtx.textAlign = 'left';
+}
+
+function drawMiniHero(ctx, x, y, shirtColor, glowColor) {
+  // glow
+  ctx.shadowColor = glowColor; ctx.shadowBlur = 8;
+  // head
+  ctx.fillStyle = '#ffcc99';
+  ctx.fillRect(x+6, y, 12, 12);
+  // body
+  ctx.fillStyle = shirtColor;
+  ctx.fillRect(x+5, y+12, 14, 10);
+  // legs
+  ctx.fillStyle = '#333';
+  ctx.fillRect(x+5,  y+22, 5, 8);
+  ctx.fillRect(x+12, y+22, 5, 8);
+  ctx.shadowBlur = 0;
+}
+
+function shadeColor(hex, pct) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, ((n>>16)&255) + pct);
+  const g = Math.min(255, ((n>>8)&255)  + pct);
+  const b = Math.min(255, (n&255)       + pct);
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  SLUG GENERATOR
+// ═══════════════════════════════════════════════
+function genSlug() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  CREATE GAME
+// ═══════════════════════════════════════════════
+async function createGame() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { showToast('اول وارد شو!'); return; }
+
+  const cfg = getFormConfig();
+  if (!cfg.game_title.trim()) { showToast('اسم بازی رو بنویس!'); return; }
+
+  const btn = document.getElementById('create-btn');
+  btn.disabled = true; btn.textContent = '⏳ در حال ساخت...';
+
+  const slug = genSlug();
+  const { error } = await sb.insert('game_configs', {
+    user_id:      user.id,
+    slug,
+    game_title:   cfg.game_title,
+    hero_name:    cfg.hero_name,
+    hero_color:   cfg.hero_color,
+    enemy_names:  cfg.enemy_names,
+    gun_names:    cfg.gun_names,
+    msg_start:    cfg.msg_start,
+    msg_gameover: cfg.msg_gameover,
+    color_theme:  cfg.color_theme,
+  });
+
+  btn.disabled = false; btn.textContent = '🚀 بساز و لینک بگیر!';
+
+  if (error) { showToast('خطا: ' + error.message); return; }
+
+  const link = `${location.origin}/index.html?g=${slug}`;
+  document.getElementById('game-link').value = link;
+  document.getElementById('link-box').style.display = 'block';
+  showToast('✅ بازی ساخته شد!');
+  loadMyGames();
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD MY GAMES
+// ═══════════════════════════════════════════════
+async function loadMyGames() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  const { data, error } = await sb.from('game_configs')
+    .select('slug, game_title, play_count, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  const el = document.getElementById('my-games-list');
+  if (error || !data || data.length === 0) {
+    el.innerHTML = '<div class="empty-state">هنوز هیچ بازی نساختی 🎮</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(g => `
+    <div class="game-item" onclick="loadGame('${g.slug}')">
+      <div>
+        <div class="game-item-title">${g.game_title}</div>
+        <div class="game-item-meta">/${g.slug} — ${new Date(g.created_at).toLocaleDateString('fa-IR')}</div>
+      </div>
+      <div class="game-item-plays">${g.play_count} 🎮</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD EXISTING GAME INTO EDITOR
+// ═══════════════════════════════════════════════
+async function loadGame(slug) {
+  const { data, error } = await sb.from('game_configs').select('*').eq('slug', slug).single();
+  if (error || !data) return;
+
+  document.getElementById('f-game-title').value    = data.game_title;
+  document.getElementById('f-hero-name').value     = data.hero_name;
+  document.getElementById('f-hero-color').value    = data.hero_color;
+  document.getElementById('f-hero-color-pick').value = data.hero_color;
+  document.getElementById('f-msg-start').value    = data.msg_start;
+  document.getElementById('f-msg-gameover').value = data.msg_gameover;
+
+  const en = data.enemy_names || {};
+  document.getElementById('f-enemy-drone').value   = en.drone   || '';
+  document.getElementById('f-enemy-bomber').value  = en.bomber  || '';
+  document.getElementById('f-enemy-speeder').value = en.speeder || '';
+
+  const gn = data.gun_names || {};
+  document.getElementById('f-gun-pistol').value  = gn.pistol  || '';
+  document.getElementById('f-gun-smg').value     = gn.smg     || '';
+  document.getElementById('f-gun-shotgun').value = gn.shotgun || '';
+  document.getElementById('f-gun-sniper').value  = gn.sniper  || '';
+  document.getElementById('f-gun-rocket').value  = gn.rocket  || '';
+
+  selectedTheme = data.color_theme || 'default';
+  buildThemeGrid();
+  livePreview();
+
+  // نمایش link و stats
+  const link = `${location.origin}/index.html?g=${slug}`;
+  document.getElementById('game-link').value = link;
+  document.getElementById('link-box').style.display = 'block';
+
+  // load scores
+  loadStats(slug);
+
+  showToast('بازی لود شد: ' + data.game_title);
+}
+
+async function loadStats(slug) {
+  const { data } = await sb.from('scores')
+    .select('score, player_name, created_at')
+    .eq('game_slug', slug)
+    .order('score', { ascending: false })
+    .limit(1);
+
+  const plays = await sb.from('game_configs').select('play_count').eq('slug', slug).single();
+
+  document.getElementById('stats-card').style.display = 'block';
+  document.getElementById('stat-plays').textContent = plays.data?.play_count ?? 0;
+  if (data && data.length > 0) {
+    document.getElementById('stat-best').textContent  = data[0].score;
+    document.getElementById('stat-last').textContent  = data[0].player_name;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  COPY LINK
+// ═══════════════════════════════════════════════
+function copyLink() {
+  const input = document.getElementById('game-link');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => showToast('📋 لینک کپی شد!'));
+}
+
+// ═══════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── fix: use sb.from().insert() not sb.insert() ──
+const origInsert = sb.from.bind(sb);
+sb.insert = (table, data) => sb.from(table).insert(data);
+
+// اجرای preview اولیه
+livePreview();
+</script>
+</body>
+</html>
