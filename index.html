@@ -325,12 +325,22 @@ function saveAll() {
 //  CHARACTERS
 // ═══════════════════════════════════════════════
 const CHARS = {
-  noob:    { name:'Noob',    cost:0,    head:'#ffcc99', hat:'#e82020', desc:'The classic starter.' },
-  warrior: { name:'Warrior', cost:500,  head:'#ffcc99', hat:'#333333', desc:'Battle-hardened fighter.' },
-  ninja:   { name:'Ninja',   cost:800,  head:'#222222', hat:'#1a1a1a', desc:'Silent and deadly.' },
-  robot:   { name:'Robot',   cost:1200, head:'#aabbcc', hat:'#446688', desc:'Cold. Precise. Machine.' },
-  golden:  { name:'Golden',  cost:2000, head:'#ffdd44', hat:'#ffaa00', desc:'Rich and legendary.' },
-  ghost:   { name:'Ghost',   cost:3000, head:'#ddeeff', hat:'#aaccee', desc:'Untouchable spectre.' },
+  // ── Original ──
+  noob:     { name:'Noob',      cost:0,    head:'#ffcc99', hat:'#e82020', shirt:'#e82020', pants:'#00329e', desc:'The classic starter.' },
+  warrior:  { name:'Warrior',   cost:300,  head:'#ffcc99', hat:'#333333', shirt:'#8B0000', pants:'#222222', desc:'Battle-hardened fighter.' },
+  ninja:    { name:'Ninja',     cost:500,  head:'#222222', hat:'#1a1a1a', shirt:'#111111', pants:'#111111', desc:'Silent and deadly.' },
+  robot:    { name:'Robot',     cost:800,  head:'#aabbcc', hat:'#446688', shirt:'#556677', pants:'#334455', desc:'Cold. Precise. Machine.' },
+  golden:   { name:'Golden',    cost:1200, head:'#ffdd44', hat:'#ffaa00', shirt:'#ffcc00', pants:'#cc8800', desc:'Rich and legendary.' },
+  ghost:    { name:'Ghost',     cost:1800, head:'#ddeeff', hat:'#aaccee', shirt:'#bbddff', pants:'#8899aa', desc:'Untouchable spectre.' },
+  // ── New ──
+  zombie:   { name:'Zombie',    cost:600,  head:'#6aad4a', hat:'#3a5a2a', shirt:'#4a6a3a', pants:'#2a3a1a', desc:'Risen from the dead.', special:'zombie' },
+  creeper:  { name:'Creeper',   cost:700,  head:'#44cc44', hat:null,      shirt:'#44cc44', pants:'#226622', desc:'Ssssss... BOOM!',        special:'creeper' },
+  steve:    { name:'Steve',     cost:700,  head:'#c8a882', hat:'#c8a882', shirt:'#3e6fa6', pants:'#2e4f8c', desc:'Minecraft legend.',      special:'steve' },
+  impostor: { name:'Impostor',  cost:900,  head:'#cc2222', hat:'#cc2222', shirt:'#cc2222', pants:'#991111', desc:'Sus. Very sus.',          special:'impostor' },
+  skeleton: { name:'Skeleton',  cost:1000, head:'#eeeeee', hat:'#cccccc', shirt:'#dddddd', pants:'#999999', desc:'No flesh, all fury.',    special:'skeleton' },
+  alien:    { name:'Alien',     cost:1500, head:'#55dd88', hat:'#33aa66', shirt:'#224433', pants:'#112222', desc:'Not from around here.',  special:'alien' },
+  knight:   { name:'Knight',    cost:2000, head:'#aaaaaa', hat:'#888888', shirt:'#777777', pants:'#555555', desc:'Steel and honour.',      special:'knight' },
+  pirate:   { name:'Pirate',    cost:2500, head:'#ddbb88', hat:'#111111', shirt:'#cc4400', pants:'#442200', desc:'Yarr! Plunder time.',    special:'pirate' },
 };
 
 // ═══════════════════════════════════════════════
@@ -429,7 +439,10 @@ rebuildStars();
 //  PLAYER
 // ═══════════════════════════════════════════════
 function makePlayer(){
-  const ch = CHARS[selChar];
+  const ch = CHARS[selChar] || CHARS.noob;
+  // Special chars use their own fixed colors; normal chars use outfit selection
+  const shirt = ch.special ? ch.shirt : selShirt;
+  const pants = ch.special ? ch.pants : selPants;
   return {
     x:290,y:395,w:24,h:36,
     vx:0,vy:0,onGround:false,facing:1,
@@ -440,8 +453,8 @@ function makePlayer(){
     walkFrame:0,walkTimer:0,
     head: ch.head,
     hat:  ch.hat,
-    shirt: selShirt,
-    pants: selPants,
+    shirt,
+    pants,
     gunType: selGun,
   };
 }
@@ -715,7 +728,7 @@ function goToShop(){
   // Give end-of-run coins bonus from score — فقط یه بار
   if(!bonusGiven){
     bonusGiven = true;
-    const bonus = Math.floor(score/80);
+    const bonus = Math.floor(score/40);
     if(bonus > 0){
       coins += bonus;
       gameOverCoinsEarned += bonus;
@@ -741,7 +754,7 @@ function doLevelUp(){
 function onKill(e){
   score+=e.pts; kills++; killsThisLevel++;
   // Coins per kill
-  const c=Math.ceil(e.pts/8);
+  const c=Math.ceil(e.pts/4);
   coins+=c; gameOverCoinsEarned+=c;
   saveAll();
   floatText(e.x+e.w/2,e.y,'+'+e.pts,'#ffff88');
@@ -765,7 +778,7 @@ function collectPower(p){
   burst(p.x,p.y,def.color,12);
   if(t==='life'){ if(P.lives<9)P.lives++; floatText(p.x,p.y,'+1 UP!',def.color); }
   else if(t==='bomb'){
-    for(const e of enemies){score+=e.pts;kills++;killsThisLevel++;const c=Math.ceil(e.pts/8);coins+=c;gameOverCoinsEarned+=c;burst(e.x+e.w/2,e.y+e.h/2,e.col.body,18);floatText(e.x+e.w/2,e.y,'+'+e.pts,'#ffff88');}
+    for(const e of enemies){score+=e.pts;kills++;killsThisLevel++;const c=Math.ceil(e.pts/4);coins+=c;gameOverCoinsEarned+=c;burst(e.x+e.w/2,e.y+e.h/2,e.col.body,18);floatText(e.x+e.w/2,e.y,'+'+e.pts,'#ffff88');}
     enemies=[];eBullets=[];floatText(p.x,p.y-20,'BOOM!',def.color);saveAll();
     while(killsThisLevel>=killTarget()){killsThisLevel-=killTarget();doLevelUp();}
   }
@@ -985,7 +998,7 @@ function drawPlayer(){
     ctx.shadowBlur=0;
   }
   const ch=CHARS[selChar]||CHARS.noob;
-  drawRobloxChar(Math.round(P.x),Math.round(P.y),getShirtColor(),P.pants,P.head,ch.hat,P.facing,P.walkFrame);
+  drawCharSpecial(selChar,Math.round(P.x),Math.round(P.y),getShirtColor(),P.pants,P.head,ch.hat,P.walkFrame,1);
 }
 
 function drawEnemies(){
@@ -1188,7 +1201,9 @@ function drawTitle(){
 
   // Two characters (smaller, tighter)
   const ch=CHARS[selChar]||CHARS.noob;
-  drawRobloxChar(190,122,selShirt,selPants,ch.head,ch.hat, 1,Math.floor(frame/15)%2,1.15);
+  const titleShirt = ch.special ? ch.shirt : selShirt;
+  const titlePants = ch.special ? ch.pants : selPants;
+  drawCharSpecial(selChar,190,122,titleShirt,titlePants,ch.head,ch.hat,Math.floor(frame/15)%2,1.15);
   drawRobloxChar(350,122,'#00b4d8','#1a1a1a','#ffcc99',null,-1,Math.floor(frame/15)%2,1.15);
 
   // Coins + best
@@ -1292,7 +1307,7 @@ function drawGameOver(){
 //  SHOP SCREEN
 // ═══════════════════════════════════════════════
 let shopTab = 'chars'; // 'chars' | 'guns' | 'outfit'
-const SHOP_CHAR_ORDER = ['noob','warrior','ninja','robot','golden','ghost'];
+const SHOP_CHAR_ORDER = ['noob','warrior','ninja','zombie','creeper','steve','impostor','skeleton','robot','alien','knight','pirate','golden','ghost'];
 const SHOP_GUN_ORDER  = ['pistol','smg','shotgun','sniper','rocket'];
 
 // Stores clickable zones for the shop
@@ -1348,8 +1363,143 @@ function drawShop(){
   if(shopTab==='outfit')drawShopOutfit(contentY);
 }
 
+// Draws character with special overrides for unique looks
+function drawCharSpecial(id, ox, oy, shirt, pants, headC, hatC, walkFrame, scale){
+  const ch = CHARS[id];
+  const sp = ch ? ch.special : null;
+  ctx.save();
+  ctx.translate(ox,oy);
+  const s = scale||1;
+
+  if(sp === 'creeper'){
+    // All-green blocky Creeper face
+    ctx.scale(s,s);
+    ctx.fillStyle='#44cc44'; ctx.fillRect(3,0,18,18);          // head
+    ctx.fillStyle='#226622'; ctx.fillRect(5,4,4,5); ctx.fillRect(13,4,4,5); // eyes dark
+    ctx.fillStyle='#1a4d1a'; ctx.fillRect(7,10,8,6);           // mouth
+    ctx.fillStyle='#44cc44'; ctx.fillRect(2,18,20,18);         // torso
+    ctx.fillStyle='#226622';
+    const lL=walkFrame?5:0,lR=walkFrame?0:5;
+    ctx.fillRect(3,36,8,14+lL); ctx.fillRect(13,36,8,14+lR);  // legs
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'impostor'){
+    // Among Us — round body, visor
+    ctx.scale(s,s);
+    ctx.fillStyle='#cc2222';
+    // body (egg shape via arc)
+    ctx.beginPath(); ctx.ellipse(12,26,11,16,0,0,Math.PI*2); ctx.fill();
+    // backpack
+    ctx.fillRect(19,14,7,18);
+    // visor
+    ctx.fillStyle='#88ccff';
+    ctx.beginPath(); ctx.ellipse(11,18,8,6,0,Math.PI,Math.PI*2); ctx.fill();
+    // legs
+    ctx.fillStyle='#991111';
+    const lL=walkFrame?5:0,lR=walkFrame?0:5;
+    ctx.fillRect(4,38,7,14+lL); ctx.fillRect(13,38,7,14+lR);
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'zombie'){
+    // Green skin, torn clothes, dark eyes
+    ctx.restore();
+    ctx.save();
+    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+    // overlay dark eyes on zombie
+    ctx.save();
+    ctx.translate(ox+(s>0?0:24*s),oy);ctx.scale(s,s);
+    ctx.fillStyle='#ff2200';
+    ctx.fillRect(Math.round(6),Math.round(5),4,4);
+    ctx.fillRect(Math.round(14),Math.round(5),4,4);
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'skeleton'){
+    // White/grey with dark hollow eyes
+    ctx.restore();
+    ctx.save();
+    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+    ctx.save();
+    ctx.translate(ox,oy);ctx.scale(s,s);
+    ctx.fillStyle='#222222';
+    ctx.fillRect(6,5,4,5); ctx.fillRect(14,5,4,5);  // hollow eyes
+    ctx.fillStyle='#444'; ctx.fillRect(7,13,2,2); ctx.fillRect(10,13,2,2); ctx.fillRect(13,13,2,2); // teeth
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'steve'){
+    // Minecraft Steve — pixelated brown face, no hat
+    ctx.scale(s,s);
+    ctx.fillStyle='#c8a882'; ctx.fillRect(3,0,18,18);   // head
+    ctx.fillStyle='#5a3d1e'; ctx.fillRect(5,4,4,4); ctx.fillRect(13,4,4,4); // eyes
+    ctx.fillStyle='#7a4f28'; ctx.fillRect(6,12,10,3);   // mouth
+    ctx.fillStyle='#3e6fa6'; ctx.fillRect(2,18,20,18);  // torso (blue shirt)
+    ctx.fillStyle='#5580b0'; ctx.fillRect(-4,18,7,16); ctx.fillRect(21,18,7,16); // arms
+    ctx.fillStyle='#2e4f8c';
+    const lL=walkFrame?5:0,lR=walkFrame?0:5;
+    ctx.fillRect(3,36,8,14+lL); ctx.fillRect(13,36,8,14+lR);  // pants
+    ctx.fillStyle='#888'; ctx.fillRect(22,24,12,6); ctx.fillStyle='#aaa'; ctx.fillRect(31,24,5,4); // gun
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'alien'){
+    // Big black eyes, slim green head
+    ctx.restore();
+    ctx.save();
+    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+    ctx.save();
+    ctx.translate(ox,oy);ctx.scale(s,s);
+    ctx.fillStyle='#111';
+    ctx.beginPath(); ctx.ellipse(8,8,4,6,0,0,Math.PI*2); ctx.fill();   // left big eye
+    ctx.beginPath(); ctx.ellipse(16,8,4,6,0,0,Math.PI*2); ctx.fill();  // right big eye
+    ctx.fillStyle='#88ffaa'; ctx.fillRect(10,14,4,2);   // thin mouth
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'knight'){
+    // Silver helmet covers head
+    ctx.restore();
+    ctx.save();
+    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+    ctx.save();
+    ctx.translate(ox,oy);ctx.scale(s,s);
+    ctx.fillStyle='#aaaaaa';
+    ctx.fillRect(3,-7,18,25);   // full helmet
+    ctx.fillStyle='#333'; ctx.fillRect(6,6,12,5);  // visor slit
+    ctx.fillStyle='#888'; ctx.fillRect(2,-8,20,4); // helmet top plate
+    ctx.restore();
+    return;
+  }
+
+  if(sp === 'pirate'){
+    // Eyepatch on right eye
+    ctx.restore();
+    ctx.save();
+    drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+    ctx.save();
+    ctx.translate(ox,oy);ctx.scale(s,s);
+    ctx.fillStyle='#111'; ctx.fillRect(13,4,5,5);  // eyepatch
+    ctx.strokeStyle='#111'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(11,6); ctx.lineTo(13,6); ctx.stroke(); // patch string
+    ctx.restore();
+    return;
+  }
+
+  // Default fallback
+  ctx.restore();
+  drawRobloxChar(ox,oy,shirt,pants,headC,hatC,1,walkFrame,scale,false);
+}
+
 function drawShopChars(startY){
-  const cols=3,cardW=188,cardH=168,padX=8,padY=6;
+  const cols=4,cardW=140,cardH=152,padX=6,padY=5;
   SHOP_CHAR_ORDER.forEach((id,i)=>{
     const ch=CHARS[id];
     const col=i%cols,row=Math.floor(i/cols);
@@ -1364,27 +1514,29 @@ function drawShopChars(startY){
       roundRect(cx,cy,cardW,cardH,8,'','#ffcc00',2.5);ctx.shadowBlur=0;
     }
 
-    // Character preview
-    drawRobloxChar(cx+cardW/2-20,cy+12,selShirt,selPants,ch.head,ch.hat,1,Math.floor(frame/20)%2,1.1);
+    // Character preview — use char's own shirt/pants color
+    const previewShirt = ch.shirt || selShirt;
+    const previewPants = ch.pants || selPants;
+    drawCharSpecial(id, cx+cardW/2-12, cy+8, previewShirt, previewPants, ch.head, ch.hat, Math.floor(frame/20)%2, 0.88);
 
     // Name
     ctx.fillStyle=selected?'#ffcc00':owned?'#fff':'#888';
-    ctx.font='bold 13px Arial Black';ctx.textAlign='center';
-    ctx.fillText(ch.name,cx+cardW/2,cy+cardH-66);
+    ctx.font='bold 11px Arial Black';ctx.textAlign='center';
+    ctx.fillText(ch.name,cx+cardW/2,cy+cardH-58);
     // Desc
-    ctx.fillStyle='#666';ctx.font='10px Arial';
-    ctx.fillText(ch.desc,cx+cardW/2,cy+cardH-51);
+    ctx.fillStyle='#555';ctx.font='9px Arial';
+    ctx.fillText(ch.desc,cx+cardW/2,cy+cardH-44);
 
     if(selected){
-      roundRect(cx+8,cy+cardH-42,cardW-16,28,6,'#443300','#ffcc00',1.5);
-      ctx.fillStyle='#ffcc00';ctx.font='bold 12px Arial Black';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('✓ SELECTED',cx+cardW/2,cy+cardH-28);ctx.textBaseline='alphabetic';
+      roundRect(cx+6,cy+cardH-36,cardW-12,24,6,'#443300','#ffcc00',1.5);
+      ctx.fillStyle='#ffcc00';ctx.font='bold 10px Arial Black';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('✓ SELECTED',cx+cardW/2,cy+cardH-24);ctx.textBaseline='alphabetic';
     } else if(owned){
-      shopBtn('SELECT',cx+8,cy+cardH-42,cardW-16,28,'#003300','#44ff88',()=>{
+      shopBtn('SELECT',cx+6,cy+cardH-36,cardW-12,24,'#003300','#44ff88',()=>{
         selChar=id;saveAll();P=makePlayer();
       });
     } else {
-      shopBtn('🪙 '+ch.cost,cx+8,cy+cardH-42,cardW-16,28,coins>=ch.cost?'#1a0033':'#111',coins>=ch.cost?'#cc88ff':'#444',()=>{
+      shopBtn('🪙 '+ch.cost,cx+6,cy+cardH-36,cardW-12,24,coins>=ch.cost?'#1a0033':'#111',coins>=ch.cost?'#cc88ff':'#444',()=>{
         if(coins>=ch.cost&&!unlocks.includes(id)){coins-=ch.cost;unlocks.push(id);selChar=id;saveAll();P=makePlayer();}
       });
     }
