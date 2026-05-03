@@ -1,0 +1,25 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  },
+  "routes": [
+    {
+      "route": "/dashboard",
+      "rewrite": "/dashboard.html"
+    },
+    {
+      "route": "/dashboard.html",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN"
+  },
+  "mimeTypes": {
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".css": "text/css"
+  }
+}
