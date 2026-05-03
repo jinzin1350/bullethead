@@ -567,11 +567,11 @@ function handleCanvasInteract(cx, cy) {
   }
 }
 function handleGameOverClick(mx, my) {
-  const btnY = GAME_CFG.slug ? 420 : 220;
-  // GO TO SHOP button
-  if (mx > W/2-110 && mx < W/2+110 && my > btnY && my < btnY+46) goToShop();
-  // PLAY AGAIN button
-  if (mx > W/2-80  && mx < W/2+80  && my > btnY+56 && my < btnY+92) startGame();
+  const btnY = 374;
+  // GO TO SHOP
+  if (mx > W/2-110 && mx < W/2+110 && my > btnY && my < btnY+42) goToShop();
+  // PLAY AGAIN
+  if (mx > W/2-90  && mx < W/2+90  && my > btnY+50 && my < btnY+88) startGame();
 }
 canvas.addEventListener('click', e => {
   const {x, y} = canvasCoords(e.clientX, e.clientY);
@@ -1206,16 +1206,16 @@ function drawGameOver(){
 
   // ── LEADERBOARD ──
   if(GAME_CFG.slug && leaderboardData.length > 0){
-    roundRect(10,210,W-20,200,10,'#0a0a1a','#00b4d855',1.5);
-    ctx.fillStyle='#00b4d8';ctx.font='bold 13px Arial Black';
-    ctx.fillText('🏆 LEADERBOARD',W/2,232);
+    roundRect(10,208,W-20,158,10,'#0a0a1a','#00b4d855',1.5);
+    ctx.fillStyle='#00b4d8';ctx.font='bold 12px Arial Black';
+    ctx.fillText('🏆 LEADERBOARD',W/2,226);
 
     const medals=['🥇','🥈','🥉'];
-    leaderboardData.slice(0,7).forEach((entry,i)=>{
-      const y=252+i*20;
+    leaderboardData.slice(0,6).forEach((entry,i)=>{
+      const y=244+i*19;
       const isMe = entry.player_name===playerName;
       ctx.fillStyle = isMe?'#ffcc00':i<3?'#fff':'#aaa';
-      ctx.font = isMe?'bold 12px Arial Black':'12px Arial';
+      ctx.font = isMe?'bold 11px Arial Black':'11px Arial';
       const medal = i<3?medals[i]:(i+1)+'.';
       ctx.textAlign='left';
       ctx.fillText(medal+' '+entry.player_name, 24, y);
@@ -1225,29 +1225,27 @@ function drawGameOver(){
       ctx.textAlign='center';
     });
   } else if(GAME_CFG.slug) {
-    // در حال لود
-    roundRect(10,210,W-20,50,10,'#0a0a1a','#00b4d822',1);
-    ctx.fillStyle='#555';ctx.font='12px Arial';
-    ctx.fillText('در حال بارگذاری leaderboard...', W/2, 240);
+    roundRect(10,208,W-20,40,10,'#0a0a1a','#00b4d822',1);
+    ctx.fillStyle='#555';ctx.font='11px Arial';
+    ctx.fillText('در حال بارگذاری leaderboard...', W/2, 233);
   }
 
-  const btnY = GAME_CFG.slug ? 420 : 220;
-
-  // Buttons
+  // ── BUTTONS ── همیشه ثابت پایین صفحه
+  const btnY = 374;
   const blink=Math.floor(Date.now()/480)%2===0;
   ctx.shadowColor='#ffcc00';ctx.shadowBlur=blink?14:4;
-  roundRect(W/2-110,btnY,220,46,10,blink?'#ffcc00':'#aa8800','#ffcc00',2);
+  roundRect(W/2-110,btnY,220,42,10,blink?'#ffcc00':'#aa8800','#ffcc00',2);
   ctx.shadowBlur=0;
-  ctx.fillStyle='#000';ctx.font='bold 18px Arial Black';ctx.textBaseline='middle';
-  ctx.fillText('🏪  GO TO SHOP',W/2,btnY+23);
+  ctx.fillStyle='#000';ctx.font='bold 16px Arial Black';ctx.textBaseline='middle';
+  ctx.fillText('🏪  GO TO SHOP',W/2,btnY+21);
 
-  roundRect(W/2-80,btnY+56,160,36,8,'#112211','#44ff88',1.5);
+  roundRect(W/2-90,btnY+50,180,38,8,'#112211','#44ff88',1.5);
   ctx.fillStyle='#44ff88';ctx.font='bold 14px Arial Black';
-  ctx.fillText('▶ PLAY AGAIN',W/2,btnY+74);
+  ctx.fillText('▶ PLAY AGAIN',W/2,btnY+69);
   ctx.textBaseline='alphabetic';
 
-  ctx.fillStyle='#444';ctx.font='10px Arial';
-  ctx.fillText('Tap button or press SPACE',W/2,H-10);
+  ctx.fillStyle='#333';ctx.font='10px Arial';
+  ctx.fillText('tap a button or press R to play again',W/2,H-6);
   ctx.textAlign='left';
 }
 
