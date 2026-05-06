@@ -1,8 +1,16 @@
 {
   "navigationFallback": {
-    "rewrite": "/index.html"
+    "rewrite": "/landing.html"
   },
   "routes": [
+    {
+      "route": "/",
+      "rewrite": "/landing.html"
+    },
+    {
+      "route": "/game",
+      "rewrite": "/index.html"
+    },
     {
       "route": "/dashboard",
       "rewrite": "/dashboard.html"

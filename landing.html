@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Safe, fun games for kids. No strangers, no ads, no worries. Create your own game and share with friends!"/>
+  <title>PlayZone 🎮 — Safe Games for Kids</title>
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:       #0a0a14;
+      --surface:  #12122a;
+      --card:     #1a1a35;
+      --border:   #2a2a50;
+      --cyan:     #00b4d8;
+      --green:    #00ff88;
+      --purple:   #cc44ff;
+      --yellow:   #ffcc00;
+      --pink:     #ff44aa;
+      --red:      #ff4444;
+      --text:     #e0e0ff;
+      --muted:    #8888aa;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── FLOATING EMOJIS (background) ── */
+    .floaters {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .floater {
+      position: absolute;
+      font-size: 2rem;
+      opacity: 0.07;
+      animation: floatUp linear infinite;
+      user-select: none;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(110vh) rotate(0deg);   opacity: 0; }
+      10%  { opacity: 0.07; }
+      90%  { opacity: 0.07; }
+      100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .nav-btn {
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .nav-btn:hover  { opacity: .85; }
+    .nav-btn:active { transform: scale(.96); }
+    .nav-btn.outline {
+      background: transparent;
+      border: 1.5px solid var(--cyan);
+      color: var(--cyan);
+    }
+    .nav-btn.solid {
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      color: #000;
+    }
+
+    /* ── SECTIONS WRAPPER ── */
+    section { position: relative; z-index: 1; }
+
+    /* ══════════════════════════════
+       1. HERO
+    ══════════════════════════════ */
+    .hero {
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 60px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a35;
+      border: 1px solid var(--green);
+      border-radius: 30px;
+      padding: 7px 18px;
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 700;
+      margin-bottom: 28px;
+      animation: badgePulse 2.5s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { box-shadow: 0 0 0 0 #00ff8833; }
+      50%      { box-shadow: 0 0 0 10px #00ff8800; }
+    }
+    .hero h1 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: clamp(32px, 6vw, 68px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 22px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--cyan) 50%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 30px #00b4d855);
+    }
+    .hero p.sub {
+      font-size: clamp(16px, 2.5vw, 22px);
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 14px;
+      line-height: 1.6;
+    }
+    .hero .tagline {
+      font-size: clamp(14px, 2vw, 18px);
+      color: var(--yellow);
+      font-weight: 700;
+      margin-bottom: 44px;
+      letter-spacing: .5px;
+    }
+    .hero-btns {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-hero {
+      padding: 18px 42px;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      letter-spacing: .5px;
+    }
+    .btn-hero:hover  { transform: translateY(-3px); }
+    .btn-hero:active { transform: translateY(0); }
+    .btn-hero.primary {
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      color: #000;
+      box-shadow: 0 0 30px #00ff8855, 0 8px 30px #0004;
+    }
+    .btn-hero.primary:hover { box-shadow: 0 0 50px #00ff8888, 0 10px 40px #0006; }
+    .btn-hero.secondary {
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      color: #fff;
+      box-shadow: 0 0 30px #cc44ff44, 0 8px 30px #0004;
+    }
+    .btn-hero.secondary:hover { box-shadow: 0 0 50px #cc44ff88, 0 10px 40px #0006; }
+
+    .hero-scroll {
+      margin-top: 60px;
+      color: var(--muted);
+      font-size: 13px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(8px); }
+    }
+
+    /* ══════════════════════════════
+       2. PROBLEM
+    ══════════════════════════════ */
+    .section {
+      padding: 80px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 14px;
+    }
+    .section-label.green { color: var(--green); }
+    .section-label.cyan  { color: var(--cyan); }
+    .section-label.purple{ color: var(--purple); }
+    .section-label.yellow{ color: var(--yellow); }
+
+    .section-title {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: clamp(24px, 4vw, 42px);
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 14px;
+      line-height: 1.2;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 540px;
+      margin: 0 auto 54px;
+      line-height: 1.6;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .problem-card {
+      background: #1a0808;
+      border: 1.5px solid #ff444433;
+      border-radius: 16px;
+      padding: 28px 22px;
+      text-align: center;
+      transition: transform .2s, border-color .2s;
+    }
+    .problem-card:hover { transform: translateY(-4px); border-color: var(--red); }
+    .problem-card .icon { font-size: 40px; margin-bottom: 14px; display: block; }
+    .problem-card h3 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .problem-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .divider-line {
+      border: none;
+      border-top: 1px solid var(--border);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ══════════════════════════════
+       3. SOLUTION
+    ══════════════════════════════ */
+    .solution-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .solution-card {
+      background: #071a10;
+      border: 1.5px solid #00ff8822;
+      border-radius: 16px;
+      padding: 28px 22px;
+      text-align: center;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .solution-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--green);
+      box-shadow: 0 0 30px #00ff8822;
+    }
+    .solution-card .icon { font-size: 44px; margin-bottom: 16px; display: block; }
+    .solution-card h3 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    .solution-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ══════════════════════════════
+       4. GAMES GRID
+    ══════════════════════════════ */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 22px;
+    }
+    .game-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .game-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--cyan);
+      box-shadow: 0 0 40px #00b4d822;
+    }
+    .game-card-banner {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, var(--card) 100%);
+    }
+    .game-card-body { padding: 18px 20px 22px; }
+    .game-card-title {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .game-card-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #00ff8818;
+      border: 1px solid #00ff8844;
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .game-card-desc { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 18px; }
+    .btn-play {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      color: #000;
+      font-size: 14px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      text-align: center;
+    }
+    .btn-play:hover  { opacity: .88; }
+    .btn-play:active { transform: scale(.97); }
+
+    /* Coming soon card */
+    .game-card.coming-soon {
+      border-style: dashed;
+      border-color: #2a2a50;
+      opacity: .6;
+    }
+    .game-card.coming-soon:hover {
+      opacity: .8;
+      border-color: var(--purple);
+      box-shadow: 0 0 30px #cc44ff11;
+    }
+    .game-card-banner.soon { background: #0d0d20; }
+    .btn-soon {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      border: 1.5px dashed var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    /* ══════════════════════════════
+       5. CREATE YOUR GAME
+    ══════════════════════════════ */
+    .create-section {
+      background: linear-gradient(135deg, #0d0020, #001a10);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+    .create-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 48px;
+    }
+    .step-card {
+      text-align: center;
+      padding: 30px 20px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      position: relative;
+    }
+    .step-num {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px; height: 28px;
+      background: var(--purple);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-icon { font-size: 44px; margin-bottom: 14px; display: block; }
+    .step-card h3 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 15px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .step-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .create-cta {
+      text-align: center;
+    }
+    .btn-create-big {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 52px;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 40px #cc44ff44, 0 8px 30px #0004;
+      transition: transform .15s, box-shadow .15s;
+      text-decoration: none;
+    }
+    .btn-create-big:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 60px #cc44ff88, 0 12px 40px #0006;
+    }
+    .create-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ══════════════════════════════
+       TRUST BAR
+    ══════════════════════════════ */
+    .trust-bar {
+      background: #0d0d20;
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+    }
+    .trust-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      align-items: center;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .trust-item span.icon { font-size: 18px; }
+
+    /* ══════════════════════════════
+       FOOTER
+    ══════════════════════════════ */
+    footer {
+      background: #060610;
+      border-top: 1px solid var(--border);
+      padding: 40px 24px 28px;
+      text-align: center;
+    }
+    .footer-logo {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .footer-tagline { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .footer-links a {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      transition: color .15s;
+    }
+    .footer-links a:hover { color: var(--cyan); }
+    .footer-copy {
+      color: #3a3a55;
+      font-size: 12px;
+    }
+
+    /* ══════════════════════════════
+       SCROLL ANIMATIONS
+    ══════════════════════════════ */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ══════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════ */
+    @media (max-width: 600px) {
+      .nav-links .nav-btn.outline { display: none; }
+      .btn-hero { padding: 15px 28px; font-size: 15px; }
+      .hero { padding: 60px 16px 50px; }
+      .section { padding: 60px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── FLOATING BACKGROUND EMOJIS ── -->
+<div class="floaters" aria-hidden="true" id="floaters"></div>
+
+<!-- ══════════════════════════════
+     NAV
+══════════════════════════════ -->
+<nav>
+  <div class="nav-logo">🎮 PlayZone</div>
+  <div class="nav-links">
+    <a href="/dashboard" class="nav-btn outline">🛠️ Create</a>
+    <a href="/game" class="nav-btn solid">▶ Play Now</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════
+     1. HERO
+══════════════════════════════ -->
+<section class="hero">
+  <div class="hero-badge">🛡️ 100% Safe &nbsp;·&nbsp; No Ads &nbsp;·&nbsp; No Strangers</div>
+  <h1>Games your kids will love.<br/>Safety you can trust.</h1>
+  <p class="sub">
+    A cozy corner of the internet where kids play, laugh, and create —
+    only with the friends and family <em>you</em> choose.
+  </p>
+  <p class="tagline">✨ No Roblox drama. Just pure fun.</p>
+  <div class="hero-btns">
+    <a href="/game" class="btn-hero primary">🎮 Play Now — It's Free!</a>
+    <a href="/dashboard" class="btn-hero secondary">🛠️ Create Your Own Game</a>
+  </div>
+  <div class="hero-scroll">▼ &nbsp;scroll to learn more</div>
+</section>
+
+<!-- ══════════════════════════════
+     2. PROBLEM
+══════════════════════════════ -->
+<hr class="divider-line"/>
+<div class="section fade-in">
+  <div class="section-label">😤 sound familiar?</div>
+  <h2 class="section-title">Tired of worrying about<br/><span style="color:var(--red)">Roblox?</span></h2>
+  <p class="section-sub">You're not alone. Millions of parents share the same frustrations every day.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="icon">😰</span>
+      <h3>Strangers Online</h3>
+      <p>Anyone can join, message, and interact with your child — without your knowledge.</p>
+    </div>
+    <div class="problem-card">
+      <span class="icon">🎰</span>
+      <h3>Inappropriate Content</h3>
+      <p>User-generated games with violence, gambling mechanics, and adult themes slip through filters.</p>
+    </div>
+    <div class="problem-card">
+      <span class="icon">🔒</span>
+      <h3>Security Risks</h3>
+      <p>Account hacks, phishing links, and data privacy concerns that keep parents up at night.</p>
+    </div>
+    <div class="problem-card">
+      <span class="icon">📢</span>
+      <h3>Endless Ads & Purchases</h3>
+      <p>Relentless push for Robux, in-game purchases, and premium items targeting kids.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider-line"/>
+
+<!-- ══════════════════════════════
+     3. SOLUTION
+══════════════════════════════ -->
+<div class="section fade-in">
+  <div class="section-label green">✅ the playzone difference</div>
+  <h2 class="section-title">A safe place to<br/><span style="color:var(--green)">play &amp; grow together</span></h2>
+  <p class="section-sub">We built PlayZone from the ground up with one goal: let kids have a blast, safely.</p>
+
+  <div class="solution-grid">
+    <div class="solution-card">
+      <span class="icon">🛡️</span>
+      <h3>100% Private</h3>
+      <p>Only the friends you invite can play. No random strangers, ever. You control the guest list.</p>
+    </div>
+    <div class="solution-card">
+      <span class="icon">🎮</span>
+      <h3>Kid-Safe Games</h3>
+      <p>Every game is hand-crafted, family-friendly, and free from ads, violence, or scary surprises.</p>
+    </div>
+    <div class="solution-card">
+      <span class="icon">✏️</span>
+      <h3>Customize Everything</h3>
+      <p>Rename characters, change themes, add your friends' names. Make the game truly yours.</p>
+    </div>
+    <div class="solution-card">
+      <span class="icon">🔗</span>
+      <h3>Share With Friends Only</h3>
+      <p>Get a private link and share it with exactly who you want. No public lobbies, no strangers.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider-line"/>
+
+<!-- ══════════════════════════════
+     4. GAMES
+══════════════════════════════ -->
+<div class="section fade-in">
+  <div class="section-label cyan">🕹️ games library</div>
+  <h2 class="section-title">Play Right Now</h2>
+  <p class="section-sub">Jump in instantly — no downloads, no accounts needed to play.</p>
+
+  <div class="games-grid">
+
+    <!-- BulletHead -->
+    <div class="game-card">
+      <div class="game-card-banner" style="background:linear-gradient(135deg,#071a20,#0d2030)">
+        🔫
+      </div>
+      <div class="game-card-body">
+        <div class="game-card-title">BulletHead</div>
+        <div class="game-card-tag">⭐ Fan Favourite</div>
+        <p class="game-card-desc">
+          A fast-paced side-scrolling shooter with 14 characters, 5 weapons, 10 maps,
+          and a full outfit shop. Compete for the top of the leaderboard with your crew!
+        </p>
+        <a href="/game" class="btn-play">▶ Play BulletHead — Free!</a>
+      </div>
+    </div>
+
+    <!-- Coming Soon 1 -->
+    <div class="game-card coming-soon">
+      <div class="game-card-banner soon">🏎️</div>
+      <div class="game-card-body">
+        <div class="game-card-title" style="color:var(--muted)">Racing Game</div>
+        <div class="game-card-tag" style="color:var(--purple);background:#cc44ff11;border-color:#cc44ff33">🚧 Coming Soon</div>
+        <p class="game-card-desc">Race your friends in a custom-branded kart racer. Fast laps, wild power-ups.</p>
+        <div class="btn-soon">🔔 Notify Me</div>
+      </div>
+    </div>
+
+    <!-- Coming Soon 2 -->
+    <div class="game-card coming-soon">
+      <div class="game-card-banner soon">🧩</div>
+      <div class="game-card-body">
+        <div class="game-card-title" style="color:var(--muted)">Puzzle Party</div>
+        <div class="game-card-tag" style="color:var(--purple);background:#cc44ff11;border-color:#cc44ff33">🚧 Coming Soon</div>
+        <p class="game-card-desc">Co-op puzzle solving for the whole family. Think together, win together.</p>
+        <div class="btn-soon">🔔 Notify Me</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     5. CREATE YOUR GAME
+══════════════════════════════ -->
+<section class="create-section fade-in">
+  <div class="create-inner">
+    <div class="section-label purple" style="text-align:center">🛠️ be the game maker</div>
+    <h2 class="section-title">Create Your Own Version.<br/><span style="color:var(--purple)">Share With Your Squad.</span></h2>
+    <p class="section-sub" style="margin-bottom:48px">
+      Name the characters after your friends, pick your favourite theme, and
+      get a private link to share — in under 2 minutes.
+    </p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <span class="step-icon">✏️</span>
+        <h3>Customize</h3>
+        <p>Name the game, pick colors, rename characters &amp; weapons — make it personal.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <span class="step-icon">🚀</span>
+        <h3>Build</h3>
+        <p>Hit the button and your custom game is created instantly in the cloud.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <span class="step-icon">🔗</span>
+        <h3>Share &amp; Play</h3>
+        <p>Send the private link to your friends. Only they can play your version!</p>
+      </div>
+    </div>
+
+    <div class="create-cta">
+      <a href="/dashboard" class="btn-create-big">🛠️ Create My Game — It's Free!</a>
+      <p class="create-note">No credit card. No download. Ready in 2 minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     TRUST BAR
+══════════════════════════════ -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item"><span class="icon">🛡️</span> No stranger danger</div>
+    <div class="trust-item"><span class="icon">🚫</span> Zero ads</div>
+    <div class="trust-item"><span class="icon">💳</span> Always free to play</div>
+    <div class="trust-item"><span class="icon">🔒</span> Private by default</div>
+    <div class="trust-item"><span class="icon">👨‍👩‍👧</span> Made for families</div>
+    <div class="trust-item"><span class="icon">⚡</span> No download needed</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     FOOTER
+══════════════════════════════ -->
+<footer>
+  <div class="footer-logo">🎮 PlayZone</div>
+  <p class="footer-tagline">Safe games. Real fun. Your rules.</p>
+  <div class="footer-links">
+    <a href="/game">🎮 Play</a>
+    <a href="/dashboard">🛠️ Create</a>
+    <a href="#games">🕹️ Games</a>
+  </div>
+  <p class="footer-copy">© 2025 PlayZone · Built with ❤️ for kids &amp; families</p>
+</footer>
+
+<script>
+// ── FLOATING EMOJIS ──
+(function(){
+  const emojis = ['🎮','🛡️','⭐','🎯','🔫','🎊','💫','🚀','🏆','🎉','✨','🎈'];
+  const container = document.getElementById('floaters');
+  for(let i = 0; i < 18; i++){
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = emojis[i % emojis.length];
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.animationDuration = (18 + Math.random() * 20) + 's';
+    el.style.animationDelay = (Math.random() * 20) + 's';
+    el.style.fontSize = (1.2 + Math.random() * 1.8) + 'rem';
+    container.appendChild(el);
+  }
+})();
+
+// ── SCROLL FADE-IN ──
+(function(){
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+})();
+
+// ── ADD ID TO GAMES SECTION FOR FOOTER LINK ──
+document.querySelectorAll('.section')[2].id = 'games';
+</script>
+
+</body>
+</html>
