@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BulletHead — Dashboard</title>
+  <title>PlayZone — Game Creator Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -14,19 +14,21 @@
       --accent:  #00b4d8;
       --green:   #00ff88;
       --yellow:  #ffcc00;
+      --purple:  #cc44ff;
+      --pink:    #ff44aa;
       --red:     #ff4444;
       --text:    #e0e0ff;
       --muted:   #666688;
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       min-height: 100vh;
     }
 
-    /* ── LOGIN ── */
+    /* ══ LOGIN ══ */
     #login-screen {
       min-height: 100vh;
       display: flex;
@@ -44,455 +46,340 @@
       box-shadow: 0 0 40px #00b4d822;
     }
     .login-card h1 {
-      font-size: 26px;
-      font-weight: 900;
+      font-size: 26px; font-weight: 900;
       font-family: 'Arial Black', Arial, sans-serif;
-      text-align: center;
-      margin-bottom: 6px;
-      color: var(--accent);
-      text-shadow: 0 0 20px #00b4d855;
+      text-align: center; margin-bottom: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .login-card .subtitle {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 28px;
-    }
+    .login-card .subtitle { text-align:center; color:var(--muted); font-size:13px; margin-bottom:28px; }
     .field { margin-bottom: 16px; }
-    .field label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
+    .field label { display:block; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
     .field input {
-      width: 100%;
-      padding: 13px 14px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.2s;
+      width:100%; padding:13px 14px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:8px; color:var(--text); font-size:16px; outline:none;
+      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
     }
-    .field input:focus { border-color: var(--accent); }
+    .field input:focus { border-color:var(--accent); }
     .btn-primary {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent);
-      color: #000;
-      font-size: 15px;
-      font-weight: 900;
-      font-family: 'Arial Black', Arial, sans-serif;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      letter-spacing: 1px;
+      width:100%; padding:14px;
+      background:var(--accent); color:#000;
+      font-size:15px; font-weight:900;
+      font-family:'Arial Black',Arial,sans-serif;
+      border:none; border-radius:8px; cursor:pointer;
+      transition:opacity .15s,transform .1s; letter-spacing:1px;
     }
-    .btn-primary:hover  { opacity: 0.85; }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .error-msg {
-      color: var(--red);
-      font-size: 13px;
-      margin-top: 10px;
-      text-align: center;
-      min-height: 20px;
-    }
+    .btn-primary:hover  { opacity:.85; }
+    .btn-primary:active { transform:scale(.97); }
+    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+    .error-msg { color:var(--red); font-size:13px; margin-top:10px; text-align:center; min-height:20px; }
 
-    /* ── DASHBOARD ── */
-    #dashboard-screen { display: none; }
-
+    /* ══ HEADER ══ */
+    #dashboard-screen { display:none; }
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+      position:sticky; top:0; z-index:50;
     }
-    header .logo {
-      font-size: 17px;
-      font-weight: 900;
-      font-family: 'Arial Black', Arial, sans-serif;
-      color: var(--accent);
-      white-space: nowrap;
+    .header-left { display:flex; align-items:center; gap:12px; }
+    .logo { font-size:17px; font-weight:900; font-family:'Arial Black',Arial,sans-serif; color:var(--accent); white-space:nowrap; }
+    .breadcrumb { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+    .breadcrumb .sep { color:var(--border); }
+    .breadcrumb .current { color:var(--text); font-weight:700; }
+    .btn-back {
+      display:none; align-items:center; gap:6px;
+      padding:6px 14px; background:transparent;
+      border:1px solid var(--border); border-radius:6px;
+      color:var(--muted); font-size:12px; cursor:pointer;
+      transition:border-color .15s,color .15s;
     }
-    header .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12px;
-      color: var(--muted);
-      min-width: 0;
-    }
-    header .user-email {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 160px;
-    }
+    .btn-back:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-back.show { display:flex; }
+    .user-info { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); min-width:0; }
+    .user-email { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px; }
     .btn-logout {
-      padding: 6px 14px;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--muted);
-      font-size: 12px;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s;
-      white-space: nowrap;
-      flex-shrink: 0;
+      padding:6px 14px; background:transparent;
+      border:1px solid var(--border); border-radius:6px;
+      color:var(--muted); font-size:12px; cursor:pointer;
+      transition:border-color .15s,color .15s; white-space:nowrap; flex-shrink:0;
     }
-    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+    .btn-logout:hover { border-color:var(--red); color:var(--red); }
 
-    /* ── MAIN LAYOUT ── */
-    .main-layout {
+    /* ══ SCREENS ══ */
+    .screen { display:none; }
+    .screen.active { display:block; }
+
+    /* ══════════════════════════════
+       SCREEN 1 — GAME PICKER
+    ══════════════════════════════ */
+    #screen-pick {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    .pick-header { margin-bottom: 28px; }
+    .pick-header h2 {
+      font-family:'Arial Black',Arial,sans-serif;
+      font-size:22px; font-weight:900; margin-bottom:6px;
+    }
+    .pick-header p { color:var(--muted); font-size:14px; }
+
+    /* game type cards */
+    .game-type-grid {
       display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 20px;
-      padding: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+    .game-type-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, box-shadow .18s;
+    }
+    .game-type-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 0 30px #00b4d822;
+    }
+    .game-type-card.coming-soon {
+      opacity: .55;
+      cursor: default;
+    }
+    .game-type-card.coming-soon:hover {
+      transform: none;
+      border-color: var(--border);
+      box-shadow: none;
+    }
+    .gtc-banner {
+      height: 130px;
+      display: flex; align-items:center; justify-content:center;
+      font-size: 64px;
+      position: relative;
+    }
+    .gtc-banner .badge {
+      position: absolute; top: 10px; right: 10px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .badge-available { background:#00ff8820; border:1px solid var(--green); color:var(--green); }
+    .badge-soon      { background:#cc44ff18; border:1px solid var(--purple); color:var(--purple); }
+    .gtc-body { padding: 16px 18px 20px; }
+    .gtc-title { font-family:'Arial Black',Arial,sans-serif; font-size:16px; font-weight:900; margin-bottom:4px; }
+    .gtc-desc  { font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+    .gtc-tags  { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+    .gtc-tag   { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+    .btn-pick {
+      width:100%; padding:11px; border:none; border-radius:8px;
+      font-size:13px; font-weight:900; font-family:'Arial Black',Arial,sans-serif;
+      cursor:pointer; transition:opacity .15s;
+      background:linear-gradient(135deg, var(--accent), var(--green)); color:#000;
+    }
+    .btn-pick:hover { opacity:.88; }
+    .btn-pick-soon {
+      width:100%; padding:11px; border:1px dashed var(--border); border-radius:8px;
+      font-size:13px; font-weight:700; color:var(--muted);
+      background:transparent; cursor:default;
+    }
+
+    /* my existing games */
+    .my-games-section { margin-top: 10px; }
+    .my-games-section h3 {
+      font-size:13px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:1px;
+      margin-bottom:12px;
+    }
+    .my-game-chips {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    .my-game-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .my-game-chip:hover { border-color:var(--accent); background:var(--card); }
+    .mgc-icon  { font-size:20px; }
+    .mgc-name  { font-size:13px; font-weight:700; }
+    .mgc-plays { font-size:11px; color:var(--yellow); }
+    .mgc-type  { font-size:10px; color:var(--muted); }
+
+    /* ══════════════════════════════
+       SCREEN 2 — EDITOR
+    ══════════════════════════════ */
+    #screen-edit {
       max-width: 1100px;
       margin: 0 auto;
+      padding: 20px;
+    }
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
     }
     @media (max-width: 768px) {
-      .main-layout {
-        grid-template-columns: 1fr;
-        padding: 12px;
-        gap: 14px;
-      }
-      /* Preview panel goes below on mobile */
-      .preview-panel { order: -1; }
+      .main-layout { grid-template-columns:1fr; padding:0; gap:14px; }
+      .preview-panel { order:-1; }
+      #screen-edit { padding:12px; }
     }
 
-    /* ── EDITOR ── */
     .editor-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; overflow:hidden;
     }
     .panel-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--accent);
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      font-size:13px; font-weight:700; color:var(--accent);
+      display:flex; align-items:center; gap:8px;
     }
+    .panel-header .game-icon { font-size:20px; }
 
     /* tabs */
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .tabs::-webkit-scrollbar { display: none; }
+    .tabs { display:flex; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+    .tabs::-webkit-scrollbar { display:none; }
     .tab {
-      flex: 1;
-      min-width: 70px;
-      padding: 12px 8px;
-      text-align: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
-      white-space: nowrap;
+      flex:1; min-width:70px; padding:11px 8px;
+      text-align:center; font-size:12px; font-weight:700;
+      color:var(--muted); cursor:pointer;
+      border-bottom:2px solid transparent;
+      transition:color .15s,border-color .15s; white-space:nowrap;
     }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab:hover { color:var(--text); }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab-content { display:none; padding:18px; }
+    .tab-content.active { display:block; }
 
-    .tab-content { display: none; padding: 18px; }
-    .tab-content.active { display: block; }
-
-    /* form fields */
-    .form-group { margin-bottom: 18px; }
+    /* form */
+    .form-group { margin-bottom:18px; }
     .form-group label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 7px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      display:block; font-size:11px; font-weight:700;
+      color:var(--muted); margin-bottom:7px;
+      text-transform:uppercase; letter-spacing:1px;
     }
     .form-group input[type="text"],
     .form-group textarea {
-      width: 100%;
-      padding: 10px 13px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-      font-family: inherit;
-      -webkit-appearance: none;
+      width:100%; padding:10px 13px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:8px; color:var(--text); font-size:15px; outline:none;
+      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
     }
     .form-group input[type="text"]:focus,
-    .form-group textarea:focus { border-color: var(--accent); }
-    .form-group textarea { resize: vertical; min-height: 60px; }
-
-    /* color row */
-    .color-row { display: flex; align-items: center; gap: 12px; }
+    .form-group textarea:focus { border-color:var(--accent); }
+    .form-group textarea { resize:vertical; min-height:60px; }
+    .color-row { display:flex; align-items:center; gap:12px; }
     .color-row input[type="color"] {
-      width: 44px; height: 44px;
-      padding: 2px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      cursor: pointer;
-      flex-shrink: 0;
+      width:44px; height:44px; padding:2px;
+      border-radius:8px; border:1px solid var(--border);
+      background:var(--card); cursor:pointer; flex-shrink:0;
     }
-    .color-row input[type="text"] { flex: 1; }
-
-    /* grid 2 col */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
-
+    .color-row input[type="text"] { flex:1; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:480px) { .grid-2 { grid-template-columns:1fr; } }
     .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--yellow);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-      margin-top: 4px;
+      font-size:11px; font-weight:700; color:var(--yellow);
+      text-transform:uppercase; letter-spacing:1px;
+      margin-bottom:12px; margin-top:4px;
     }
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 18px 0;
-    }
+    .divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
 
-    /* theme selector */
-    .theme-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-    }
+    /* theme grid */
+    .theme-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
     .theme-swatch {
-      height: 38px;
-      border-radius: 8px;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: border-color 0.15s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+      height:38px; border-radius:8px; cursor:pointer;
+      border:2px solid transparent;
+      transition:border-color .15s,transform .1s;
+      display:flex; align-items:center; justify-content:center; font-size:16px;
     }
-    .theme-swatch:hover  { transform: scale(1.08); }
-    .theme-swatch.active { border-color: #fff; }
+    .theme-swatch:hover  { transform:scale(1.08); }
+    .theme-swatch.active { border-color:#fff; }
 
-    /* players list */
-    .player-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    /* players */
+    .player-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
     .player-row input {
-      flex: 1;
-      padding: 10px 12px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-      font-family: inherit;
-      -webkit-appearance: none;
+      flex:1; padding:10px 12px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:8px; color:var(--text); font-size:15px; outline:none;
+      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
     }
-    .player-row input:focus { border-color: var(--accent); }
+    .player-row input:focus { border-color:var(--accent); }
     .btn-remove {
-      width: 36px; height: 36px;
-      flex-shrink: 0;
-      background: transparent;
-      border: 1px solid #ff444466;
-      border-radius: 8px;
-      color: #ff4444;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.15s;
-      display: flex; align-items: center; justify-content: center;
+      width:36px; height:36px; flex-shrink:0;
+      background:transparent; border:1px solid #ff444466;
+      border-radius:8px; color:#ff4444; font-size:16px; cursor:pointer;
+      transition:background .15s; display:flex; align-items:center; justify-content:center;
     }
-    .btn-remove:hover { background: #ff444422; }
+    .btn-remove:hover { background:#ff444422; }
     .btn-add-player {
-      width: 100%;
-      padding: 10px;
-      background: transparent;
-      border: 1px dashed var(--accent);
-      border-radius: 8px;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s;
+      width:100%; padding:10px; background:transparent;
+      border:1px dashed var(--accent); border-radius:8px;
+      color:var(--accent); font-size:13px; font-weight:700;
+      cursor:pointer; transition:background .15s;
     }
-    .btn-add-player:hover { background: #00b4d811; }
+    .btn-add-player:hover { background:#00b4d811; }
 
-    /* ── PREVIEW PANEL ── */
-    .preview-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .preview-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-    }
-    .preview-card .panel-header { padding: 13px 18px; font-size: 13px; }
-
-    #preview-canvas {
-      display: block;
-      width: 100%;
-      height: 170px;
-      background: #0a0a18;
-    }
+    /* preview panel */
+    .preview-panel { display:flex; flex-direction:column; gap:14px; }
+    .preview-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .preview-card .panel-header { padding:13px 18px; font-size:13px; }
+    #preview-canvas { display:block; width:100%; height:170px; background:#0a0a18; }
 
     /* stats */
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 18px;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-label { color: var(--muted); }
-    .stat-value { font-weight: 700; color: var(--text); }
-    .stat-value.green { color: var(--green); }
-    .stat-value.yellow { color: var(--yellow); }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13px; }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-label { color:var(--muted); }
+    .stat-value { font-weight:700; color:var(--text); }
+    .stat-value.green { color:var(--green); }
+    .stat-value.yellow { color:var(--yellow); }
 
     /* action card */
-    .action-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-    }
+    .action-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
     .btn-create {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--green), var(--accent));
-      color: #000;
-      font-size: 15px;
-      font-weight: 900;
-      font-family: 'Arial Black', Arial, sans-serif;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      margin-bottom: 12px;
+      width:100%; padding:16px;
+      background:linear-gradient(135deg,var(--green),var(--accent)); color:#000;
+      font-size:15px; font-weight:900; font-family:'Arial Black',Arial,sans-serif;
+      border:none; border-radius:10px; cursor:pointer;
+      transition:opacity .15s,transform .1s; margin-bottom:12px;
     }
-    .btn-create:hover  { opacity: 0.88; }
-    .btn-create:active { transform: scale(0.97); }
-    .btn-create:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-create:hover  { opacity:.88; }
+    .btn-create:active { transform:scale(.97); }
+    .btn-create:disabled { opacity:.4; cursor:not-allowed; }
 
     /* link box */
-    .link-box {
-      display: none;
-      margin-top: 14px;
-      padding: 14px;
-      background: var(--card);
-      border: 1px solid var(--green);
-      border-radius: 10px;
-    }
-    .link-label {
-      font-size: 11px;
-      color: var(--green);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .link-row { display: flex; gap: 8px; align-items: center; }
-    .link-row input {
-      flex: 1;
-      min-width: 0;
-      padding: 9px 11px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--green);
-      font-size: 11px;
-      font-family: monospace;
-      outline: none;
-    }
-    .btn-copy {
-      padding: 9px 14px;
-      background: var(--green);
-      color: #000;
-      font-size: 12px;
-      font-weight: 700;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity 0.15s;
-      flex-shrink: 0;
-    }
-    .btn-copy:hover { opacity: 0.8; }
+    .link-box { display:none; margin-top:14px; padding:14px; background:var(--card); border:1px solid var(--green); border-radius:10px; }
+    .link-label { font-size:11px; color:var(--green); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+    .link-row { display:flex; gap:8px; align-items:center; }
+    .link-row input { flex:1; min-width:0; padding:9px 11px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--green); font-size:11px; font-family:monospace; outline:none; }
+    .btn-copy { padding:9px 14px; background:var(--green); color:#000; font-size:12px; font-weight:700; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; transition:opacity .15s; flex-shrink:0; }
+    .btn-copy:hover { opacity:.8; }
 
-    /* my games list */
-    .games-list { padding: 0; }
-    .game-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 18px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.12s;
-      gap: 10px;
-    }
-    .game-item:last-child { border-bottom: none; }
-    .game-item:hover { background: var(--card); }
-    .game-item-title { font-size: 14px; font-weight: 700; }
-    .game-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .game-item-plays { font-size: 12px; color: var(--yellow); font-weight: 700; flex-shrink: 0; }
-    .empty-state { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
-
+    /* toast */
     .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--green);
-      color: #000;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 700;
-      transition: transform 0.3s;
-      z-index: 999;
-      pointer-events: none;
-      white-space: nowrap;
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:var(--green); color:#000;
+      padding:12px 24px; border-radius:30px;
+      font-size:14px; font-weight:700;
+      transition:transform .3s; z-index:999;
+      pointer-events:none; white-space:nowrap;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+
+    /* empty */
+    .empty-state { padding:28px; text-align:center; color:var(--muted); font-size:13px; }
   </style>
 </head>
 <body>
 
-<!-- ══════════════ LOGIN ══════════════ -->
+<!-- ══ LOGIN ══ -->
 <div id="login-screen">
   <div class="login-card">
-    <h1>🎮 BulletHead</h1>
-    <div class="subtitle">Dashboard — Game Creator</div>
+    <h1>🎮 PlayZone</h1>
+    <div class="subtitle">Game Creator Dashboard</div>
     <div class="field">
       <label>Email</label>
       <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
@@ -510,206 +397,274 @@
   </div>
 </div>
 
-<!-- ══════════════ DASHBOARD ══════════════ -->
+<!-- ══ DASHBOARD ══ -->
 <div id="dashboard-screen">
+
   <header>
-    <div class="logo">🎮 BulletHead</div>
+    <div class="header-left">
+      <div class="logo">🎮 PlayZone</div>
+      <button class="btn-back" id="btn-back" onclick="goBack()">← Back</button>
+      <div class="breadcrumb" id="breadcrumb" style="display:none">
+        <span class="sep">/</span>
+        <span class="current" id="breadcrumb-text"></span>
+      </div>
+    </div>
     <div class="user-info">
       <span class="user-email" id="user-email-display"></span>
       <button class="btn-logout" onclick="doLogout()">Logout</button>
     </div>
   </header>
 
-  <div class="main-layout">
+  <!-- ── SCREEN 1: PICK A GAME ── -->
+  <div id="screen-pick" class="screen active">
+    <div class="pick-header">
+      <h2>🕹️ Choose a Game to Customize</h2>
+      <p>Pick a game, make it yours, share the link with friends.</p>
+    </div>
 
-    <!-- ── EDITOR ── -->
-    <div>
-      <div class="editor-panel">
-        <div class="panel-header">✏️ Create New Game</div>
+    <!-- Available Games -->
+    <div class="game-type-grid" id="game-type-grid">
 
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('game')">🎮 Game</div>
-          <div class="tab" onclick="switchTab('chars')">🧑 Characters</div>
-          <div class="tab" onclick="switchTab('items')">🔫 Weapons</div>
-          <div class="tab" onclick="switchTab('theme')">🎨 Theme</div>
+      <!-- BulletHead -->
+      <div class="game-type-card" onclick="pickGame('bullethead')">
+        <div class="gtc-banner" style="background:linear-gradient(135deg,#071a20,#0d2535)">
+          🔫
+          <span class="badge badge-available">✅ Available</span>
         </div>
+        <div class="gtc-body">
+          <div class="gtc-title">BulletHead</div>
+          <div class="gtc-desc">Fast-paced platformer shooter. 14 characters, 5 weapons, 10 maps, leaderboard.</div>
+          <div class="gtc-tags">
+            <span class="gtc-tag">🎮 Action</span>
+            <span class="gtc-tag">👥 Multiplayer</span>
+            <span class="gtc-tag">🏆 Leaderboard</span>
+          </div>
+          <button class="btn-pick">✏️ Customize This Game</button>
+        </div>
+      </div>
 
-        <!-- Tab 1: Game -->
-        <div class="tab-content active" id="tab-game">
-          <div class="form-group">
-            <label>Game Title</label>
-            <input type="text" id="f-game-title" placeholder="e.g. AliWars" maxlength="30"
-              oninput="livePreview()"/>
+      <!-- Coming Soon 1 -->
+      <div class="game-type-card coming-soon">
+        <div class="gtc-banner" style="background:linear-gradient(135deg,#1a0f00,#2a1800)">
+          🏎️
+          <span class="badge badge-soon">🚧 Coming Soon</span>
+        </div>
+        <div class="gtc-body">
+          <div class="gtc-title" style="color:var(--muted)">Racing Game</div>
+          <div class="gtc-desc">Custom kart racing with power-ups. Race your friends on wild tracks.</div>
+          <div class="gtc-tags">
+            <span class="gtc-tag">🏁 Racing</span>
+            <span class="gtc-tag">⚡ Fast-paced</span>
           </div>
-          <div class="form-group">
-            <label>Start Message (shown on title screen)</label>
-            <textarea id="f-msg-start" placeholder="e.g. Made by Ali 😎" maxlength="60"
-              oninput="livePreview()"></textarea>
+          <div class="btn-pick-soon">🔔 Coming Soon</div>
+        </div>
+      </div>
+
+      <!-- Coming Soon 2 -->
+      <div class="game-type-card coming-soon">
+        <div class="gtc-banner" style="background:linear-gradient(135deg,#0a001a,#12002a)">
+          🧩
+          <span class="badge badge-soon">🚧 Coming Soon</span>
+        </div>
+        <div class="gtc-body">
+          <div class="gtc-title" style="color:var(--muted)">Puzzle Party</div>
+          <div class="gtc-desc">Co-op puzzle solving. Think together, win together.</div>
+          <div class="gtc-tags">
+            <span class="gtc-tag">🧠 Puzzle</span>
+            <span class="gtc-tag">🤝 Co-op</span>
           </div>
-          <div class="form-group">
-            <label>Game Over Message</label>
-            <textarea id="f-msg-gameover" placeholder="e.g. Try again!" maxlength="60"
-              oninput="livePreview()"></textarea>
+          <div class="btn-pick-soon">🔔 Coming Soon</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- My existing games -->
+    <div class="my-games-section">
+      <h3>📋 My Created Games</h3>
+      <div class="my-game-chips" id="my-game-chips">
+        <div class="empty-state" style="padding:12px;font-size:13px">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 2: EDITOR ── -->
+  <div id="screen-edit" class="screen">
+    <div class="main-layout">
+
+      <!-- LEFT: editor -->
+      <div>
+        <div class="editor-panel">
+          <div class="panel-header">
+            <span class="game-icon" id="editor-game-icon">🔫</span>
+            <span id="editor-game-title">BulletHead — Customize</span>
           </div>
-          <div class="form-group">
-            <label>👥 Players</label>
-            <div id="players-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
-            <button class="btn-add-player" onclick="addPlayer()">+ Add Player</button>
-            <div style="font-size:11px;color:var(--muted);margin-top:8px;">
-              Players will pick their name from a dropdown when the game starts.
+
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab('game')">🎮 Game</div>
+            <div class="tab" onclick="switchTab('chars')">🧑 Characters</div>
+            <div class="tab" onclick="switchTab('items')">🔫 Weapons</div>
+            <div class="tab" onclick="switchTab('theme')">🎨 Theme</div>
+          </div>
+
+          <!-- Tab: Game -->
+          <div class="tab-content active" id="tab-game">
+            <div class="form-group">
+              <label>Game Title</label>
+              <input type="text" id="f-game-title" placeholder="e.g. AliWars" maxlength="30" oninput="livePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>Start Message</label>
+              <textarea id="f-msg-start" placeholder="e.g. Made by Ali 😎" maxlength="60" oninput="livePreview()"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Game Over Message</label>
+              <textarea id="f-msg-gameover" placeholder="e.g. Try again!" maxlength="60" oninput="livePreview()"></textarea>
+            </div>
+            <div class="form-group">
+              <label>👥 Players</label>
+              <div id="players-list" style="margin-bottom:10px;"></div>
+              <button class="btn-add-player" onclick="addPlayer()">+ Add Player</button>
+              <div style="font-size:11px;color:var(--muted);margin-top:8px;">Players pick their name from a dropdown when the game starts.</div>
             </div>
           </div>
-        </div>
 
-        <!-- Tab 2: Characters -->
-        <div class="tab-content" id="tab-chars">
-          <div class="section-title">🦸 Hero</div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label>Hero Name</label>
-              <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20"
-                oninput="livePreview()"/>
+          <!-- Tab: Characters -->
+          <div class="tab-content" id="tab-chars">
+            <div class="section-title">🦸 Hero</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Hero Name</label>
+                <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Hero Color</label>
+                <div class="color-row">
+                  <input type="color" id="f-hero-color-pick" value="#e82020" oninput="syncColor('hero')"/>
+                  <input type="text"  id="f-hero-color" value="#e82020" maxlength="7" oninput="syncColorFromText('hero')"/>
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Hero Color</label>
-              <div class="color-row">
-                <input type="color" id="f-hero-color-pick" value="#e82020"
-                  oninput="syncColor('hero')"/>
-                <input type="text" id="f-hero-color" value="#e82020" maxlength="7"
-                  oninput="syncColorFromText('hero')"/>
+            <hr class="divider"/>
+            <div class="section-title">👾 Enemies</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Enemy 1 (Drone)</label>
+                <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Enemy 2 (Bomber)</label>
+                <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Enemy 3 (Speeder)</label>
+                <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20" oninput="livePreview()"/>
               </div>
             </div>
           </div>
 
-          <hr class="divider"/>
-          <div class="section-title">👾 Enemies</div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label>Enemy 1 (Drone)</label>
-              <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20"
-                oninput="livePreview()"/>
+          <!-- Tab: Weapons -->
+          <div class="tab-content" id="tab-items">
+            <div class="section-title">🔫 Weapons</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Gun 1 (Pistol)</label>
+                <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Gun 2 (SMG)</label>
+                <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Gun 3 (Shotgun)</label>
+                <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Gun 4 (Sniper)</label>
+                <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20" oninput="livePreview()"/>
+              </div>
+              <div class="form-group">
+                <label>Gun 5 (Rocket)</label>
+                <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20" oninput="livePreview()"/>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Enemy 2 (Bomber)</label>
-              <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Enemy 3 (Speeder)</label>
-              <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20"
-                oninput="livePreview()"/>
+          </div>
+
+          <!-- Tab: Theme -->
+          <div class="tab-content" id="tab-theme">
+            <div class="section-title">🎨 Color Theme</div>
+            <div class="theme-grid" id="theme-grid"></div>
+          </div>
+
+        </div><!-- /editor-panel -->
+      </div>
+
+      <!-- RIGHT: preview + action -->
+      <div class="preview-panel">
+
+        <div class="preview-card">
+          <div class="panel-header">👁️ Preview</div>
+          <canvas id="preview-canvas" width="300" height="170"></canvas>
+        </div>
+
+        <div class="preview-card" id="stats-card" style="display:none">
+          <div class="panel-header">📊 Stats</div>
+          <div class="stat-row">
+            <span class="stat-label">Total Plays</span>
+            <span class="stat-value green" id="stat-plays">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">High Score</span>
+            <span class="stat-value yellow" id="stat-best">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Top Player</span>
+            <span class="stat-value" id="stat-last">—</span>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <button class="btn-create" id="create-btn" onclick="createGame()">🚀 Build &amp; Get Link!</button>
+          <div class="link-box" id="link-box">
+            <div class="link-label">✅ Your game link is ready!</div>
+            <div class="link-row">
+              <input type="text" id="game-link" readonly/>
+              <button class="btn-copy" onclick="copyLink()">Copy</button>
             </div>
           </div>
         </div>
 
-        <!-- Tab 3: Weapons -->
-        <div class="tab-content" id="tab-items">
-          <div class="section-title">🔫 Weapons</div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label>Gun 1 (Pistol)</label>
-              <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Gun 2 (SMG)</label>
-              <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Gun 3 (Shotgun)</label>
-              <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Gun 4 (Sniper)</label>
-              <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Gun 5 (Rocket)</label>
-              <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20"
-                oninput="livePreview()"/>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 4: Theme -->
-        <div class="tab-content" id="tab-theme">
-          <div class="section-title">🎨 Color Theme</div>
-          <div class="theme-grid" id="theme-grid"></div>
-        </div>
-
-      </div><!-- /editor-panel -->
-
-      <!-- My Games -->
-      <div class="editor-panel" style="margin-top:16px;">
-        <div class="panel-header">📋 My Games</div>
-        <div class="games-list" id="my-games-list">
-          <div class="empty-state">Loading...</div>
-        </div>
       </div>
     </div>
+  </div><!-- /screen-edit -->
 
-    <!-- ── PREVIEW + ACTION ── -->
-    <div class="preview-panel">
-
-      <!-- Preview canvas -->
-      <div class="preview-card">
-        <div class="panel-header">👁️ Preview</div>
-        <canvas id="preview-canvas" width="320" height="170"></canvas>
-      </div>
-
-      <!-- Stats -->
-      <div class="preview-card" id="stats-card" style="display:none">
-        <div class="panel-header">📊 Game Stats</div>
-        <div class="stat-row">
-          <span class="stat-label">Total Plays</span>
-          <span class="stat-value green" id="stat-plays">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">High Score</span>
-          <span class="stat-value yellow" id="stat-best">—</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Last Player</span>
-          <span class="stat-value" id="stat-last">—</span>
-        </div>
-      </div>
-
-      <!-- Action -->
-      <div class="action-card">
-        <button class="btn-create" id="create-btn" onclick="createGame()">
-          🚀 Build & Get Link!
-        </button>
-        <div class="link-box" id="link-box">
-          <div class="link-label">✅ Your game link is ready!</div>
-          <div class="link-row">
-            <input type="text" id="game-link" readonly/>
-            <button class="btn-copy" onclick="copyLink()">Copy</button>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /preview-panel -->
-
-  </div><!-- /main-layout -->
 </div><!-- /dashboard-screen -->
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  SUPABASE INIT
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  SUPABASE
+// ═══════════════════════════════════════════
 const SUPA_URL = 'https://oshkqzxmnqvbfkuvxwbc.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk';
 const { createClient } = supabase;
 const sb = createClient(SUPA_URL, SUPA_KEY);
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let currentGameType = 'bullethead'; // فعلاً فقط این داریم
+let editingSlug     = null;         // وقتی game موجود رو لود می‌کنیم
+
+const GAME_TYPES = {
+  bullethead: { icon:'🔫', label:'BulletHead', gameUrl: '/game' }
+  // بعداً اضافه میشه
+};
+
+// ═══════════════════════════════════════════
 //  AUTH
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
@@ -720,7 +675,6 @@ async function doLogin() {
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
   btn.disabled = false; btn.textContent = 'Login';
   if (error) { errEl.textContent = error.message; return; }
-  showDashboard();
 }
 
 async function doSignup() {
@@ -731,33 +685,256 @@ async function doSignup() {
   if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
   const { error } = await sb.auth.signUp({ email, password: pass });
   if (error) { errEl.textContent = error.message; return; }
-  errEl.style.color = 'var(--green)';
-  errEl.textContent = '✅ Account created! Please log in.';
+  // بعد از signup مستقیم login کن
+  const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (loginErr) {
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = '✅ Account created! Please log in.';
+  }
 }
 
 async function doLogout() {
   await sb.auth.signOut();
   document.getElementById('dashboard-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display    = 'flex';
+  document.getElementById('login-screen').style.display = 'flex';
 }
 
 sb.auth.onAuthStateChange((event, session) => {
-  if (session) showDashboard(session);
+  if (session) showDashboard();
 });
 
-async function showDashboard(session) {
+async function showDashboard() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
   document.getElementById('login-screen').style.display    = 'none';
   document.getElementById('dashboard-screen').style.display = 'block';
   document.getElementById('user-email-display').textContent = user.email;
+  showScreen('pick');
   loadMyGames();
-  livePreview();
 }
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  SCREEN NAVIGATION
+// ═══════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+
+  const backBtn    = document.getElementById('btn-back');
+  const breadcrumb = document.getElementById('breadcrumb');
+
+  if (name === 'pick') {
+    backBtn.classList.remove('show');
+    breadcrumb.style.display = 'none';
+  } else {
+    backBtn.classList.add('show');
+    breadcrumb.style.display = 'flex';
+    const gt = GAME_TYPES[currentGameType];
+    document.getElementById('breadcrumb-text').textContent = gt ? gt.label : 'Editor';
+  }
+}
+
+function goBack() {
+  showScreen('pick');
+  // ریست فرم
+  resetEditor();
+  editingSlug = null;
+  document.getElementById('link-box').style.display = 'none';
+  document.getElementById('stats-card').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+//  PICK GAME
+// ═══════════════════════════════════════════
+function pickGame(type) {
+  currentGameType = type;
+  editingSlug = null;
+  resetEditor();
+  const gt = GAME_TYPES[type];
+  document.getElementById('editor-game-icon').textContent  = gt.icon;
+  document.getElementById('editor-game-title').textContent = gt.label + ' — Customize';
+  document.getElementById('create-btn').textContent = '🚀 Build & Get Link!';
+  document.getElementById('link-box').style.display = 'none';
+  document.getElementById('stats-card').style.display = 'none';
+  livePreview();
+  showScreen('edit');
+}
+
+// ═══════════════════════════════════════════
+//  MY GAMES
+// ═══════════════════════════════════════════
+async function loadMyGames() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  const { data, error } = await sb.from('game_configs')
+    .select('slug, game_title, play_count, created_at, color_theme')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  const el = document.getElementById('my-game-chips');
+  if (error || !data || data.length === 0) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No games yet — create your first one above! 🎮</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(g => `
+    <div class="my-game-chip" onclick="loadGame('${g.slug}')">
+      <span class="mgc-icon">🔫</span>
+      <div>
+        <div class="mgc-name">${g.game_title}</div>
+        <div class="mgc-type">BulletHead · ${new Date(g.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+      </div>
+      <div class="mgc-plays">${g.play_count} 🎮</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+//  LOAD EXISTING GAME
+// ═══════════════════════════════════════════
+async function loadGame(slug) {
+  const { data, error } = await sb.from('game_configs').select('*').eq('slug', slug).single();
+  if (error || !data) return;
+
+  currentGameType = 'bullethead'; // فعلاً همه bullethead هستن
+  editingSlug = slug;
+
+  document.getElementById('f-game-title').value     = data.game_title   || '';
+  document.getElementById('f-hero-name').value       = data.hero_name    || '';
+  document.getElementById('f-hero-color').value      = data.hero_color   || '#e82020';
+  document.getElementById('f-hero-color-pick').value = data.hero_color   || '#e82020';
+  document.getElementById('f-msg-start').value       = data.msg_start    || '';
+  document.getElementById('f-msg-gameover').value    = data.msg_gameover || '';
+
+  const en = data.enemy_names || {};
+  document.getElementById('f-enemy-drone').value   = en.drone   || '';
+  document.getElementById('f-enemy-bomber').value  = en.bomber  || '';
+  document.getElementById('f-enemy-speeder').value = en.speeder || '';
+
+  const gn = data.gun_names || {};
+  document.getElementById('f-gun-pistol').value  = gn.pistol  || '';
+  document.getElementById('f-gun-smg').value     = gn.smg     || '';
+  document.getElementById('f-gun-shotgun').value = gn.shotgun || '';
+  document.getElementById('f-gun-sniper').value  = gn.sniper  || '';
+  document.getElementById('f-gun-rocket').value  = gn.rocket  || '';
+
+  playersList = data.players || [];
+  renderPlayersList();
+
+  selectedTheme = data.color_theme || 'default';
+  buildThemeGrid();
+  livePreview();
+
+  const gt = GAME_TYPES[currentGameType];
+  document.getElementById('editor-game-icon').textContent  = gt.icon;
+  document.getElementById('editor-game-title').textContent = data.game_title + ' — Edit';
+  document.getElementById('create-btn').textContent = '💾 Save & Update Link';
+
+  const link = `${location.origin}/game?g=${slug}`;
+  document.getElementById('game-link').value = link;
+  document.getElementById('link-box').style.display = 'block';
+
+  loadStats(slug);
+  showScreen('edit');
+  showToast('Loaded: ' + data.game_title);
+}
+
+async function loadStats(slug) {
+  const [scoresRes, configRes] = await Promise.all([
+    sb.from('scores').select('score,player_name').eq('game_slug', slug).order('score',{ascending:false}).limit(1),
+    sb.from('game_configs').select('play_count').eq('slug', slug).single()
+  ]);
+  document.getElementById('stats-card').style.display = 'block';
+  document.getElementById('stat-plays').textContent = configRes.data?.play_count ?? 0;
+  if (scoresRes.data && scoresRes.data.length > 0) {
+    document.getElementById('stat-best').textContent = scoresRes.data[0].score;
+    document.getElementById('stat-last').textContent = scoresRes.data[0].player_name;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  RESET EDITOR
+// ═══════════════════════════════════════════
+function resetEditor() {
+  ['f-game-title','f-hero-name','f-msg-start','f-msg-gameover',
+   'f-enemy-drone','f-enemy-bomber','f-enemy-speeder',
+   'f-gun-pistol','f-gun-smg','f-gun-shotgun','f-gun-sniper','f-gun-rocket']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('f-hero-color').value = '#e82020';
+  document.getElementById('f-hero-color-pick').value = '#e82020';
+  playersList = [];
+  renderPlayersList();
+  selectedTheme = 'default';
+  buildThemeGrid();
+  livePreview();
+  switchTab('game');
+}
+
+// ═══════════════════════════════════════════
+//  CREATE / UPDATE GAME
+// ═══════════════════════════════════════════
+async function createGame() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { showToast('Please log in first!'); return; }
+
+  const cfg = getFormConfig();
+  if (!cfg.game_title.trim()) { showToast('Please enter a game title!'); return; }
+
+  const btn = document.getElementById('create-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving...';
+
+  let slug = editingSlug;
+  let error;
+
+  if (slug) {
+    // UPDATE
+    ({ error } = await sb.from('game_configs').update({
+      game_title:   cfg.game_title,
+      hero_name:    cfg.hero_name,
+      hero_color:   cfg.hero_color,
+      enemy_names:  cfg.enemy_names,
+      gun_names:    cfg.gun_names,
+      msg_start:    cfg.msg_start,
+      msg_gameover: cfg.msg_gameover,
+      color_theme:  cfg.color_theme,
+      players:      cfg.players,
+    }).eq('slug', slug));
+  } else {
+    // INSERT
+    slug = genSlug();
+    ({ error } = await sb.from('game_configs').insert({
+      user_id:      user.id,
+      slug,
+      game_title:   cfg.game_title,
+      hero_name:    cfg.hero_name,
+      hero_color:   cfg.hero_color,
+      enemy_names:  cfg.enemy_names,
+      gun_names:    cfg.gun_names,
+      msg_start:    cfg.msg_start,
+      msg_gameover: cfg.msg_gameover,
+      color_theme:  cfg.color_theme,
+      players:      cfg.players,
+    }));
+    if (!error) editingSlug = slug;
+  }
+
+  btn.disabled = false;
+  btn.textContent = editingSlug ? '💾 Save & Update Link' : '🚀 Build & Get Link!';
+
+  if (error) { showToast('Error: ' + error.message); return; }
+
+  const link = `${location.origin}/game?g=${slug}`;
+  document.getElementById('game-link').value = link;
+  document.getElementById('link-box').style.display = 'block';
+  showToast(editingSlug ? '✅ Game updated!' : '✅ Game created!');
+  loadMyGames();
+}
+
+// ═══════════════════════════════════════════
 //  TABS
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
     const names = ['game','chars','items','theme'];
@@ -767,9 +944,9 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  THEMES
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 const THEMES = [
   { id:'default', icon:'🌿', bg:'#0a1a0a', accent:'#00ff88' },
   { id:'ice',     icon:'❄️', bg:'#0a1020', accent:'#00c8ff' },
@@ -800,25 +977,22 @@ function buildThemeGrid() {
 }
 buildThemeGrid();
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  COLOR SYNC
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function syncColor(key) {
-  const pick = document.getElementById('f-' + key + '-color-pick');
-  const txt  = document.getElementById('f-' + key + '-color');
-  txt.value = pick.value;
+  document.getElementById('f-'+key+'-color').value = document.getElementById('f-'+key+'-color-pick').value;
   livePreview();
 }
 function syncColorFromText(key) {
-  const pick = document.getElementById('f-' + key + '-color-pick');
-  const txt  = document.getElementById('f-' + key + '-color');
-  if (/^#[0-9a-fA-F]{6}$/.test(txt.value)) pick.value = txt.value;
+  const txt = document.getElementById('f-'+key+'-color').value;
+  if (/^#[0-9a-fA-F]{6}$/.test(txt)) document.getElementById('f-'+key+'-color-pick').value = txt;
   livePreview();
 }
 
-// ═══════════════════════════════════════════════
-//  PLAYERS LIST
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  PLAYERS
+// ═══════════════════════════════════════════
 let playersList = [];
 
 function renderPlayersList() {
@@ -829,17 +1003,13 @@ function renderPlayersList() {
     const row = document.createElement('div');
     row.className = 'player-row';
     const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.value = name;
-    inp.maxLength = 20;
+    inp.type = 'text'; inp.value = name; inp.maxLength = 20;
     inp.placeholder = 'Player name...';
     inp.oninput = () => { playersList[i] = inp.value; };
     const btn = document.createElement('button');
-    btn.className = 'btn-remove';
-    btn.textContent = '✕';
-    btn.onclick = () => removePlayer(i);
-    row.appendChild(inp);
-    row.appendChild(btn);
+    btn.className = 'btn-remove'; btn.textContent = '✕';
+    btn.onclick = () => { playersList.splice(i,1); renderPlayersList(); };
+    row.appendChild(inp); row.appendChild(btn);
     container.appendChild(row);
   });
 }
@@ -848,28 +1018,20 @@ function addPlayer() {
   playersList.push('');
   renderPlayersList();
   const inputs = document.getElementById('players-list').querySelectorAll('input');
-  if (inputs.length) inputs[inputs.length - 1].focus();
+  if (inputs.length) inputs[inputs.length-1].focus();
 }
 
-function removePlayer(i) {
-  playersList.splice(i, 1);
-  renderPlayersList();
-}
-
-// ═══════════════════════════════════════════════
-//  LIVE PREVIEW CANVAS
-// ═══════════════════════════════════════════════
-const pCanvas = document.getElementById('preview-canvas');
-const pCtx    = pCanvas.getContext('2d');
-
+// ═══════════════════════════════════════════
+//  FORM CONFIG
+// ═══════════════════════════════════════════
 function getFormConfig() {
   const players = playersList.map(s => s.trim()).filter(s => s.length > 0);
   return {
-    game_title:   document.getElementById('f-game-title').value    || 'BulletHead',
-    hero_name:    document.getElementById('f-hero-name').value     || 'Hero',
-    hero_color:   document.getElementById('f-hero-color').value    || '#e82020',
-    msg_start:    document.getElementById('f-msg-start').value     || 'Good luck!',
-    msg_gameover: document.getElementById('f-msg-gameover').value  || 'Game Over!',
+    game_title:   document.getElementById('f-game-title').value   || 'BulletHead',
+    hero_name:    document.getElementById('f-hero-name').value    || 'Hero',
+    hero_color:   document.getElementById('f-hero-color').value   || '#e82020',
+    msg_start:    document.getElementById('f-msg-start').value    || 'Good luck!',
+    msg_gameover: document.getElementById('f-msg-gameover').value || 'Game Over!',
     players,
     enemy_names: {
       drone:   document.getElementById('f-enemy-drone').value   || 'Drone',
@@ -887,60 +1049,57 @@ function getFormConfig() {
   };
 }
 
+// ═══════════════════════════════════════════
+//  LIVE PREVIEW
+// ═══════════════════════════════════════════
+const pCanvas = document.getElementById('preview-canvas');
+const pCtx    = pCanvas.getContext('2d');
+
 function livePreview() {
-  const cfg = getFormConfig();
+  const cfg   = getFormConfig();
   const theme = THEMES.find(t => t.id === cfg.color_theme) || THEMES[0];
   const W = pCanvas.width, H = pCanvas.height;
 
   const g = pCtx.createLinearGradient(0,0,0,H);
   g.addColorStop(0, theme.bg);
   g.addColorStop(1, shadeColor(theme.bg, 20));
-  pCtx.fillStyle = g;
-  pCtx.fillRect(0,0,W,H);
+  pCtx.fillStyle = g; pCtx.fillRect(0,0,W,H);
 
   pCtx.textAlign = 'center';
-  pCtx.shadowColor = theme.accent;
-  pCtx.shadowBlur = 14;
+  pCtx.shadowColor = theme.accent; pCtx.shadowBlur = 14;
   pCtx.fillStyle = theme.accent;
-  pCtx.font = 'bold 20px Arial Black';
-  pCtx.fillText(cfg.game_title, W/2, 38);
+  pCtx.font = 'bold 18px Arial Black';
+  pCtx.fillText(cfg.game_title, W/2, 34);
   pCtx.shadowBlur = 0;
 
-  pCtx.fillStyle = '#aaa';
-  pCtx.font = '10px Arial';
-  pCtx.fillText(cfg.msg_start, W/2, 55);
+  pCtx.fillStyle = '#aaa'; pCtx.font = '9px Arial';
+  pCtx.fillText(cfg.msg_start, W/2, 50);
 
-  drawMiniHero(pCtx, W/2 - 30, 68, cfg.hero_color, theme.accent);
-  pCtx.fillStyle = '#fff';
-  pCtx.font = 'bold 10px Arial';
-  pCtx.fillText(cfg.hero_name, W/2 - 30 + 12, 122);
+  drawMiniHero(pCtx, W/2-28, 62, cfg.hero_color, theme.accent);
+  pCtx.fillStyle = '#fff'; pCtx.font = 'bold 9px Arial';
+  pCtx.fillText(cfg.hero_name, W/2-28+10, 112);
 
-  const enemies = [
-    { name: cfg.enemy_names.drone,   color: '#ff4466', x: W/2 + 18 },
-    { name: cfg.enemy_names.bomber,  color: '#ff8800', x: W/2 + 55 },
-    { name: cfg.enemy_names.speeder, color: '#ff00cc', x: W/2 + 92 },
-  ];
-  enemies.forEach(e => {
-    drawMiniHero(pCtx, e.x, 68, e.color, e.color);
-    pCtx.fillStyle = '#888';
-    pCtx.font = '8px Arial';
-    pCtx.fillText(e.name, e.x + 12, 122);
+  [
+    { name:cfg.enemy_names.drone,   color:'#ff4466', x:W/2+16  },
+    { name:cfg.enemy_names.bomber,  color:'#ff8800', x:W/2+52  },
+    { name:cfg.enemy_names.speeder, color:'#ff00cc', x:W/2+88  },
+  ].forEach(e => {
+    drawMiniHero(pCtx, e.x, 62, e.color, e.color);
+    pCtx.fillStyle = '#888'; pCtx.font = '7px Arial';
+    pCtx.fillText(e.name, e.x+10, 112);
   });
 
-  pCtx.strokeStyle = theme.accent + '44';
-  pCtx.lineWidth = 2;
-  pCtx.shadowColor = theme.accent;
-  pCtx.shadowBlur = 5;
-  [[16,134,120],[160,142,135],[16,152,W-32]].forEach(([x,y,w])=>{
+  pCtx.strokeStyle = theme.accent+'44'; pCtx.lineWidth = 2;
+  pCtx.shadowColor = theme.accent; pCtx.shadowBlur = 4;
+  [[14,126,110],[148,134,128],[14,144,W-28]].forEach(([x,y,w])=>{
     pCtx.beginPath(); pCtx.moveTo(x,y); pCtx.lineTo(x+w,y); pCtx.stroke();
   });
-  pCtx.shadowBlur = 0;
-  pCtx.textAlign = 'left';
+  pCtx.shadowBlur = 0; pCtx.textAlign = 'left';
 }
 
 function drawMiniHero(ctx, x, y, shirtColor, glowColor) {
   ctx.shadowColor = glowColor; ctx.shadowBlur = 7;
-  ctx.fillStyle = '#ffcc99'; ctx.fillRect(x+5, y, 11, 10);
+  ctx.fillStyle = '#ffcc99'; ctx.fillRect(x+5, y,    11, 10);
   ctx.fillStyle = shirtColor; ctx.fillRect(x+4, y+10, 13, 9);
   ctx.fillStyle = '#333';
   ctx.fillRect(x+4,  y+19, 5, 7);
@@ -949,166 +1108,36 @@ function drawMiniHero(ctx, x, y, shirtColor, glowColor) {
 }
 
 function shadeColor(hex, pct) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.min(255, ((n>>16)&255) + pct);
-  const g = Math.min(255, ((n>>8)&255)  + pct);
-  const b = Math.min(255, (n&255)       + pct);
-  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  const n = parseInt(hex.slice(1),16);
+  const r = Math.min(255,((n>>16)&255)+pct);
+  const g = Math.min(255,((n>>8)&255)+pct);
+  const b = Math.min(255,(n&255)+pct);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
-// ═══════════════════════════════════════════════
-//  SLUG GENERATOR
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  SLUG + COPY + TOAST
+// ═══════════════════════════════════════════
 function genSlug() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 }
 
-// ═══════════════════════════════════════════════
-//  CREATE GAME
-// ═══════════════════════════════════════════════
-async function createGame() {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) { showToast('Please log in first!'); return; }
-
-  const cfg = getFormConfig();
-  if (!cfg.game_title.trim()) { showToast('Please enter a game title!'); return; }
-
-  const btn = document.getElementById('create-btn');
-  btn.disabled = true; btn.textContent = '⏳ Creating...';
-
-  const slug = genSlug();
-  const { error } = await sb.from('game_configs').insert({
-    user_id:      user.id,
-    slug,
-    game_title:   cfg.game_title,
-    hero_name:    cfg.hero_name,
-    hero_color:   cfg.hero_color,
-    enemy_names:  cfg.enemy_names,
-    gun_names:    cfg.gun_names,
-    msg_start:    cfg.msg_start,
-    msg_gameover: cfg.msg_gameover,
-    color_theme:  cfg.color_theme,
-    players:      cfg.players,
-  });
-
-  btn.disabled = false; btn.textContent = '🚀 Build & Get Link!';
-  if (error) { showToast('Error: ' + error.message); return; }
-
-  const link = `${location.origin}/index.html?g=${slug}`;
-  document.getElementById('game-link').value = link;
-  document.getElementById('link-box').style.display = 'block';
-  showToast('✅ Game created!');
-  loadMyGames();
-}
-
-// ═══════════════════════════════════════════════
-//  LOAD MY GAMES
-// ═══════════════════════════════════════════════
-async function loadMyGames() {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return;
-
-  const { data, error } = await sb.from('game_configs')
-    .select('slug, game_title, play_count, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  const el = document.getElementById('my-games-list');
-  if (error || !data || data.length === 0) {
-    el.innerHTML = '<div class="empty-state">No games yet 🎮</div>';
-    return;
-  }
-
-  el.innerHTML = data.map(g => `
-    <div class="game-item" onclick="loadGame('${g.slug}')">
-      <div>
-        <div class="game-item-title">${g.game_title}</div>
-        <div class="game-item-meta">/${g.slug} — ${new Date(g.created_at).toLocaleDateString('en-US')}</div>
-      </div>
-      <div class="game-item-plays">${g.play_count} 🎮</div>
-    </div>
-  `).join('');
-}
-
-// ═══════════════════════════════════════════════
-//  LOAD EXISTING GAME INTO EDITOR
-// ═══════════════════════════════════════════════
-async function loadGame(slug) {
-  const { data, error } = await sb.from('game_configs').select('*').eq('slug', slug).single();
-  if (error || !data) return;
-
-  document.getElementById('f-game-title').value      = data.game_title   || '';
-  document.getElementById('f-hero-name').value        = data.hero_name    || '';
-  document.getElementById('f-hero-color').value       = data.hero_color   || '#e82020';
-  document.getElementById('f-hero-color-pick').value  = data.hero_color   || '#e82020';
-  document.getElementById('f-msg-start').value        = data.msg_start    || '';
-  document.getElementById('f-msg-gameover').value     = data.msg_gameover || '';
-
-  const en = data.enemy_names || {};
-  document.getElementById('f-enemy-drone').value   = en.drone   || '';
-  document.getElementById('f-enemy-bomber').value  = en.bomber  || '';
-  document.getElementById('f-enemy-speeder').value = en.speeder || '';
-
-  const gn = data.gun_names || {};
-  document.getElementById('f-gun-pistol').value  = gn.pistol  || '';
-  document.getElementById('f-gun-smg').value     = gn.smg     || '';
-  document.getElementById('f-gun-shotgun').value = gn.shotgun || '';
-  document.getElementById('f-gun-sniper').value  = gn.sniper  || '';
-  document.getElementById('f-gun-rocket').value  = gn.rocket  || '';
-
-  playersList = data.players || [];
-  renderPlayersList();
-
-  selectedTheme = data.color_theme || 'default';
-  buildThemeGrid();
-  livePreview();
-
-  const link = `${location.origin}/index.html?g=${slug}`;
-  document.getElementById('game-link').value = link;
-  document.getElementById('link-box').style.display = 'block';
-  loadStats(slug);
-  showToast('Loaded: ' + data.game_title);
-}
-
-async function loadStats(slug) {
-  const { data } = await sb.from('scores')
-    .select('score, player_name, created_at')
-    .eq('game_slug', slug)
-    .order('score', { ascending: false })
-    .limit(1);
-
-  const plays = await sb.from('game_configs').select('play_count').eq('slug', slug).single();
-
-  document.getElementById('stats-card').style.display = 'block';
-  document.getElementById('stat-plays').textContent = plays.data?.play_count ?? 0;
-  if (data && data.length > 0) {
-    document.getElementById('stat-best').textContent = data[0].score;
-    document.getElementById('stat-last').textContent = data[0].player_name;
-  }
-}
-
-// ═══════════════════════════════════════════════
-//  COPY LINK
-// ═══════════════════════════════════════════════
 function copyLink() {
   const input = document.getElementById('game-link');
   input.select();
   navigator.clipboard.writeText(input.value).then(() => showToast('📋 Link copied!'));
 }
 
-// ═══════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// init
 livePreview();
 </script>
 </body>
