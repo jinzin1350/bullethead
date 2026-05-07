@@ -27,8 +27,17 @@ window.PZUI = {
     PZ.on('coins',   () => this._updateHUD());
     PZ.on('toast',   (t) => this.toast(typeof t === 'string' ? t : t.msg, t.color));
     PZ.on('ready',   () => {
-      if (PZ.isLoggedIn()) this._onLogin();
-      else this._showAuth();
+      if (PZ.isLoggedIn()) {
+        this._onLogin();
+      } else {
+        // اگه ?g=slug توی URL هست → کاربر بازیکنه، نه creator
+        // login اجباری نیست — فقط HUD رو مخفی نگه دار
+        const hasGameSlug = new URLSearchParams(location.search).get('g');
+        if (!hasGameSlug) {
+          this._showAuth();
+        }
+        // اگه slug داره → بازی بدون login باز میشه، score ذخیره نمیشه
+      }
     });
     PZ.on('room_msg', (msg) => this._handleRoomMsg(msg));
   },
