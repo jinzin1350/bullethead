@@ -439,7 +439,7 @@ function updatePlatTransition(){
 // ═══════════════════════════════════════════════
 //  GAME STATE
 // ═══════════════════════════════════════════════
-let state = 'title'; // title | playing | gameover | shop
+let state = 'title'; // title | playing | gameover | shop | quiz
 let score=0,level=1,kills=0,killsThisLevel=0;
 let levelUpTimer=0,mapChangeBannerTimer=0,rewardBannerTimer=0,rewardTimer=0,rewardBurstTimer=0;
 let frame=0;
@@ -823,6 +823,170 @@ function drawBossHUD(){
 }
 
 // ═══════════════════════════════════════════════
+//  QUIZ — Grade 4 Canada Math
+// ═══════════════════════════════════════════════
+let quiz = null; // { q, answer, choices, timeLeft, selected, result, zones }
+
+function makeQuiz(){
+  const type = Math.floor(Math.random()*3); // 0=add, 1=sub, 2=mul
+  let a, b, answer, symbol;
+
+  if(type === 0){          // Addition — 2-digit + 2-digit (Grade 4 Canada)
+    a = 12 + Math.floor(Math.random()*87);
+    b = 12 + Math.floor(Math.random()*87);
+    answer = a + b; symbol = '+';
+  } else if(type === 1){   // Subtraction — bigger - smaller, positive result
+    a = 30 + Math.floor(Math.random()*70);
+    b = 10 + Math.floor(Math.random()*(a-10));
+    answer = a - b; symbol = '−';
+  } else {                 // Multiplication — up to 12×12 (Grade 4 times tables)
+    a = 2 + Math.floor(Math.random()*11);
+    b = 2 + Math.floor(Math.random()*11);
+    answer = a * b; symbol = '×';
+  }
+
+  // 4 choices: correct + 3 wrong (close but unique)
+  const wrongs = new Set();
+  while(wrongs.size < 3){
+    const off = (Math.floor(Math.random()*12)+1) * (Math.random()<0.5?1:-1);
+    const w   = answer + off;
+    if(w !== answer && w > 0) wrongs.add(w);
+  }
+  const choices = [...wrongs, answer].sort(()=>Math.random()-0.5);
+
+  quiz = {
+    q:        `${a}  ${symbol}  ${b}  =  ?`,
+    answer,
+    choices,
+    timeLeft: 15 * 60, // 15 seconds × 60 fps
+    selected: null,
+    result:   null,     // 'correct' | 'wrong' | 'timeout'
+    resultTimer: 0,
+    zones: [],
+  };
+}
+
+function updateQuiz(){
+  if(!quiz) return;
+  if(quiz.result){
+    quiz.resultTimer--;
+    if(quiz.resultTimer <= 0) finishQuiz();
+    return;
+  }
+  quiz.timeLeft--;
+  if(quiz.timeLeft <= 0){
+    quiz.result = 'timeout';
+    quiz.resultTimer = 90;
+  }
+}
+
+function answerQuiz(idx){
+  if(!quiz || quiz.result) return;
+  quiz.selected = idx;
+  if(quiz.choices[idx] === quiz.answer){
+    quiz.result = 'correct';
+    quiz.resultTimer = 90;
+  } else {
+    quiz.result = 'wrong';
+    quiz.resultTimer = 90;
+  }
+}
+
+function finishQuiz(){
+  const res = quiz.result;
+  quiz = null;
+  if(res === 'correct'){
+    // زنده برگرد با shield کوتاه
+    state = 'playing';
+    P.dead = false; P.lives = Math.max(1, P.lives);
+    P.invincible = 180; P.shield = 180;
+    P.x = 290; P.y = 395; P.vy = 0;
+    floatText(P.x+P.w/2, P.y-20, '✅ CORRECT! +SHIELD', '#00ff88');
+    burst(P.x+P.w/2, P.y, '#00ff88', 20);
+    syncControlsVisibility();
+  } else {
+    // game over واقعی
+    P.dead = true; P.deathTimer = 1;
+    state = 'playing'; // بذار updatePlayer game over رو handle کنه
+  }
+}
+
+function drawQuiz(){
+  if(!quiz) return;
+
+  // تاریک کن پس‌زمینه
+  ctx.fillStyle = 'rgba(0,0,0,0.82)';
+  ctx.fillRect(0,0,W,H);
+
+  const cx = W/2, cardW = 480, cardH = 320, cardX = cx-cardW/2, cardY = 60;
+
+  // card
+  roundRect(cardX, cardY, cardW, cardH, 18, '#0a0a20', '#cc44ff', 2.5);
+  ctx.shadowColor='#cc44ff'; ctx.shadowBlur=30;
+  roundRect(cardX, cardY, cardW, cardH, 18, '', '#cc44ff', 2.5);
+  ctx.shadowBlur=0;
+
+  // header
+  ctx.textAlign='center';
+  ctx.fillStyle='#cc44ff'; ctx.font='bold 13px Arial Black';
+  ctx.fillText('⚡ SECOND CHANCE — Answer to keep playing!', cx, cardY+22);
+
+  // timer bar
+  const pct  = quiz.timeLeft / (15*60);
+  const barW = cardW-40, barX = cardX+20, barY2 = cardY+30;
+  const barCol = pct>0.5?'#00ff88':pct>0.25?'#ffcc00':'#ff4444';
+  ctx.fillStyle='#222'; roundRect(barX,barY2,barW,8,4,'#222','');
+  ctx.fillStyle=barCol; ctx.shadowColor=barCol; ctx.shadowBlur=8;
+  if(pct>0) roundRect(barX,barY2,barW*pct,8,4,barCol,'');
+  ctx.shadowBlur=0;
+  const secs = Math.ceil(quiz.timeLeft/60);
+  ctx.fillStyle=barCol; ctx.font='bold 11px Arial';
+  ctx.fillText(secs+'s', cx, barY2+20);
+
+  // question
+  ctx.fillStyle='#ffffff'; ctx.font='bold 42px Arial Black';
+  ctx.shadowColor='#ffffff'; ctx.shadowBlur=12;
+  ctx.fillText(quiz.q, cx, cardY+110);
+  ctx.shadowBlur=0;
+
+  // grade label
+  ctx.fillStyle='#666688'; ctx.font='11px Arial';
+  ctx.fillText('Grade 4 Math  ·  Canada Curriculum', cx, cardY+132);
+
+  // result overlay
+  if(quiz.result){
+    const ok = quiz.result==='correct';
+    const col = ok?'#00ff88':quiz.result==='timeout'?'#ffcc00':'#ff4444';
+    const msg = ok?'✅ Correct! You\'re back!':quiz.result==='timeout'?'⏰ Time\'s up!':'❌ Wrong answer!';
+    ctx.fillStyle=col; ctx.font='bold 26px Arial Black';
+    ctx.shadowColor=col; ctx.shadowBlur=25;
+    ctx.fillText(msg, cx, cardY+170);
+    ctx.shadowBlur=0;
+    ctx.textAlign='left'; return;
+  }
+
+  // 4 answer buttons — 2×2 grid
+  quiz.zones = [];
+  const btnW=210, btnH=54, gap=12;
+  const gridX=cardX+20, gridY=cardY+148;
+  quiz.choices.forEach((ch,i)=>{
+    const col=i%2, row=Math.floor(i/2);
+    const bx=gridX+col*(btnW+gap), by=gridY+row*(btnH+gap);
+    const hover = mouseX>=bx&&mouseX<=bx+btnW&&mouseY>=by&&mouseY<=by+btnH;
+    const bgCol = hover?'#1a1a40':'#111130';
+    const borderCol = hover?'#cc44ff':'#3a3a60';
+    roundRect(bx,by,btnW,btnH,10,bgCol,borderCol,hover?2:1.5);
+    if(hover){ ctx.shadowColor='#cc44ff'; ctx.shadowBlur=12; roundRect(bx,by,btnW,btnH,10,'',borderCol,2); ctx.shadowBlur=0; }
+    ctx.fillStyle='#fff'; ctx.font='bold 22px Arial Black'; ctx.textBaseline='middle';
+    ctx.fillText(String(ch), bx+btnW/2, by+btnH/2);
+    ctx.textBaseline='alphabetic';
+    quiz.zones.push({x:bx,y:by,w:btnW,h:btnH,idx:i});
+  });
+
+  ctx.textAlign='left';
+}
+
+// ═══════════════════════════════════════════════
 //  POWER-UPS
 // ═══════════════════════════════════════════════
 let powerups=[];
@@ -876,6 +1040,15 @@ function handleCanvasInteract(cx, cy) {
   if (state === 'title')     handleTitleClick(cx, cy);
   if (state === 'shop')      handleShopClick(cx, cy);
   if (state === 'gameover')  handleGameOverClick(cx, cy);
+  if (state === 'quiz') {
+    if(quiz && !quiz.result && quiz.zones){
+      for(const z of quiz.zones){
+        if(cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h){
+          answerQuiz(z.idx); return;
+        }
+      }
+    }
+  }
   if (state === 'enterName') {
     for(const z of dropdownZones){
       if(cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h){ z.action(); return; }
@@ -946,7 +1119,7 @@ setupTouchControls();
 function syncControlsVisibility() {
   const ctrl = document.getElementById('controls');
   if (!ctrl) return;
-  const show = state === 'playing' && ('ontouchstart' in window);
+  const show = (state === 'playing') && ('ontouchstart' in window);
   ctrl.style.display = show ? 'block' : 'none';
 }
 
@@ -1032,6 +1205,7 @@ function startGame(){
   gameOverCoinsEarned=0;
   bonusGiven=false;
   boss=null;bossWarningTimer=0;bossDefeatedTimer=0;bossFlashTimer=0;bossShakeTimer=0;
+  quiz=null;
   currentThemeIdx=0;
   PLAT_LAYOUT=ALL_LAYOUTS[0].map(p=>({...p,isGround:!!p.isGround}));
   platLayoutIdx=0;platTransition=0;platOldLayout=platNewLayout=null;
@@ -1097,8 +1271,16 @@ function hitPlayer(){
   if(P.shield>0){ P.shield=0;P.invincible=60;floatText(P.x+P.w/2,P.y-20,'BLOCKED!','#44aaff');burst(P.x+P.w/2,P.y+P.h/2,'#44aaff',10);return; }
   P.lives--;
   burst(P.x+P.w/2,P.y+P.h/2,'#ff4444',12);
-  if(P.lives<=0){ P.dead=true;P.deathTimer=90; }
-  else P.invincible=110;
+  if(P.lives<=0){
+    // quiz میاد — اگه جواب درست داد زنده میشه!
+    P.dead=true; P.deathTimer=999; // نگه دار تا quiz تموم بشه
+    state='quiz';
+    makeQuiz();
+    Object.keys(keys).forEach(k=>keys[k]=false);
+    syncControlsVisibility();
+  } else {
+    P.invincible=110;
+  }
 }
 
 function collectPower(p){
@@ -2148,6 +2330,13 @@ function loop(){
   } else if(state==='gameover'){
     drawBackground();
     drawGameOver();
+  } else if(state==='quiz'){
+    // بازی رو زمینه بکش، quiz روش
+    drawBackground();drawPlatforms();drawParticles();
+    drawPowerups();drawEnemies();drawBullets();drawBoss();drawPlayer();
+    drawHUD();
+    updateQuiz();
+    drawQuiz();
   } else {
     updatePlayer();updateEnemies();updateBullets();
     updatePowerups();updateParticles();updateSpawner();
