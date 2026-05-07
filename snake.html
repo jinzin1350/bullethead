@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#1a1d29"/>
+  <title>Snake — PlayZone</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/pz-core.js"></script>
+  <script src="/pz-ui.js"></script>
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --snake-color:      #00D9A6;
+      --snake-head-color: #00BF91;
+      --food-color:       #FF6B6B;
+      --board-bg:         #1A1D29;
+      --primary:          #00D9A6;
+      --bg:               #0a0a14;
+      --surface:          #12122a;
+      --card:             #1a1a35;
+      --border:           #2a2a50;
+      --text:             #e0e0ff;
+      --muted:            #666688;
+    }
+    html, body {
+      width:100%; min-height:100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+    }
+
+    /* ── HEADER ── */
+    .game-header {
+      text-align: center;
+      padding: 16px 16px 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .game-header h1 {
+      font-size: clamp(20px,4vw,28px);
+      font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      background: linear-gradient(90deg, var(--snake-color), #00b4d8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+    .game-header p { color: var(--muted); font-size: 13px; }
+
+    /* ── LAYOUT ── */
+    .game-container {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    @media (max-width: 680px) {
+      .game-container { grid-template-columns: 1fr; }
+      .sidebar { display: flex; flex-wrap: wrap; gap: 10px; }
+      .sidebar > * { flex: 1; min-width: 140px; }
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .sidebar-card h3 {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); margin-bottom: 10px;
+    }
+
+    /* difficulty */
+    .diff-btn {
+      width: 100%; padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 8px; color: var(--muted);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: all .15s; margin-bottom: 6px;
+    }
+    .diff-btn:last-child { margin-bottom: 0; }
+    .diff-btn:hover { border-color: var(--primary); color: var(--text); }
+    .diff-btn.active { border-color: var(--primary); color: var(--primary); background: #00d9a611; }
+    .diff-emoji { font-size: 16px; }
+    .diff-info { flex: 1; text-align: left; }
+    .diff-name { display: block; font-size: 12px; font-weight: 700; }
+    .diff-speed { display: block; font-size: 10px; color: var(--muted); }
+
+    /* stats */
+    .stat-row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .stat-row:last-of-type { border-bottom: none; }
+    .stat-label { color: var(--muted); }
+    .stat-val { font-weight: 700; color: var(--text); }
+
+    /* ── MAIN GAME AREA ── */
+    .game-main {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+
+    /* score bar */
+    .score-bar {
+      display: flex; gap: 16px; justify-content: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 20px; width: 100%;
+    }
+    .score-item { text-align: center; }
+    .score-label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .score-val   { display: block; font-size: 20px; font-weight: 900; color: var(--primary); }
+
+    /* board */
+    .board-wrap {
+      position: relative;
+      width: min(100%, 480px);
+      aspect-ratio: 1;
+    }
+    .play-board {
+      width: 100%; height: 100%;
+      display: grid;
+      grid-template: repeat(30, 1fr) / repeat(30, 1fr);
+      background: var(--board-bg);
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 0 30px #00d9a622;
+      overflow: hidden;
+    }
+    .play-board .food {
+      background: var(--food-color);
+      border-radius: 50%;
+      margin: 1px;
+      animation: foodPulse .6s ease-in-out infinite;
+      box-shadow: 0 0 8px var(--food-color);
+    }
+    .play-board .snake {
+      background: var(--snake-color);
+      border-radius: 3px;
+      margin: 1px;
+    }
+    .play-board .snake-head {
+      background: var(--snake-head-color);
+      border-radius: 5px;
+      margin: 1px;
+      box-shadow: 0 0 10px rgba(0,217,166,0.6);
+    }
+    @keyframes foodPulse {
+      0%,100% { transform: scale(.88); }
+      50%      { transform: scale(1.1); }
+    }
+
+    /* overlay */
+    .game-overlay {
+      position: absolute; inset: 0;
+      background: rgba(10,10,20,.88);
+      display: none; align-items: center; justify-content: center;
+      border-radius: 12px;
+      flex-direction: column; gap: 10px;
+    }
+    .game-overlay.active { display: flex; }
+    .overlay-icon { font-size: 48px; }
+    .overlay-text { font-size: 16px; font-weight: 700; color: #fff; }
+    .overlay-hint { font-size: 12px; color: var(--muted); }
+
+    /* controls */
+    .ctrl-row {
+      display: flex; gap: 10px;
+    }
+    .ctrl-btn {
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: var(--card); color: var(--text);
+      transition: border-color .15s, color .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ctrl-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .ctrl-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* D-pad */
+    .dpad {
+      display: grid;
+      grid-template-areas:
+        ". up ."
+        "left center right"
+        ". down .";
+      gap: 4px;
+    }
+    .dpad-btn {
+      width: 52px; height: 52px; border-radius: 10px;
+      background: var(--card); border: 1.5px solid var(--border);
+      color: var(--text); font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .1s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dpad-btn:active { background: var(--primary); transform: scale(.9); }
+    .dpad-up    { grid-area: up; }
+    .dpad-left  { grid-area: left; }
+    .dpad-center{ grid-area: center; width:52px;height:52px; }
+    .dpad-right { grid-area: right; }
+    .dpad-down  { grid-area: down; }
+
+    /* game over modal */
+    .go-modal {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.85);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .go-modal.active { display: flex; }
+    .go-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 18px; padding: 32px 28px;
+      text-align: center; max-width: 340px; width: 100%;
+      box-shadow: 0 0 60px #00d9a622;
+    }
+    .go-icon { font-size: 56px; margin-bottom: 12px; }
+    .go-title { font-family:'Arial Black',sans-serif; font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 16px; }
+    .go-stats { display: flex; gap: 16px; justify-content: center; margin-bottom: 16px; }
+    .go-stat { background: var(--card); border-radius: 10px; padding: 12px 18px; }
+    .go-stat-val { display: block; font-size: 24px; font-weight: 900; color: var(--primary); }
+    .go-stat-lbl { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .go-msg { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .go-coins { color: #ffcc00; font-weight: 700; font-size: 16px; margin-bottom: 16px; }
+    .go-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--primary), #00b4d8);
+      color: #000; font-size: 15px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .go-btn:hover { opacity: .88; }
+
+    /* toast */
+    #pz-toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--primary); color: #000;
+      padding: 10px 22px; border-radius: 30px;
+      font-size: 13px; font-weight: 700;
+      transition: transform .3s, opacity .3s;
+      opacity: 0; z-index: 999; pointer-events: none; white-space: nowrap;
+    }
+    #pz-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="game-header">
+  <h1 id="game-title-el">🐍 Snake</h1>
+  <p id="game-msg-el">Eat, grow, and survive!</p>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="game-container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <!-- Difficulty -->
+    <div class="sidebar-card">
+      <h3>Difficulty</h3>
+      <button class="diff-btn" data-difficulty="easy">
+        <span class="diff-emoji">🐢</span>
+        <span class="diff-info"><span class="diff-name">Easy</span><span class="diff-speed">Slow</span></span>
+      </button>
+      <button class="diff-btn active" data-difficulty="medium">
+        <span class="diff-emoji">🐍</span>
+        <span class="diff-info"><span class="diff-name">Medium</span><span class="diff-speed">Normal</span></span>
+      </button>
+      <button class="diff-btn" data-difficulty="hard">
+        <span class="diff-emoji">⚡</span>
+        <span class="diff-info"><span class="diff-name">Hard</span><span class="diff-speed">Fast</span></span>
+      </button>
+    </div>
+    <!-- Stats -->
+    <div class="sidebar-card">
+      <h3>Your Stats</h3>
+      <div class="stat-row"><span class="stat-label">Games Played</span><span class="stat-val" id="stat-games">0</span></div>
+      <div class="stat-row"><span class="stat-label">Best Score</span><span class="stat-val" id="stat-best">0</span></div>
+      <div class="stat-row"><span class="stat-label">Food Eaten</span><span class="stat-val" id="stat-food">0</span></div>
+      <div class="stat-row"><span class="stat-label">🪙 Coins Earned</span><span class="stat-val" id="stat-coins" style="color:#ffcc00">0</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="game-main">
+    <!-- Score bar -->
+    <div class="score-bar">
+      <div class="score-item">
+        <span class="score-label">Score</span>
+        <span class="score-val" id="cur-score">0</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">Length</span>
+        <span class="score-val" id="snake-len">1</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">Best</span>
+        <span class="score-val" id="best-score">0</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">🪙 Coins</span>
+        <span class="score-val" id="hud-coins" style="color:#ffcc00">0</span>
+      </div>
+    </div>
+
+    <!-- Board -->
+    <div class="board-wrap">
+      <div class="play-board" id="playBoard"></div>
+      <div class="game-overlay active" id="gameOverlay">
+        <div class="overlay-icon">🐍</div>
+        <div class="overlay-text">Tap or press Space to start</div>
+        <div class="overlay-hint">Use arrow keys or D-pad to move</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrl-row">
+      <button class="ctrl-btn" id="pauseBtn" disabled>⏸ Pause</button>
+      <button class="ctrl-btn" id="restartBtn">🔄 Restart</button>
+    </div>
+
+    <!-- D-pad (mobile) -->
+    <div class="dpad">
+      <button class="dpad-btn dpad-up"    data-key="ArrowUp">▲</button>
+      <button class="dpad-btn dpad-left"  data-key="ArrowLeft">◀</button>
+      <div    class="dpad-center"></div>
+      <button class="dpad-btn dpad-right" data-key="ArrowRight">▶</button>
+      <button class="dpad-btn dpad-down"  data-key="ArrowDown">▼</button>
+    </div>
+  </main>
+</div>
+
+<!-- ══ GAME OVER MODAL ══ -->
+<div class="go-modal" id="goModal">
+  <div class="go-card">
+    <div class="go-icon" id="go-icon">💀</div>
+    <div class="go-title" id="go-title">Game Over!</div>
+    <div class="go-stats">
+      <div class="go-stat">
+        <span class="go-stat-val" id="go-score">0</span>
+        <span class="go-stat-lbl">Score</span>
+      </div>
+      <div class="go-stat">
+        <span class="go-stat-val" id="go-len">0</span>
+        <span class="go-stat-lbl">Length</span>
+      </div>
+    </div>
+    <div class="go-coins" id="go-coins"></div>
+    <div class="go-msg" id="go-msg">Give it another try!</div>
+    <button class="go-btn" id="go-play-again">▶ Play Again</button>
+  </div>
+</div>
+
+<div id="pz-toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  SNAKE CONFIG — از Supabase لود میشه
+// ═══════════════════════════════════════════════════
+let SNAKE_CFG = {
+  slug:         null,
+  game_title:   'Snake',
+  hero_name:    'Snake',
+  hero_color:   '#00D9A6',   // رنگ مار
+  msg_start:    'Eat, grow, and survive!',
+  color_theme:  'default',
+  players:      [],
+};
+
+// رنگ‌های theme
+const THEMES = {
+  default:  { snake:'#00D9A6', head:'#00BF91', food:'#FF6B6B', board:'#1A1D29', bg:'#0a0a14' },
+  ice:      { snake:'#88ccff', head:'#4499cc', food:'#ff8888', board:'#0a1830', bg:'#060e1a' },
+  lava:     { snake:'#ff6600', head:'#ff3300', food:'#ffcc00', board:'#1a0800', bg:'#100400' },
+  space:    { snake:'#cc44ff', head:'#8800cc', food:'#00ffff', board:'#050015', bg:'#020008' },
+  forest:   { snake:'#44cc44', head:'#228822', food:'#ff6644', board:'#061506', bg:'#020a02' },
+};
+
+async function loadSnakeConfig() {
+  const params = new URLSearchParams(location.search);
+  const slug   = params.get('g');
+  if (!slug) return;
+
+  const _sb = window.PZ_SB || supabase.createClient(
+    'https://oshkqzxmnqvbfkuvxwbc.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk'
+  );
+
+  const { data } = await _sb.from('game_configs').select('*').eq('slug', slug).single();
+  if (!data) return;
+
+  SNAKE_CFG = { ...SNAKE_CFG, ...data };
+  _sb.rpc('increment_play_count', { p_slug: slug });
+
+  // اعمال config
+  document.getElementById('game-title-el').textContent = '🐍 ' + data.game_title;
+  document.getElementById('game-msg-el').textContent   = data.msg_start || 'Eat, grow, and survive!';
+  document.title = data.game_title + ' — PlayZone';
+
+  // رنگ‌ها
+  applyTheme(data.color_theme || 'default', data.hero_color);
+}
+
+function applyTheme(themeId, customColor) {
+  const th = THEMES[themeId] || THEMES.default;
+  const snakeColor = customColor || th.snake;
+  const headColor  = customColor ? adjustColor(customColor, -20) : th.head;
+
+  document.documentElement.style.setProperty('--snake-color',      snakeColor);
+  document.documentElement.style.setProperty('--snake-head-color', headColor);
+  document.documentElement.style.setProperty('--food-color',       th.food);
+  document.documentElement.style.setProperty('--board-bg',         th.board);
+  document.documentElement.style.setProperty('--bg',               th.bg);
+  document.documentElement.style.setProperty('--primary',          snakeColor);
+}
+
+function adjustColor(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, ((n>>16)&255)+amount);
+  const g = Math.max(0, ((n>>8)&255)+amount);
+  const b = Math.max(0, (n&255)+amount);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════
+const playBoard   = document.getElementById('playBoard');
+const gameOverlay = document.getElementById('gameOverlay');
+const goModal     = document.getElementById('goModal');
+const pauseBtn    = document.getElementById('pauseBtn');
+const restartBtn  = document.getElementById('restartBtn');
+
+let gameStarted = false, gamePaused = false, gameOver = false;
+let foodX, foodY;
+let snakeX = 15, snakeY = 15;
+let velocityX = 0, velocityY = 0;
+let snakeBody = [];
+let gameInterval;
+let score = 0;
+let currentDifficulty = 'medium';
+let sessionCoins = 0;
+
+const speeds = { easy:150, medium:100, hard:60 };
+
+// ── local stats ──
+function loadStats() {
+  try {
+    const s = JSON.parse(localStorage.getItem('pz_snake_stats')||'{}');
+    return { games:s.games||0, best:s.best||0, food:s.food||0, coins:s.coins||0 };
+  } catch { return {games:0,best:0,food:0,coins:0}; }
+}
+function saveStats(s) { localStorage.setItem('pz_snake_stats', JSON.stringify(s)); }
+function updateStatsUI() {
+  const s = loadStats();
+  document.getElementById('stat-games').textContent = s.games;
+  document.getElementById('stat-best').textContent  = s.best;
+  document.getElementById('stat-food').textContent  = s.food;
+  document.getElementById('stat-coins').textContent = s.coins;
+  document.getElementById('best-score').textContent = s.best;
+  document.getElementById('hud-coins').textContent  = PZ.isLoggedIn() ? PZ.getCoins() : s.coins;
+}
+
+// ═══════════════════════════════════════════════════
+//  GAME FUNCTIONS
+// ═══════════════════════════════════════════════════
+function initGame() {
+  snakeX=15; snakeY=15;
+  velocityX=0; velocityY=0;
+  snakeBody=[[15,15]];
+  score=0; sessionCoins=0;
+  gameOver=false; gameStarted=false; gamePaused=false;
+  if(gameInterval) clearInterval(gameInterval);
+  pauseBtn.disabled=true;
+  pauseBtn.textContent='⏸ Pause';
+  updateScoreUI();
+  updateFoodPosition();
+  gameOverlay.classList.add('active');
+  renderBoard();
+}
+
+function startGame() {
+  if(gameStarted||gameOver) return;
+  gameStarted=true;
+  gameOverlay.classList.remove('active');
+  pauseBtn.disabled=false;
+  if(!velocityX&&!velocityY){ velocityX=1; velocityY=0; }
+  gameInterval=setInterval(gameLoop, speeds[currentDifficulty]);
+}
+
+function togglePause() {
+  if(!gameStarted||gameOver) return;
+  gamePaused=!gamePaused;
+  if(gamePaused){ clearInterval(gameInterval); pauseBtn.textContent='▶ Resume'; }
+  else { gameInterval=setInterval(gameLoop,speeds[currentDifficulty]); pauseBtn.textContent='⏸ Pause'; }
+}
+
+function updateFoodPosition() {
+  foodX=Math.floor(Math.random()*30)+1;
+  foodY=Math.floor(Math.random()*30)+1;
+}
+
+function updateScoreUI() {
+  document.getElementById('cur-score').textContent = score;
+  document.getElementById('snake-len').textContent = snakeBody.length;
+}
+
+function changeDirection(key) {
+  if(!gameStarted){ if(key==='Space'||key===' ') startGame(); return; }
+  if(gamePaused) return;
+  if(key==='ArrowUp'    && velocityY!==1)  { velocityX=0;  velocityY=-1; }
+  else if(key==='ArrowDown'  && velocityY!==-1) { velocityX=0;  velocityY=1;  }
+  else if(key==='ArrowLeft'  && velocityX!==1)  { velocityX=-1; velocityY=0;  }
+  else if(key==='ArrowRight' && velocityX!==-1) { velocityX=1;  velocityY=0;  }
+}
+
+function gameLoop() {
+  if(gameOver){ handleGameOver(); return; }
+  snakeX+=velocityX; snakeY+=velocityY;
+  if(snakeX<=0||snakeX>30||snakeY<=0||snakeY>30){ gameOver=true; return; }
+  for(const seg of snakeBody){ if(seg[0]===snakeX&&seg[1]===snakeY){ gameOver=true; return; } }
+
+  let ateFood=false;
+  if(snakeX===foodX&&snakeY===foodY){
+    score++;
+    // coins: 1 per food + bonus per 5
+    const earned = 1 + (score%5===0 ? 3 : 0);
+    sessionCoins += earned;
+    updateFoodPosition();
+    ateFood=true;
+    updateScoreUI();
+  }
+  snakeBody.unshift([snakeX,snakeY]);
+  if(!ateFood) snakeBody.pop();
+  renderBoard();
+}
+
+function renderBoard() {
+  let html=`<div class="food" style="grid-area:${foodY}/${foodX}"></div>`;
+  for(let i=0;i<snakeBody.length;i++){
+    const cls = i===0?'snake-head':'snake';
+    html+=`<div class="${cls}" style="grid-area:${snakeBody[i][1]}/${snakeBody[i][0]}"></div>`;
+  }
+  playBoard.innerHTML=html;
+}
+
+async function handleGameOver() {
+  clearInterval(gameInterval);
+  pauseBtn.disabled=true;
+
+  // local stats
+  const s=loadStats();
+  s.games++; s.food+=score; s.coins+=sessionCoins;
+  if(score>s.best) s.best=score;
+  saveStats(s);
+  updateStatsUI();
+
+  // platform coins + score
+  if(PZ.isLoggedIn()&&score>0){
+    await PZ.addCoins(sessionCoins);
+    await PZ.saveScore(SNAKE_CFG.slug||'snake', score);
+    updateStatsUI();
+  }
+
+  setTimeout(showGameOver, 400);
+}
+
+function showGameOver() {
+  document.getElementById('go-icon').textContent  = score>10?'🏆':'💀';
+  document.getElementById('go-title').textContent = score>10?'Great Job!':'Game Over!';
+  document.getElementById('go-score').textContent = score;
+  document.getElementById('go-len').textContent   = snakeBody.length;
+  const msgs=['Give it another try!','Not bad! Keep practicing!','Good game! Can you beat it?','Amazing performance! 🎉'];
+  const mi = score===0?0:score<5?1:score<15?2:3;
+  document.getElementById('go-msg').textContent = msgs[mi];
+  const coinsEl = document.getElementById('go-coins');
+  coinsEl.textContent = sessionCoins>0 ? `🪙 +${sessionCoins} coins earned!` : '';
+  goModal.classList.add('active');
+}
+
+function hideGameOver() { goModal.classList.remove('active'); }
+
+function switchDifficulty(d) {
+  if(gameStarted && !confirm('Changing difficulty will restart. Continue?')) return;
+  currentDifficulty=d;
+  document.querySelectorAll('.diff-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.difficulty===d);
+  });
+  initGame();
+}
+
+// ═══════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if(e.key===' '||e.key==='Spacebar'){ e.preventDefault(); if(!gameStarted&&!gameOver) startGame(); }
+  else if(e.key==='p'||e.key==='P') togglePause();
+  else changeDirection(e.key);
+});
+
+document.querySelectorAll('.diff-btn').forEach(b=>{
+  b.addEventListener('click', ()=>switchDifficulty(b.dataset.difficulty));
+});
+
+pauseBtn.addEventListener('click', togglePause);
+
+restartBtn.addEventListener('click', ()=>{
+  if(gameStarted){ if(confirm('Restart?')) initGame(); }
+  else initGame();
+});
+
+document.getElementById('go-play-again').addEventListener('click', ()=>{ hideGameOver(); initGame(); });
+goModal.addEventListener('click', e=>{ if(e.target===goModal){ hideGameOver(); initGame(); } });
+gameOverlay.addEventListener('click', ()=>{ if(!gameStarted&&!gameOver) startGame(); });
+
+// D-pad
+document.querySelectorAll('.dpad-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    changeDirection(b.dataset.key);
+    if(!gameStarted&&!gameOver) startGame();
+  });
+  b.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    changeDirection(b.dataset.key);
+    if(!gameStarted&&!gameOver) startGame();
+  },{passive:false});
+});
+
+// swipe on board
+let _tx=0,_ty=0;
+playBoard.addEventListener('touchstart', e=>{ _tx=e.touches[0].clientX; _ty=e.touches[0].clientY; },{passive:true});
+playBoard.addEventListener('touchend', e=>{
+  const dx=e.changedTouches[0].clientX-_tx, dy=e.changedTouches[0].clientY-_ty;
+  if(Math.abs(dx)<10&&Math.abs(dy)<10){ if(!gameStarted) startGame(); return; }
+  if(Math.abs(dx)>Math.abs(dy)) changeDirection(dx>0?'ArrowRight':'ArrowLeft');
+  else changeDirection(dy>0?'ArrowDown':'ArrowUp');
+},{passive:true});
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let _tt;
+function toast(msg, color='#00D9A6'){
+  const el=document.getElementById('pz-toast');
+  el.textContent=msg; el.style.background=color;
+  el.style.color=color==='#ffcc00'?'#000':'#000';
+  el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ═══════════════════════════════════════════════════
+//  PLAYZONE PLATFORM
+// ═══════════════════════════════════════════════════
+PZUI.inject({
+  gameName: 'Snake',
+  gameSlug: 'snake',
+  onPause:  () => { if(gameStarted&&!gamePaused) togglePause(); },
+  onResume: () => { if(gamePaused) togglePause(); },
+});
+
+PZ.on('profile', ()=> updateStatsUI());
+PZ.on('coins',   ()=> { document.getElementById('hud-coins').textContent = PZ.getCoins(); });
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+loadSnakeConfig().then(()=>{
+  PZUI.gameName = SNAKE_CFG.game_title || 'Snake';
+  PZUI.gameSlug = SNAKE_CFG.slug || 'snake';
+  updateStatsUI();
+  initGame();
+});
+</script>
+</body>
+</html>

@@ -34,3 +34,15 @@ INSERT INTO shop_items (game, item_key, name, description, cost, item_type, data
   ('contra', 'trail_bullet',  'Bullet Trail',    'Glowing bullet trail',         400,  'trail',  '{"color":"#ff8800"}'),
   ('contra', 'dash_effect',   'Dash Effect',     'Purple dash smoke effect',     600,  'effect', '{"color":"#cc44ff"}')
 ON CONFLICT (game, item_key) DO NOTHING;
+
+-- Snake items
+INSERT INTO shop_items (game, item_key, name, description, cost, item_type, data) VALUES
+  ('snake', 'skin_neon',    'Neon Snake',    'Glowing neon green snake',     400,  'skin',   '{"color":"#00ff88"}'),
+  ('snake', 'skin_fire',    'Fire Snake',    'Hot red-orange snake',         500,  'skin',   '{"color":"#ff4400"}'),
+  ('snake', 'skin_ice',     'Ice Snake',     'Cool blue ice snake',          500,  'skin',   '{"color":"#00ccff"}'),
+  ('snake', 'skin_gold',    'Gold Snake',    'Legendary golden snake',       1000, 'skin',   '{"color":"#ffcc00"}'),
+  ('snake', 'skin_purple',  'Purple Snake',  'Royal purple snake',           600,  'skin',   '{"color":"#cc44ff"}'),
+  ('snake', 'theme_space',  'Space Theme',   'Dark space board with stars',  500,  'theme',  '{"theme":"space"}'),
+  ('snake', 'theme_forest', 'Forest Theme',  'Natural forest green board',   400,  'theme',  '{"theme":"forest"}'),
+  ('snake', 'theme_lava',   'Lava Theme',    'Hot lava volcanic board',      600,  'theme',  '{"theme":"lava"}')
+ON CONFLICT (game, item_key) DO NOTHING;

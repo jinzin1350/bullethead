@@ -734,6 +734,20 @@
             <div class="gpc-arrow">›</div>
           </div>
 
+          <div class="game-pick-card" onclick="openGameHub('snake')">
+            <div class="gpc-emoji">🐍</div>
+            <div class="gpc-info">
+              <div class="gpc-name">Snake</div>
+              <div class="gpc-desc">Classic snake game — eat, grow, survive! Choose your color & theme.</div>
+              <div class="gpc-tags">
+                <span class="gpc-tag">🎮 Arcade</span>
+                <span class="gpc-tag">📱 Mobile</span>
+                <span class="gpc-tag">🏆 Scores</span>
+              </div>
+            </div>
+            <div class="gpc-arrow">›</div>
+          </div>
+
           <div class="game-pick-card locked">
             <div class="gpc-emoji">🏎️</div>
             <div class="gpc-info">
@@ -1122,6 +1136,7 @@ function goHome() {
 const GAME_DEFS = {
   bullethead: { icon:'🔫', name:'BulletHead', desc:'Fast-paced shooter — 14 chars, 5 weapons, 10 maps', route:'/game'    },
   contra:     { icon:'💥', name:'Contra',      desc:'Classic run & gun side-scroller',                  route:'/contra'  },
+  snake:      { icon:'🐍', name:'Snake',        desc:'Classic Snake — eat, grow, survive!',              route:'/snake'   },
 };
 
 async function openGameHub(gameType) {
@@ -1358,7 +1373,29 @@ function _buildCharPanel(gameType) {
   const panel = document.getElementById('panel-1');
   if (!panel) return;
 
-  if (gameType === 'contra') {
+  if (gameType === 'snake') {
+    panel.innerHTML = `
+      <div class="step-heading">
+        <h3>🐍 Snake Customization</h3>
+        <p>Choose your snake color and style. The theme changes the whole look of the game!</p>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Snake Name</label>
+          <input type="text" id="f-hero-name" placeholder="e.g. Ali's Snake" maxlength="20" oninput="livePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>Snake Color</label>
+          <div class="color-row">
+            <input type="color" id="f-hero-color-pick" value="#00D9A6" oninput="syncColor('hero')"/>
+            <input type="text"  id="f-hero-color" value="#00D9A6" maxlength="7" oninput="syncColorFromText('hero')"/>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">
+        💡 The theme (Step 3) also changes board color, food color, and background!
+      </div>`;
+  } else if (gameType === 'contra') {
     panel.innerHTML = `
       <div class="step-heading">
         <h3>💥 Soldier & Enemies</h3>

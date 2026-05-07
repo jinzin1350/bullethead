@@ -7,6 +7,7 @@
     { "route": "/",          "rewrite": "/landing.html"   },
     { "route": "/game",      "rewrite": "/index.html"     },
     { "route": "/contra",    "rewrite": "/contra.html"    },
+    { "route": "/snake",     "rewrite": "/snake.html"     },
     { "route": "/dashboard", "rewrite": "/dashboard.html" }
   ],
   "globalHeaders": {
