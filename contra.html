@@ -274,6 +274,7 @@ function initGame(){
   P = makePlayer();
   bullets=[]; eBullets=[]; soldiers=[]; powerups=[]; particles=[];
   score=0; frame=0; camX=0; soldierTimer=0; soldierWaveX=800;
+  _scoreSaved = false; // reset برای بازی جدید
   stageTimer=0;
 
   // init snipers
@@ -1131,13 +1132,16 @@ PZ.on('profile', (profile) => {
   if (profile) PZUI.toast('🪙 ' + profile.coins.toLocaleString() + ' coins loaded!');
 });
 
-// save score on game over
-const _origGameOver = () => { state = 'gameover'; };
+// save score on game over — فقط یه بار!
+let _scoreSaved = false;
 async function saveContraScore() {
+  if (_scoreSaved) return;       // guard: فقط اولین بار
+  _scoreSaved = true;
   if (PZ.isLoggedIn()) {
-    const earned = Math.floor(score / 30);
-    if (earned > 0) await PZ.addCoins(earned);
+    // فقط PZ.saveScore — داخلش coins رو هم اضافه می‌کنه (score/40)
+    // double award جلوگیری: addCoins جداگانه نمی‌زنیم
     await PZ.saveScore('contra', score);
+    PZUI.toast('🏆 Score saved! +' + Math.floor(score/40) + '🪙');
   }
 }
 

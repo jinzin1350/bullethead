@@ -417,10 +417,25 @@ window.PZUI = {
     if (this.onPause) this.onPause();
     const overlay = document.getElementById('pz-overlay');
     overlay.classList.add('show');
+    // ── موبایل fix: touch-action و user-select رو از body برداریم ──
+    document.body.style.touchAction   = 'auto';
+    document.body.style.userSelect    = 'text';
+    document.body.style.webkitUserSelect = 'text';
+    document.documentElement.style.touchAction = 'auto';
     this._renderPanel(tab);
+    // focus اولین input بعد از render
+    setTimeout(() => {
+      const inp = document.querySelector('#pz-overlay input');
+      if (inp) inp.focus();
+    }, 300);
   },
   closePanel() {
     document.getElementById('pz-overlay').classList.remove('show');
+    // ── برگردون touch-action به حالت اول ──
+    document.body.style.touchAction   = 'none';
+    document.body.style.userSelect    = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    document.documentElement.style.touchAction = '';
     if (this.onResume) this.onResume();
   },
 
@@ -674,6 +689,11 @@ window.PZUI = {
   _showAuth() {
     const el = document.getElementById('pz-panel-content');
     document.getElementById('pz-overlay').classList.add('show');
+    // ── موبایل fix ──
+    document.body.style.touchAction      = 'auto';
+    document.body.style.userSelect       = 'text';
+    document.body.style.webkitUserSelect = 'text';
+    document.documentElement.style.touchAction = 'auto';
     el.innerHTML = `
       <div class="pz-header">
         <div class="pz-title">🎮 PlayZone</div>
@@ -704,24 +724,46 @@ window.PZUI = {
     if (tab === 'login') {
       form.innerHTML = `
         <div class="pz-field"><label>Email</label>
-          <input class="pz-input" id="pz-email" type="email" placeholder="you@example.com" inputmode="email"/></div>
+          <input class="pz-input" id="pz-email" type="email"
+            placeholder="you@example.com" inputmode="email"
+            autocomplete="email" autocorrect="off" autocapitalize="off"/></div>
         <div class="pz-field"><label>Password</label>
-          <input class="pz-input" id="pz-pass" type="password" placeholder="••••••••"/></div>
+          <input class="pz-input" id="pz-pass" type="password"
+            placeholder="••••••••" autocomplete="current-password"/></div>
         <button class="pz-btn" id="pz-auth-btn" onclick="PZUI._doLogin()">🔑 Login</button>
         <div class="pz-err" id="pz-auth-err"></div>
       `;
     } else {
       form.innerHTML = `
         <div class="pz-field"><label>Username</label>
-          <input class="pz-input" id="pz-username" placeholder="Cool username..." maxlength="20"/></div>
+          <input class="pz-input" id="pz-username"
+            placeholder="Cool username..." maxlength="20"
+            autocomplete="username" autocorrect="off" autocapitalize="off"
+            style="touch-action:auto;user-select:text;-webkit-user-select:text;pointer-events:auto"/></div>
         <div class="pz-field"><label>Email</label>
-          <input class="pz-input" id="pz-email" type="email" placeholder="you@example.com" inputmode="email"/></div>
+          <input class="pz-input" id="pz-email" type="email"
+            placeholder="you@example.com" inputmode="email"
+            autocomplete="email" autocorrect="off" autocapitalize="off"
+            style="touch-action:auto;user-select:text;-webkit-user-select:text;pointer-events:auto"/></div>
         <div class="pz-field"><label>Password</label>
-          <input class="pz-input" id="pz-pass" type="password" placeholder="Min 6 characters"/></div>
+          <input class="pz-input" id="pz-pass" type="password"
+            placeholder="Min 6 characters" autocomplete="new-password"
+            style="touch-action:auto;user-select:text;-webkit-user-select:text;pointer-events:auto"/></div>
         <button class="pz-btn" id="pz-auth-btn" onclick="PZUI._doSignup()">✨ Create Account</button>
         <div class="pz-err" id="pz-auth-err"></div>
       `;
     }
+    // focus اولین input — keyboard باز میشه روی موبایل
+    setTimeout(() => {
+      const first = form.querySelector('input');
+      if (first) {
+        first.style.touchAction = 'auto';
+        first.style.userSelect  = 'text';
+        first.readOnly = true;   // trick: readOnly=true بعد false → iOS keyboard fix
+        first.focus();
+        setTimeout(() => { first.readOnly = false; }, 50);
+      }
+    }, 200);
   },
 
   async _doLogin() {

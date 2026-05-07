@@ -1,46 +1,13 @@
 {
   "navigationFallback": {
     "rewrite": "/landing.html",
-    "exclude": [
-      "/pz-core.js",
-      "/pz-ui.js",
-      "/*.js",
-      "/*.css",
-      "/*.jpg",
-      "/*.png",
-      "/*.sql",
-      "/*.md"
-    ]
+    "exclude": ["/*.js", "/*.css", "/*.jpg", "/*.png", "/*.ico", "/*.sql", "/*.md"]
   },
   "routes": [
-    {
-      "route": "/",
-      "rewrite": "/landing.html"
-    },
-    {
-      "route": "/game",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/contra",
-      "rewrite": "/contra.html"
-    },
-    {
-      "route": "/dashboard",
-      "rewrite": "/dashboard.html"
-    },
-    {
-      "route": "/dashboard.html",
-      "allowedRoles": ["anonymous"]
-    },
-    {
-      "route": "/pz-core.js",
-      "rewrite": "/pz-core.js"
-    },
-    {
-      "route": "/pz-ui.js",
-      "rewrite": "/pz-ui.js"
-    }
+    { "route": "/",          "rewrite": "/landing.html"   },
+    { "route": "/game",      "rewrite": "/index.html"     },
+    { "route": "/contra",    "rewrite": "/contra.html"    },
+    { "route": "/dashboard", "rewrite": "/dashboard.html" }
   ],
   "globalHeaders": {
     "Cache-Control": "no-cache, no-store, must-revalidate",

@@ -273,9 +273,12 @@
 // ═══════════════════════════════════════════════
 //  SUPABASE
 // ═══════════════════════════════════════════════
-const BH_SUPA_URL = 'https://oshkqzxmnqvbfkuvxwbc.supabase.co';
-const BH_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk';
-const sb = supabase.createClient(BH_SUPA_URL, BH_SUPA_KEY);
+// از client مشترک pz-core.js استفاده کن — یه session، یه auth
+// (پس از load pz-core.js در head)
+const sb = window.PZ_SB || supabase.createClient(
+  'https://oshkqzxmnqvbfkuvxwbc.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk'
+);
 
 // ═══════════════════════════════════════════════
 //  GAME CONFIG — از Supabase یا default
@@ -556,7 +559,7 @@ function makePlayer(){
     dead:false,deathTimer:0,
     walkFrame:0,walkTimer:0,
     head:  ch.head,
-    shirt: selShirt,
+    shirt: GAME_CFG.hero_color || selShirt,  // dashboard hero color داره اولویت
     pants: selPants,
     hat:   selHat,
     shoes: selShoes,
@@ -1573,6 +1576,7 @@ function startGame(){
   rewardTimer=0;rewardBurstTimer=0;
   gameOverCoinsEarned=0;
   bonusGiven=false;
+  _bhScoreSaved=false; // reset برای بازی جدید
   boss=null;bossWarningTimer=0;bossDefeatedTimer=0;bossFlashTimer=0;bossShakeTimer=0;
   quiz=null;
   currentThemeIdx=0;
@@ -1672,8 +1676,9 @@ function updatePlayer(){
   if(P.dead){
     P.deathTimer--;
     if(P.deathTimer<=0){
-      // ذخیره score در Supabase + لود leaderboard
+      // ذخیره score — هم local (slug-based) هم platform
       saveScore(score, level).then(()=>loadLeaderboard());
+      saveBHScore(); // platform save (coins + global score)
       goToShop();
     }
     return;
@@ -2743,65 +2748,49 @@ window.addEventListener('resize', resizeCanvas);
 // ═══════════════════════════════════════════════
 //  PLAYZONE PLATFORM INTEGRATION
 // ═══════════════════════════════════════════════
-PZUI.inject({
-  gameName: GAME_CFG.game_title || 'BulletHead',
-  gameSlug: GAME_CFG.slug       || 'bullethead',
-  onPause:  () => {
-    // بازی رو pause کن وقتی panel باز میشه
-    Object.keys(keys).forEach(k => keys[k] = false);
-    if (state === 'playing') state = 'paused';
-  },
-  onResume: () => {
-    if (state === 'paused') state = 'playing';
-    syncControlsVisibility();
-  },
-});
 
-// ── Sync global coins → local coins on login ──
+// ── 1. PZUI inject — بعد از loadGameConfig صدا زده میشه ──
+function initPlatform() {
+  PZUI.inject({
+    gameName: GAME_CFG.game_title || 'BulletHead',
+    gameSlug: GAME_CFG.slug       || 'bullethead',
+    onPause:  () => {
+      Object.keys(keys).forEach(k => keys[k] = false);
+      if (state === 'playing') state = 'paused';
+    },
+    onResume: () => {
+      if (state === 'paused') state = 'playing';
+      syncControlsVisibility();
+    },
+  });
+}
+
+// ── 2. وقتی profile لود شد: coins رو از Supabase بگیر ──
 PZ.on('profile', (profile) => {
-  if (profile) {
-    coins = profile.coins || 0;
-    saveAll();
-  }
+  if (!profile) return;
+  // cloud coins رو به local sync کن
+  coins = profile.coins || 0;
+  saveAll();
 });
 
-// ── 2-Player room message handler ──
+// ── 3. وقتی بازی تموم شد: score + coins رو ذخیره کن ──
+let _bhScoreSaved = false;
+async function saveBHScore() {
+  if (_bhScoreSaved) return;
+  _bhScoreSaved = true;
+  if (!PZ.isLoggedIn()) return;
+  // فقط یه بار — score + coins
+  if (gameOverCoinsEarned > 0) await PZ.addCoins(gameOverCoinsEarned);
+  if (score > 0) await PZ.saveScore(GAME_CFG.slug || 'bullethead', score, level);
+  PZUI.toast('🏆 ' + score + ' pts saved! +' + gameOverCoinsEarned + '🪙');
+}
+
+// ── 4. 2-Player handler ──
 window.PZ_GAME_HANDLER = (msg) => {
-  // آینده: sync state بین دو بازیکن
-  if (msg.type === 'start') {
-    startGame();
-  }
+  if (msg.type === 'start') startGame();
 };
 
-// ── Override goToShop to also save score to PZ platform ──
-const _origGoToShop = goToShop;
-async function goToShopPZ() {
-  // sync coins به platform
-  if (PZ.isLoggedIn() && gameOverCoinsEarned > 0) {
-    await PZ.addCoins(gameOverCoinsEarned);
-    await PZ.saveScore(
-      GAME_CFG.slug || 'bullethead',
-      score, level
-    );
-  }
-  _origGoToShop();
-}
-
-// ── Override hitPlayer to show death screenshot ──
-const _origHitPlayer = hitPlayer;
-function hitPlayer() {
-  _origHitPlayer();
-  if (P && P.lives <= 0 && PZ.isLoggedIn()) {
-    // screenshot قبل از quiz
-    setTimeout(() => {
-      if (state === 'quiz') return; // quiz داره نشون میده
-      PZUI.showDeath(canvas, score, () => startGame());
-    }, 500);
-  }
-}
-
 // ── paused state در loop ──
-const _origLoop = loop;
 
 // override loop to handle paused state
 function loop(){
@@ -2896,9 +2885,7 @@ function loop(){
 }
 
 loadGameConfig().then(() => {
-  // حالا GAME_CFG لود شده — platform رو update کن
-  PZUI.gameName = GAME_CFG.game_title || 'BulletHead';
-  PZUI.gameSlug = GAME_CFG.slug       || 'bullethead';
+  initPlatform(); // PZUI.inject با config درست
   loop();
 });
 </script>
