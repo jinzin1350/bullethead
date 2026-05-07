@@ -769,13 +769,7 @@
 
       <!-- tab: My Games -->
       <div id="hub-games" class="hub-panel active">
-        <button class="btn-new-game" onclick="startEditor(currentGame)">
-          ✨ Create New Version of This Game
-        </button>
-        <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
-          My Created Games
-        </div>
-        <div class="my-games-list" id="my-games-list"></div>
+        <div id="hub-games-content"></div>
       </div>
 
       <!-- tab: 2-Player -->
@@ -1342,8 +1336,44 @@ function checkStep0() {
 //  MY GAMES
 // ═══════════════════════════════════════════
 async function loadMyGames() {
+  const container = document.getElementById('hub-games-content');
+  if (!container) return;
+
+  // ── Contra: بازی ثابته، فقط یه دکمه Play نشون بده ──
+  if (currentGame === 'contra') {
+    container.innerHTML = `
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;">
+        <div style="padding:20px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:10px">💥</div>
+          <div style="font-family:'Arial Black',sans-serif;font-size:18px;font-weight:900;margin-bottom:6px">Contra</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Classic run & gun — snipers, tanks, boss fight!</div>
+          <a href="/contra" target="_blank"
+            style="display:block;padding:14px;background:linear-gradient(135deg,var(--accent),var(--green));color:#000;font-weight:900;font-family:'Arial Black',sans-serif;font-size:15px;border-radius:10px;text-decoration:none;margin-bottom:8px">
+            ▶ Play Contra Now
+          </a>
+        </div>
+        <div style="padding:0 16px 16px;display:flex;gap:8px;">
+          <button class="mgc-btn mgc-btn-copy" style="flex:1" onclick="copyGameLink('${location.origin}/contra')">🔗 Copy Link</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">
+        Contra is a fixed game — no customization needed.<br/>Use the 2-Player tab to play with a friend!
+      </div>`;
+    return;
+  }
+
+  // ── BulletHead: لیست game_configs ──
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
+
+  container.innerHTML = `
+    <button class="btn-new-game" onclick="startEditor('bullethead')">
+      ✨ Create New Version of BulletHead
+    </button>
+    <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
+      My Created Games
+    </div>
+    <div class="my-games-list" id="my-games-list"></div>`;
 
   const { data, error } = await sb.from('game_configs')
     .select('slug, game_title, play_count, created_at, players, color_theme')
