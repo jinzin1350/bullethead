@@ -2,18 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="BulletHead"/>
+  <meta name="theme-color" content="#111111"/>
   <title>BulletHead</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html {
+      height: -webkit-fill-available;
+    }
     html, body {
       width:100%; height:100%;
+      min-height: -webkit-fill-available;
       background:#111;
       overflow:hidden;
       user-select:none;
       touch-action:none;
       font-family:'Arial Black','Arial',sans-serif;
+      /* پر کردن کل صفحه شامل safe area */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
     #wrapper {
       position:relative;
@@ -2408,6 +2422,20 @@ function loop(){
 // ═══════════════════════════════════════════════
 //  INIT — لود config و شروع
 // ═══════════════════════════════════════════════
+// ── Hide address bar on mobile ──
+function hideAddressBar() {
+  // scroll به پایین تا address bar مخفی بشه (Chrome Android)
+  if (document.documentElement.scrollHeight > window.innerHeight) {
+    window.scrollTo(0, 1);
+  }
+}
+window.addEventListener('load',        () => setTimeout(hideAddressBar, 300));
+window.addEventListener('orientationchange', () => setTimeout(hideAddressBar, 500));
+window.addEventListener('resize',      () => setTimeout(hideAddressBar, 200));
+
+// ── Prevent pull-to-refresh & bounce ──
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
 loadGameConfig().then(() => loop());
 </script>
 </body>
