@@ -1090,8 +1090,8 @@ function goHome() {
 
 // ── GAME HUB ──
 const GAME_DEFS = {
-  bullethead: { icon:'🔫', name:'BulletHead', desc:'Fast-paced shooter — 14 chars, 5 weapons, 10 maps', slug_prefix:'bullethead' },
-  contra:     { icon:'💥', name:'Contra',      desc:'Classic run & gun side-scroller',                  slug_prefix:'contra'     },
+  bullethead: { icon:'🔫', name:'BulletHead', desc:'Fast-paced shooter — 14 chars, 5 weapons, 10 maps', route:'/game'    },
+  contra:     { icon:'💥', name:'Contra',      desc:'Classic run & gun side-scroller',                  route:'/contra'  },
 };
 
 async function openGameHub(gameType) {
@@ -1200,7 +1200,7 @@ async function create2PRoom() {
       statusEl.innerHTML = `
         <div style="color:var(--green);font-weight:700;font-size:14px;text-align:center">
           ✅ ${msg.payload.name} joined!<br/>
-          <a href="${location.origin}/${currentGame}?room=${code}" target="_blank"
+          <a href="${location.origin}${GAME_DEFS[currentGame]?.route||'/game'}?room=${code}" target="_blank"
              style="display:inline-block;margin-top:10px;padding:12px 24px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;border-radius:10px;text-decoration:none">
             ▶ Start Game Together
           </a>
@@ -1247,8 +1247,9 @@ async function join2PRoom() {
       ✅ Joined! Opening game...
     </div>`;
 
+  const gameRoute = GAME_DEFS[currentGame]?.route || '/game';
   setTimeout(()=>{
-    window.open(`${location.origin}/${currentGame}?room=${code}`, '_blank');
+    window.open(`${location.origin}${gameRoute}?room=${code}`, '_blank');
   }, 800);
 }
 
