@@ -1,6 +1,16 @@
 {
   "navigationFallback": {
-    "rewrite": "/landing.html"
+    "rewrite": "/landing.html",
+    "exclude": [
+      "/pz-core.js",
+      "/pz-ui.js",
+      "/*.js",
+      "/*.css",
+      "/*.jpg",
+      "/*.png",
+      "/*.sql",
+      "/*.md"
+    ]
   },
   "routes": [
     {
@@ -22,6 +32,14 @@
     {
       "route": "/dashboard.html",
       "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/pz-core.js",
+      "rewrite": "/pz-core.js"
+    },
+    {
+      "route": "/pz-ui.js",
+      "rewrite": "/pz-ui.js"
     }
   ],
   "globalHeaders": {
@@ -31,7 +49,9 @@
   },
   "mimeTypes": {
     ".html": "text/html",
-    ".js": "text/javascript",
-    ".css": "text/css"
+    ".js":   "text/javascript",
+    ".css":  "text/css",
+    ".jpg":  "image/jpeg",
+    ".png":  "image/png"
   }
 }
