@@ -831,17 +831,17 @@ function makeQuiz(){
   const type = Math.floor(Math.random()*3); // 0=add, 1=sub, 2=mul
   let a, b, answer, symbol;
 
-  if(type === 0){          // Addition — 2-digit + 2-digit (Grade 4 Canada)
-    a = 12 + Math.floor(Math.random()*87);
-    b = 12 + Math.floor(Math.random()*87);
+  if(type === 0){          // Addition — easy 1-digit + 1-digit or small 2-digit
+    a = 5 + Math.floor(Math.random()*25);   // 5..29
+    b = 5 + Math.floor(Math.random()*25);   // 5..29
     answer = a + b; symbol = '+';
-  } else if(type === 1){   // Subtraction — bigger - smaller, positive result
-    a = 30 + Math.floor(Math.random()*70);
-    b = 10 + Math.floor(Math.random()*(a-10));
+  } else if(type === 1){   // Subtraction — small numbers, positive result
+    b = 2 + Math.floor(Math.random()*18);   // 2..19
+    a = b + 2 + Math.floor(Math.random()*18); // always a > b
     answer = a - b; symbol = '−';
-  } else {                 // Multiplication — up to 12×12 (Grade 4 times tables)
-    a = 2 + Math.floor(Math.random()*11);
-    b = 2 + Math.floor(Math.random()*11);
+  } else {                 // Multiplication — times tables 2..9 × 2..9
+    a = 2 + Math.floor(Math.random()*8);    // 2..9
+    b = 2 + Math.floor(Math.random()*8);    // 2..9
     answer = a * b; symbol = '×';
   }
 
@@ -896,18 +896,34 @@ function finishQuiz(){
   const res = quiz.result;
   quiz = null;
   if(res === 'correct'){
-    // زنده برگرد با shield کوتاه
+    // زنده برگرد با 3 جون + shield
     state = 'playing';
-    P.dead = false; P.lives = Math.max(1, P.lives);
-    P.invincible = 180; P.shield = 180;
+    P.dead      = false;
+    P.lives     = 3;
+    P.deathTimer = 0;
+    P.invincible = 200;
+    P.shield     = 240;
     P.x = 290; P.y = 395; P.vy = 0;
-    floatText(P.x+P.w/2, P.y-20, '✅ CORRECT! +SHIELD', '#00ff88');
-    burst(P.x+P.w/2, P.y, '#00ff88', 20);
+
+    // 15% از HP boss کم کن
+    if(boss){
+      const dmg = Math.ceil(boss.maxHp * 0.15);
+      boss.hp   = Math.max(1, boss.hp - dmg);
+      boss.hitFlash = 20;
+      bossShakeTimer = 15;
+      burst(boss.x+boss.w/2, boss.y+boss.h/2, '#ffcc00', 18);
+      floatText(boss.x+boss.w/2, boss.y-10, '−'+dmg+' HP  (−15%)', '#ffcc00');
+    }
+
+    floatText(P.x+P.w/2, P.y-30, '✅ CORRECT!', '#00ff88');
+    floatText(P.x+P.w/2, P.y-50, '❤❤❤ +3 LIVES!', '#ff4488');
+    burst(P.x+P.w/2, P.y, '#00ff88', 25);
+    burst(P.x+P.w/2, P.y, '#ff4488', 15);
     syncControlsVisibility();
   } else {
     // game over واقعی
     P.dead = true; P.deathTimer = 1;
-    state = 'playing'; // بذار updatePlayer game over رو handle کنه
+    state = 'playing';
   }
 }
 
