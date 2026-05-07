@@ -535,6 +535,73 @@
     .stat-val { font-size: 22px; font-weight: 900; margin-bottom: 2px; }
     .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 
+    /* ── GAME HUB ── */
+    .hub-tab {
+      padding: 9px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted);
+      cursor: pointer; white-space: nowrap;
+      transition: border-color .15s, color .15s, background .15s;
+      flex-shrink: 0;
+    }
+    .hub-tab:hover  { border-color: var(--accent); color: var(--accent); }
+    .hub-tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+    .hub-panel { display: none; }
+    .hub-panel.active { display: block; }
+
+    .btn-new-game {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      color: #fff; font-size: 15px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: opacity .15s; margin-bottom: 8px;
+    }
+    .btn-new-game:hover { opacity: .88; }
+
+    /* leaderboard */
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank  { font-size: 18px; min-width: 30px; text-align: center; }
+    .lb-name  { flex: 1; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-name.me { color: var(--yellow); }
+    .lb-score { font-weight: 900; color: var(--green); }
+
+    /* room code */
+    .room-code-display {
+      font-size: 38px; font-weight: 900; letter-spacing: 10px;
+      font-family: 'Arial Black', monospace;
+      color: var(--green); text-align: center;
+      background: var(--card); padding: 16px; border-radius: 12px;
+      margin: 12px 0; border: 1.5px solid var(--green);
+      text-shadow: 0 0 20px #00ff8855;
+    }
+    .pz-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      color: #000; font-size: 15px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity .15s; margin-bottom: 8px;
+    }
+    .pz-btn:hover { opacity: .88; }
+    .pz-input {
+      width: 100%; padding: 13px 14px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; outline: none; font-family: inherit;
+      transition: border-color .2s; -webkit-appearance: none;
+      display: block; margin-bottom: 8px;
+    }
+    .pz-input:focus { border-color: var(--accent); }
+    .pz-err { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 18px; }
+
     /* ── toast ── */
     .toast {
       position: fixed; bottom: 80px; left: 50%;
@@ -639,7 +706,7 @@
         <div class="section-label">👇 Step 1 — Pick a game to customize</div>
         <div class="game-pick-list">
 
-          <div class="game-pick-card" onclick="startEditor('bullethead')">
+          <div class="game-pick-card" onclick="openGameHub('bullethead')">
             <div class="gpc-emoji">🔫</div>
             <div class="gpc-info">
               <div class="gpc-name">BulletHead</div>
@@ -676,14 +743,74 @@
         </div>
       </div>
 
-      <!-- section C: my games -->
-      <div style="max-width:700px;margin:0 auto;padding:0 16px 60px;">
-        <div class="section-label" id="my-games-label" style="display:none">📋 My Created Games — tap to edit</div>
+    </div>
+  </div><!-- /screen-home -->
+
+  <!-- ══ SCREEN: GAME HUB ══ -->
+  <!-- صفحه اختصاصی هر بازی: لیست بازی‌ها + 2P + leaderboard + ایجاد جدید -->
+  <div id="screen-game-hub" class="screen">
+    <div style="max-width:700px;margin:0 auto;padding:16px 16px 80px;">
+
+      <!-- game hub header -->
+      <div id="hub-header" style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+        <div id="hub-icon" style="font-size:40px">🔫</div>
+        <div>
+          <div id="hub-title" style="font-family:'Arial Black',sans-serif;font-size:20px;font-weight:900;color:#fff">BulletHead</div>
+          <div id="hub-desc" style="font-size:12px;color:var(--muted);margin-top:2px">Fast-paced shooter</div>
+        </div>
+      </div>
+
+      <!-- tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;">
+        <button class="hub-tab active" onclick="switchHubTab('games')" id="htab-games">📋 My Games</button>
+        <button class="hub-tab" onclick="switchHubTab('2p')"    id="htab-2p">👥 2-Player</button>
+        <button class="hub-tab" onclick="switchHubTab('lb')"    id="htab-lb">🏆 Leaderboard</button>
+      </div>
+
+      <!-- tab: My Games -->
+      <div id="hub-games" class="hub-panel active">
+        <button class="btn-new-game" onclick="startEditor(currentGame)">
+          ✨ Create New Version of This Game
+        </button>
+        <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
+          My Created Games
+        </div>
         <div class="my-games-list" id="my-games-list"></div>
       </div>
 
+      <!-- tab: 2-Player -->
+      <div id="hub-2p" class="hub-panel" style="display:none">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:36px;margin-bottom:8px">👥</div>
+          <div style="font-family:'Arial Black',sans-serif;font-size:16px;font-weight:900;margin-bottom:6px">Play with a Friend!</div>
+          <div style="font-size:13px;color:var(--muted)">Create a room and share the code — your friend joins and you play together!</div>
+        </div>
+
+        <button class="pz-btn" onclick="create2PRoom()" style="margin-bottom:12px">
+          🚀 Create Room
+        </button>
+
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:10px">— or join a room —</div>
+
+        <input id="room-code-input" class="pz-input"
+          placeholder="Enter room code (6 letters)"
+          maxlength="6" autocapitalize="characters"
+          style="text-align:center;font-size:24px;letter-spacing:8px;text-transform:uppercase;margin-bottom:10px"/>
+        <button class="pz-btn" onclick="join2PRoom()">🎮 Join Room</button>
+
+        <div id="room-status" style="margin-top:16px;text-align:center;"></div>
+        <div class="pz-err" id="room-err"></div>
+      </div>
+
+      <!-- tab: Leaderboard -->
+      <div id="hub-lb" class="hub-panel" style="display:none">
+        <div id="leaderboard-list">
+          <div style="text-align:center;padding:20px;color:var(--muted)">Loading...</div>
+        </div>
+      </div>
+
     </div>
-  </div><!-- /screen-home -->
+  </div><!-- /screen-game-hub -->
 
   <!-- ══ SCREEN: EDITOR ══ -->
   <div id="screen-edit" class="screen">
@@ -959,6 +1086,170 @@ function goHome() {
   document.getElementById('btn-back').classList.remove('show');
   document.getElementById('top-step').classList.remove('show');
   document.getElementById('step-nav').classList.remove('show');
+}
+
+// ── GAME HUB ──
+const GAME_DEFS = {
+  bullethead: { icon:'🔫', name:'BulletHead', desc:'Fast-paced shooter — 14 chars, 5 weapons, 10 maps', slug_prefix:'bullethead' },
+  contra:     { icon:'💥', name:'Contra',      desc:'Classic run & gun side-scroller',                  slug_prefix:'contra'     },
+};
+
+async function openGameHub(gameType) {
+  currentGame = gameType;
+  const def   = GAME_DEFS[gameType] || GAME_DEFS.bullethead;
+
+  // header
+  document.getElementById('hub-icon').textContent  = def.icon;
+  document.getElementById('hub-title').textContent = def.name;
+  document.getElementById('hub-desc').textContent  = def.desc;
+
+  showScreen('game-hub');
+  document.getElementById('btn-back').classList.add('show');
+  document.getElementById('top-step').classList.add('show');
+  document.getElementById('top-step-label').textContent = def.name;
+  document.getElementById('step-nav').classList.remove('show');
+
+  switchHubTab('games');
+  await loadMyGames();
+}
+
+function switchHubTab(tab) {
+  // tabs
+  ['games','2p','lb'].forEach(t => {
+    document.getElementById('htab-'+t)?.classList.toggle('active', t===tab);
+    document.getElementById('hub-'+t)?.style && (document.getElementById('hub-'+t).style.display = t===tab?'block':'none');
+  });
+  // active class روی panel
+  document.querySelectorAll('.hub-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('hub-'+tab);
+  if (panel) { panel.style.display='block'; panel.classList.add('active'); }
+
+  if (tab === 'lb') loadHubLeaderboard();
+}
+
+async function loadHubLeaderboard() {
+  const el = document.getElementById('leaderboard-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Loading...</div>';
+
+  const gameSlug = currentGame === 'contra' ? 'contra' : null; // contra fixed slug
+  // برای bullethead همه game_configs این user رو بگیر و scores رو aggregate کن
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  let query = sb.from('scores').select('player_name, score, wave, game_slug');
+  if (gameSlug) {
+    query = query.eq('game_slug', gameSlug);
+  } else {
+    // همه slug های این user
+    const { data: configs } = await sb.from('game_configs')
+      .select('slug').eq('user_id', user.id);
+    const slugs = (configs||[]).map(c=>c.slug);
+    if (slugs.length === 0) { el.innerHTML='<div class="empty-state">No scores yet!</div>'; return; }
+    query = query.in('game_slug', slugs);
+  }
+
+  const { data: scores } = await query.order('score',{ascending:false}).limit(100);
+
+  // deduplicate by player_name
+  const best = new Map();
+  for (const s of (scores||[])) {
+    const prev = best.get(s.player_name);
+    if (!prev || s.score > prev.score) best.set(s.player_name, s);
+  }
+  const top = [...best.values()].sort((a,b)=>b.score-a.score).slice(0,10);
+
+  const medals = ['🥇','🥈','🥉'];
+  if (!top.length) { el.innerHTML='<div class="empty-state">No scores yet! Share your game link to get players.</div>'; return; }
+
+  el.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      ${top.map((r,i)=>`
+        <div class="lb-row">
+          <div class="lb-rank">${medals[i]||((i+1)+'.')}</div>
+          <div class="lb-name">${r.player_name}</div>
+          <div class="lb-score">${r.score.toLocaleString()} pts</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── 2-PLAYER ──
+let _roomCode = null;
+let _roomChannel = null;
+
+async function create2PRoom() {
+  const statusEl = document.getElementById('room-status');
+  const errEl    = document.getElementById('room-err');
+  if (errEl) errEl.textContent = '';
+
+  const code = Math.random().toString(36).substr(2,6).toUpperCase();
+  _roomCode  = code;
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  await sb.from('game_sessions').insert({
+    game: currentGame, room_code: code,
+    player1_id: user.id, state: 'waiting', data: {}
+  });
+
+  // Realtime channel
+  if (_roomChannel) sb.removeChannel(_roomChannel);
+  _roomChannel = sb.channel('room:'+code)
+    .on('broadcast',{event:'join'},(msg)=>{
+      statusEl.innerHTML = `
+        <div style="color:var(--green);font-weight:700;font-size:14px;text-align:center">
+          ✅ ${msg.payload.name} joined!<br/>
+          <a href="${location.origin}/${currentGame}?room=${code}" target="_blank"
+             style="display:inline-block;margin-top:10px;padding:12px 24px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;border-radius:10px;text-decoration:none">
+            ▶ Start Game Together
+          </a>
+        </div>`;
+    })
+    .subscribe();
+
+  statusEl.innerHTML = `
+    <div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px">Share this code with your friend:</div>
+      <div class="room-code-display">${code}</div>
+      <button onclick="navigator.clipboard.writeText('${code}');showToast('📋 Code copied!')"
+        style="width:100%;padding:10px;background:var(--card);border:1.5px solid var(--green);color:var(--green);font-weight:700;border-radius:10px;cursor:pointer;font-size:13px">
+        📋 Copy Code
+      </button>
+      <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">
+        ⏳ Waiting for friend to join...
+      </div>
+    </div>`;
+}
+
+async function join2PRoom() {
+  const code   = document.getElementById('room-code-input')?.value?.trim().toUpperCase();
+  const errEl  = document.getElementById('room-err');
+  const statusEl = document.getElementById('room-status');
+  if (!code || code.length < 6) { if(errEl) errEl.textContent='Enter a 6-character code'; return; }
+
+  const { data: room } = await sb.from('game_sessions')
+    .select('*').eq('room_code',code).single();
+  if (!room || room.state !== 'waiting') {
+    if(errEl) errEl.textContent='Room not found or already started'; return;
+  }
+
+  const { data:{user} } = await sb.auth.getUser();
+  await sb.from('game_sessions').update({player2_id:user.id,state:'playing'}).eq('room_code',code);
+
+  // notify player 1
+  const ch = sb.channel('room:'+code);
+  await ch.subscribe();
+  await ch.send({type:'broadcast',event:'join',payload:{name: user.email?.split('@')[0]||'Player 2'}});
+
+  statusEl.innerHTML = `
+    <div style="color:var(--green);font-weight:700;font-size:14px;text-align:center">
+      ✅ Joined! Opening game...
+    </div>`;
+
+  setTimeout(()=>{
+    window.open(`${location.origin}/${currentGame}?room=${code}`, '_blank');
+  }, 800);
 }
 
 function startEditor(gameType) {
