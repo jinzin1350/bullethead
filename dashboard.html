@@ -1596,22 +1596,38 @@ async function loadMyGames() {
     return;
   }
 
-  // ── BulletHead: لیست game_configs ──
+  // ── Snake: مثل Contra — بازی ثابته ──
+  if (currentGame === 'snake') {
+    const def = GAME_DEFS['snake'];
+    container.innerHTML = `
+      <button class="btn-new-game" onclick="startEditor('snake')">
+        ✨ Create Custom Snake Game
+      </button>
+      <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
+        My Snake Games
+      </div>
+      <div class="my-games-list" id="my-games-list"></div>`;
+  } else {
+    // BulletHead یا هر بازی دیگه
+    const def = GAME_DEFS[currentGame] || GAME_DEFS.bullethead;
+    container.innerHTML = `
+      <button class="btn-new-game" onclick="startEditor('${currentGame}')">
+        ✨ Create New Version of ${def.name}
+      </button>
+      <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
+        My Created Games
+      </div>
+      <div class="my-games-list" id="my-games-list"></div>`;
+  }
+
+  // ── لود game_configs فقط برای این game type ──
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
 
-  container.innerHTML = `
-    <button class="btn-new-game" onclick="startEditor('bullethead')">
-      ✨ Create New Version of BulletHead
-    </button>
-    <div id="my-games-label" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;display:none">
-      My Created Games
-    </div>
-    <div class="my-games-list" id="my-games-list"></div>`;
-
   const { data, error } = await sb.from('game_configs')
-    .select('slug, game_title, play_count, created_at, players, color_theme')
+    .select('slug, game_title, play_count, created_at, players, color_theme, game')
     .eq('user_id', user.id)
+    .eq('game', currentGame)          // ← فقط همین نوع بازی
     .order('created_at', { ascending: false });
 
   const listEl  = document.getElementById('my-games-list');
