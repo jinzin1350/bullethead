@@ -12,29 +12,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html {
-      height: -webkit-fill-available;
-    }
     html, body {
-      width:100%; height:100%;
-      min-height: -webkit-fill-available;
-      background:#111;
-      overflow:hidden;
-      user-select:none;
-      touch-action:none;
-      font-family:'Arial Black','Arial',sans-serif;
-      /* پر کردن کل صفحه شامل safe area */
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
-      padding-right: env(safe-area-inset-right);
+      width: 100%;
+      height: 100%;
+      background: #111;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+      font-family: 'Arial Black','Arial',sans-serif;
     }
     #wrapper {
-      position:relative;
-      width:100%; height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #111;
     }
     #gameCanvas {
       display:block;
@@ -293,9 +288,10 @@ const W = 620, H = 480;
 canvas.width  = W;
 canvas.height = H;
 
-// Scale canvas to fill full screen — کنترل‌ها float هستن روی بازی
+// Scale canvas to fill full screen
 function resizeCanvas() {
-  const ww = window.innerWidth, wh = window.innerHeight;
+  const ww = window.innerWidth;
+  const wh = window.innerHeight;
   const scale = Math.min(ww / W, wh / H);
   canvas.style.width  = Math.floor(W * scale) + 'px';
   canvas.style.height = Math.floor(H * scale) + 'px';
@@ -2422,19 +2418,46 @@ function loop(){
 // ═══════════════════════════════════════════════
 //  INIT — لود config و شروع
 // ═══════════════════════════════════════════════
-// ── Hide address bar on mobile ──
-function hideAddressBar() {
-  // scroll به پایین تا address bar مخفی بشه (Chrome Android)
-  if (document.documentElement.scrollHeight > window.innerHeight) {
-    window.scrollTo(0, 1);
+// ── Prevent pull-to-refresh, bounce, and context menu ──
+document.addEventListener('touchmove',   e => e.preventDefault(), { passive: false });
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── Force fullscreen on Android Chrome ──
+// روش: body رو یکم بزرگتر از صفحه کن تا Chrome address bar رو مخفی کنه
+function forceFullscreen() {
+  document.body.style.height = (window.innerHeight + 1) + 'px';
+  window.scrollTo(0, 1);
+  setTimeout(() => {
+    document.body.style.height = window.innerHeight + 'px';
+    resizeCanvas();
+  }, 100);
+}
+
+// ── Request Fullscreen API (Android Chrome 支持) ──
+function tryFullscreenAPI() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (req) {
+    req.call(el).catch(() => {
+      // اگه fail کرد، fallback به scroll trick
+      forceFullscreen();
+    });
+  } else {
+    forceFullscreen();
   }
 }
-window.addEventListener('load',        () => setTimeout(hideAddressBar, 300));
-window.addEventListener('orientationchange', () => setTimeout(hideAddressBar, 500));
-window.addEventListener('resize',      () => setTimeout(hideAddressBar, 200));
 
-// ── Prevent pull-to-refresh & bounce ──
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// اولین touch کاربر → fullscreen بخواه (مرورگر فقط با gesture اجازه میده)
+let fullscreenRequested = false;
+document.addEventListener('touchstart', () => {
+  if (!fullscreenRequested) {
+    fullscreenRequested = true;
+    tryFullscreenAPI();
+  }
+}, { once: false, passive: true });
+
+window.addEventListener('orientationchange', () => setTimeout(() => { forceFullscreen(); resizeCanvas(); }, 400));
+window.addEventListener('resize', resizeCanvas);
 
 loadGameConfig().then(() => loop());
 </script>
