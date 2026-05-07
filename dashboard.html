@@ -1190,7 +1190,7 @@ async function loadHubLeaderboard() {
 }
 
 // ── 2-PLAYER ──
-let _roomCode = null;
+let _roomCode    = null;
 let _roomChannel = null;
 
 async function create2PRoom() {
@@ -1198,75 +1198,124 @@ async function create2PRoom() {
   const errEl    = document.getElementById('room-err');
   if (errEl) errEl.textContent = '';
 
-  const code = Math.random().toString(36).substr(2,6).toUpperCase();
-  _roomCode  = code;
+  // cleanup channel قبلی
+  if (_roomChannel) { sb.removeChannel(_roomChannel); _roomChannel = null; }
 
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
 
-  await sb.from('game_sessions').insert({
+  // کد ۶ حرفی بزرگ
+  const code = Math.random().toString(36).substr(2,6).toUpperCase();
+  _roomCode  = code;
+
+  // ذخیره توی DB
+  const { error } = await sb.from('game_sessions').insert({
     game: currentGame, room_code: code,
     player1_id: user.id, state: 'waiting', data: {}
   });
+  if (error) { if(errEl) errEl.textContent='Error creating room: '+error.message; return; }
 
-  // Realtime channel
-  if (_roomChannel) sb.removeChannel(_roomChannel);
-  _roomChannel = sb.channel('room:'+code)
-    .on('broadcast',{event:'join'},(msg)=>{
-      statusEl.innerHTML = `
-        <div style="color:var(--green);font-weight:700;font-size:14px;text-align:center">
-          ✅ ${msg.payload.name} joined!<br/>
-          <a href="${location.origin}${GAME_DEFS[currentGame]?.route||'/game'}?room=${code}" target="_blank"
-             style="display:inline-block;margin-top:10px;padding:12px 24px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;border-radius:10px;text-decoration:none">
-            ▶ Start Game Together
-          </a>
-        </div>`;
-    })
-    .subscribe();
-
+  // نشون بده
   statusEl.innerHTML = `
     <div>
       <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px">Share this code with your friend:</div>
       <div class="room-code-display">${code}</div>
       <button onclick="navigator.clipboard.writeText('${code}');showToast('📋 Code copied!')"
-        style="width:100%;padding:10px;background:var(--card);border:1.5px solid var(--green);color:var(--green);font-weight:700;border-radius:10px;cursor:pointer;font-size:13px">
+        style="width:100%;padding:10px;background:var(--card);border:1.5px solid var(--green);color:var(--green);font-weight:700;border-radius:10px;cursor:pointer;font-size:13px;margin-bottom:10px">
         📋 Copy Code
       </button>
-      <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">
+      <div id="room-wait-msg" style="text-align:center;color:var(--muted);font-size:12px">
         ⏳ Waiting for friend to join...
       </div>
     </div>`;
+
+  // ── Listen از طریق Postgres Realtime (قابل اطمینان‌تر از Broadcast) ──
+  _roomChannel = sb
+    .channel('db-room-'+code)
+    .on('postgres_changes', {
+      event:  'UPDATE',
+      schema: 'public',
+      table:  'game_sessions',
+      filter: `room_code=eq.${code}`,
+    }, (payload) => {
+      // player 2 join کرد → state='playing'
+      if (payload.new?.state === 'playing') {
+        const gameRoute = GAME_DEFS[currentGame]?.route || '/game';
+        const gameUrl   = `${location.origin}${gameRoute}?room=${code}`;
+        document.getElementById('room-wait-msg').innerHTML = `
+          <div style="color:var(--green);font-weight:700;font-size:14px;margin-bottom:12px">
+            ✅ Friend joined! Ready to play!
+          </div>
+          <a href="${gameUrl}" target="_blank"
+             style="display:block;padding:14px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;font-family:'Arial Black',Arial,sans-serif;font-size:15px;border-radius:10px;text-decoration:none;text-align:center">
+            ▶ Start Game Together!
+          </a>`;
+      }
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('Room channel subscribed ✅');
+      }
+    });
 }
 
 async function join2PRoom() {
-  const code   = document.getElementById('room-code-input')?.value?.trim().toUpperCase();
-  const errEl  = document.getElementById('room-err');
+  const code     = document.getElementById('room-code-input')?.value?.trim().toUpperCase();
+  const errEl    = document.getElementById('room-err');
   const statusEl = document.getElementById('room-status');
-  if (!code || code.length < 6) { if(errEl) errEl.textContent='Enter a 6-character code'; return; }
 
-  const { data: room } = await sb.from('game_sessions')
-    .select('*').eq('room_code',code).single();
-  if (!room || room.state !== 'waiting') {
-    if(errEl) errEl.textContent='Room not found or already started'; return;
+  if (errEl) errEl.textContent = '';
+  if (!code || code.length < 6) {
+    if(errEl) errEl.textContent = 'Enter a 6-character room code';
+    return;
   }
 
-  const { data:{user} } = await sb.auth.getUser();
-  await sb.from('game_sessions').update({player2_id:user.id,state:'playing'}).eq('room_code',code);
+  // چک کن room وجود داره
+  const { data: room, error: roomErr } = await sb.from('game_sessions')
+    .select('*').eq('room_code', code).single();
 
-  // notify player 1
-  const ch = sb.channel('room:'+code);
-  await ch.subscribe();
-  await ch.send({type:'broadcast',event:'join',payload:{name: user.email?.split('@')[0]||'Player 2'}});
+  if (roomErr || !room) {
+    if(errEl) errEl.textContent = '❌ Room not found — check the code and try again';
+    return;
+  }
+  if (room.state !== 'waiting') {
+    if(errEl) errEl.textContent = '❌ Room already started or closed';
+    return;
+  }
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { if(errEl) errEl.textContent = 'Please login first'; return; }
+
+  // جلوگیری از join به room خودت
+  if (room.player1_id === user.id) {
+    if(errEl) errEl.textContent = '❌ You cannot join your own room!';
+    return;
+  }
+
+  // update DB → این player 1 رو notify می‌کنه از طریق Realtime
+  const { error: updateErr } = await sb.from('game_sessions')
+    .update({ player2_id: user.id, state: 'playing' })
+    .eq('room_code', code);
+
+  if (updateErr) {
+    if(errEl) errEl.textContent = '❌ Error joining: ' + updateErr.message;
+    return;
+  }
+
+  // player 2 → مستقیم بره بازی
+  const gameRoute = GAME_DEFS[room.game]?.route || '/game';
+  const gameUrl   = `${location.origin}${gameRoute}?room=${code}`;
 
   statusEl.innerHTML = `
-    <div style="color:var(--green);font-weight:700;font-size:14px;text-align:center">
-      ✅ Joined! Opening game...
+    <div style="text-align:center">
+      <div style="color:var(--green);font-weight:700;font-size:15px;margin-bottom:12px">
+        ✅ Joined successfully!
+      </div>
+      <a href="${gameUrl}" target="_blank"
+         style="display:block;padding:14px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;font-family:'Arial Black',Arial,sans-serif;font-size:15px;border-radius:10px;text-decoration:none">
+        ▶ Open Game Now!
+      </a>
     </div>`;
-
-  const gameRoute = GAME_DEFS[currentGame]?.route || '/game';
-  setTimeout(()=>{
-    window.open(`${location.origin}${gameRoute}?room=${code}`, '_blank');
-  }, 800);
 }
 
 function startEditor(gameType) {
