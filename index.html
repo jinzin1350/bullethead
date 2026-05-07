@@ -2694,7 +2694,13 @@ function confirmName(){
 //  INIT — لود config و شروع
 // ═══════════════════════════════════════════════
 // ── Prevent pull-to-refresh, bounce, and context menu ──
-document.addEventListener('touchmove',   e => e.preventDefault(), { passive: false });
+// فقط وقتی overlay بسته‌ست block کن — وگرنه input های PZ کار نمی‌کنن
+document.addEventListener('touchmove', e => {
+  const overlay = document.getElementById('pz-overlay');
+  const death   = document.getElementById('pz-death-banner');
+  const isOverlayOpen = overlay?.classList.contains('show') || death?.classList.contains('show');
+  if (!isOverlayOpen) e.preventDefault();
+}, { passive: false });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── Force fullscreen on Android Chrome ──

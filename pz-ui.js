@@ -117,8 +117,21 @@ window.PZUI = {
         font-size: 16px; outline: none;
         transition: border-color .2s; font-family: inherit;
         -webkit-appearance: none;
+        touch-action: auto !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        pointer-events: auto !important;
       }
       .pz-input:focus { border-color: #00b4d8; }
+      /* همه المان های overlay touch رو allow کنن */
+      #pz-overlay, #pz-overlay * {
+        touch-action: auto !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+      }
+      #pz-death-banner, #pz-death-banner * {
+        touch-action: auto !important;
+      }
       .pz-btn {
         width: 100%; padding: 13px;
         background: linear-gradient(135deg, #00b4d8, #00ff88);
