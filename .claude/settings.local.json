@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.gamedeveloper.com)",
+      "WebFetch(domain:uxdesign.cc)",
+      "WebFetch(domain:www.poki.com)",
+      "WebFetch(domain:gameanalytics.com)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:docs.unity3d.com)",
+      "WebFetch(domain:itch.io)",
+      "WebFetch(domain:www.construct.net)",
+      "WebFetch(domain:gamedevacademy.org)",
+      "WebFetch(domain:www.thinkwithgoogle.com)",
+      "WebFetch(domain:blog.logrocket.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.pocketgamer.biz)",
+      "WebFetch(domain:nielseniq.com)",
+      "WebFetch(domain:www.smashingmagazine.com)",
+      "Bash(powershell.exe *)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
