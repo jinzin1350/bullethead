@@ -2,79 +2,193 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Contra"/>
+  <meta name="theme-color" content="#000000"/>
   <title>Contra — PlayZone</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/pz-core.js"></script>
   <script src="/pz-ui.js"></script>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{ height:-webkit-fill-available; }
     html,body{
-      width:100%;height:100%;background:#000;
-      overflow:hidden;user-select:none;
+      width:100%;height:100%;
+      min-height:-webkit-fill-available;
+      background:#000;
+      overflow:hidden;user-select:none;touch-action:none;
+    }
+    #wrapper{
+      position:fixed;top:0;left:0;
+      width:100%;height:100%;
       display:flex;align-items:center;justify-content:center;
+      background:#000;
     }
     canvas{
       display:block;image-rendering:pixelated;
       image-rendering:crisp-edges;
+      max-width:100%;max-height:100%;
     }
-    /* mobile controls */
+
+    /* ── PORTRAIT WARNING ── */
+    #portrait-warn{
+      display:none;position:fixed;inset:0;
+      background:#000;color:#fff;
+      align-items:center;justify-content:center;
+      flex-direction:column;gap:20px;z-index:9999;
+      text-align:center;padding:40px;
+    }
+    #portrait-warn .pw-phone{
+      font-size:72px;
+      animation:rotate-hint 1.4s ease-in-out infinite;
+      display:inline-block;transform-origin:center;
+    }
+    @keyframes rotate-hint{
+      0%{transform:rotate(0deg);}30%{transform:rotate(-90deg);}
+      60%{transform:rotate(-90deg);}90%{transform:rotate(0deg);}100%{transform:rotate(0deg);}
+    }
+    .pw-title{font-size:24px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:1px;}
+    .pw-sub{font-size:14px;color:#888;}
+    .pw-bar{width:60px;height:4px;border-radius:2px;background:linear-gradient(90deg,#ff4444,#ff8800);margin-top:4px;}
+    @media(orientation:portrait){#portrait-warn{display:flex;}}
+
+    /* ── TOUCH CONTROLS ── */
     #controls{
       position:fixed;inset:0;pointer-events:none;
       display:none;z-index:10;
     }
+    /* Joystick zone — left half */
     #joy-zone{
       position:absolute;left:0;top:0;
       width:50%;height:100%;pointer-events:auto;
     }
     #joy-base{
-      position:absolute;width:100px;height:100px;
+      position:absolute;width:110px;height:110px;
       border-radius:50%;
-      background:rgba(255,255,255,0.08);
-      border:2px solid rgba(255,255,255,0.25);
+      background:rgba(255,68,68,0.12);
+      border:2.5px solid rgba(255,68,68,0.35);
       display:none;transform:translate(-50%,-50%);
       pointer-events:none;
     }
     #joy-knob{
-      position:absolute;width:44px;height:44px;
+      position:absolute;width:48px;height:48px;
       border-radius:50%;
-      background:rgba(255,80,80,0.75);
+      background:rgba(255,68,68,0.7);
       border:2px solid #ff4444;
+      box-shadow:0 0 14px #ff4444aa;
       transform:translate(-50%,-50%);
       pointer-events:none;
     }
+    /* Jump button */
     #btn-jump{
-      position:absolute;right:100px;bottom:40px;
-      width:88px;height:88px;border-radius:50%;
-      background:rgba(0,200,80,0.2);
+      position:absolute;right:110px;bottom:36px;
+      width:96px;height:96px;border-radius:50%;
+      background:rgba(0,200,80,0.18);
       border:3px solid rgba(0,255,100,0.6);
-      color:#00ff66;font-size:32px;
+      color:#00ff66;font-size:38px;
       display:flex;align-items:center;justify-content:center;
       pointer-events:auto;
+      box-shadow:0 0 18px rgba(0,255,100,0.25);
+      transition:background 0.08s,transform 0.08s;
     }
+    #btn-jump.pressed{background:rgba(0,255,100,0.45);transform:scale(0.88);}
+    /* Shoot button */
     #btn-shoot{
-      position:absolute;right:20px;bottom:40px;
-      width:88px;height:88px;border-radius:50%;
-      background:rgba(220,0,0,0.2);
+      position:absolute;right:20px;bottom:36px;
+      width:96px;height:96px;border-radius:50%;
+      background:rgba(220,0,0,0.18);
       border:3px solid rgba(255,60,60,0.7);
-      color:#ff4444;font-size:32px;
+      color:#ff4444;font-size:38px;
       display:flex;align-items:center;justify-content:center;
       pointer-events:auto;
+      box-shadow:0 0 18px rgba(255,60,60,0.25);
+      transition:background 0.08s,transform 0.08s;
     }
-    #btn-jump.pressed{background:rgba(0,255,100,0.4);transform:scale(0.9);}
-    #btn-shoot.pressed{background:rgba(255,60,60,0.4);transform:scale(0.9);}
+    #btn-shoot.pressed{background:rgba(255,60,60,0.45);transform:scale(0.88);}
+    /* Aim up button */
+    #btn-up{
+      position:absolute;right:220px;bottom:80px;
+      width:70px;height:70px;border-radius:50%;
+      background:rgba(255,200,0,0.15);
+      border:2px solid rgba(255,200,0,0.5);
+      color:#ffcc00;font-size:26px;
+      display:flex;align-items:center;justify-content:center;
+      pointer-events:auto;
+      transition:background 0.08s,transform 0.08s;
+    }
+    #btn-up.pressed{background:rgba(255,200,0,0.4);transform:scale(0.88);}
+
+    /* Auto-shoot badge */
+    #autoshoot-badge{
+      position:absolute;right:20px;bottom:148px;
+      font-size:11px;font-weight:700;
+      color:rgba(255,255,136,0.7);
+      font-family:'Arial Black',Arial,sans-serif;
+      letter-spacing:1px;pointer-events:none;
+      text-align:center;width:96px;
+    }
+
+    /* Tutorial overlay */
+    #touch-tutorial{
+      position:fixed;inset:0;z-index:200;
+      pointer-events:none;display:none;
+      animation:tutFadeOut 0.5s ease 3.5s forwards;
+    }
+    @keyframes tutFadeOut{to{opacity:0;}}
+    .tut-left{
+      position:absolute;left:0;top:0;width:50%;height:100%;
+      border:2.5px dashed rgba(255,68,68,0.4);
+      border-radius:0 12px 12px 0;
+      display:flex;align-items:center;justify-content:center;
+      flex-direction:column;gap:8px;
+    }
+    .tut-right{
+      position:absolute;right:0;top:0;width:50%;height:100%;
+      display:flex;align-items:flex-end;justify-content:center;
+      padding-bottom:55px;flex-direction:column;align-items:center;
+    }
+    .tut-icon{font-size:36px;}
+    .tut-label{font-size:13px;font-weight:900;color:rgba(255,100,100,0.85);font-family:'Arial Black',Arial,sans-serif;letter-spacing:1px;}
   </style>
 </head>
 <body>
-<canvas id="c"></canvas>
+
+<!-- Portrait warning -->
+<div id="portrait-warn">
+  <div class="pw-phone">📱</div>
+  <div class="pw-title">ROTATE YOUR DEVICE</div>
+  <div class="pw-bar"></div>
+  <div class="pw-sub">Contra requires landscape mode</div>
+</div>
+
+<div id="wrapper">
+  <canvas id="c"></canvas>
+</div>
+
+<!-- Touch controls -->
 <div id="controls">
   <div id="joy-zone">
     <div id="joy-base"><div id="joy-knob"></div></div>
   </div>
   <div id="btn-jump">▲</div>
   <div id="btn-shoot">🔫</div>
+  <div id="btn-up">↑🔫</div>
+  <div id="autoshoot-badge">🔫 AUTO</div>
+</div>
+
+<!-- Tutorial -->
+<div id="touch-tutorial">
+  <div class="tut-left">
+    <span class="tut-icon">🕹️</span>
+    <span class="tut-label">DRAG TO MOVE</span>
+  </div>
+  <div class="tut-right">
+    <span class="tut-icon">⬆️</span>
+    <span class="tut-label">JUMP</span>
+  </div>
 </div>
 
 <script>
@@ -105,15 +219,33 @@ const SOLDIER_TIMER = 120;
 const CAM_RIGHT     = -6164;
 const WORLD_W       = 6764;
 
-// resize canvas
+// ── resize canvas — fullscreen مثل BulletHead ──
 function resize(){
-  const s = Math.min(window.innerWidth/W, window.innerHeight/H);
+  const ww = window.innerWidth, wh = window.innerHeight;
+  const s  = Math.min(ww/W, wh/H);
   canvas.style.width  = Math.floor(W*s)+'px';
   canvas.style.height = Math.floor(H*s)+'px';
   canvas.width=W; canvas.height=H;
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>setTimeout(resize,400));
 resize();
+
+// prevent pull-to-refresh
+document.addEventListener('touchmove', e=>{
+  const overlay = document.getElementById('pz-overlay');
+  if(!overlay?.classList.contains('show')) e.preventDefault();
+},{passive:false});
+document.addEventListener('contextmenu', e=>e.preventDefault());
+
+// fullscreen API
+let _fsRequested = false;
+document.addEventListener('touchstart',()=>{
+  if(_fsRequested) return; _fsRequested=true;
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+  if(req) req.call(el).catch(()=>{});
+},{passive:true});
 
 // ── INPUT ──
 const keys = {};
@@ -194,8 +326,8 @@ function makePlayer(){
   return {
     wx: 100, y: H-20-PLAYER_H,
     vx:0, vy:0, ax:0, ay:0,
-    facing: 1,   // 1=right, -1=left
-    aimY: 0,     // -1=up, 0=level, 1=down
+    facing: 1,
+    aimY: 0,
     onGround: false,
     hp: PLAYER_HP,
     dead: false,
@@ -207,7 +339,7 @@ function makePlayer(){
     shootCD: 0,
     walkFrame: 0,
     walkTimer: 0,
-    // mobile
+    shirtColor: CONTRA_CFG.hero_color || '#cc2200', // از config
     mobileShoot: false,
   };
 }
@@ -715,11 +847,12 @@ function drawPlayer(){
   ctx.fillStyle='#111';
   ctx.fillRect(1,48+lL,12,5);
   ctx.fillRect(13,48+lR,12,5);
-  // body
-  ctx.fillStyle=P.blinking?'#ffff00':'#cc2200';
+  // body — از config color استفاده کن
+  const sColor = P.shirtColor || CONTRA_CFG.hero_color || '#cc2200';
+  ctx.fillStyle = P.blinking ? '#ffff00' : sColor;
   ctx.fillRect(2,14,PLAYER_W-4,20);
   // arms
-  ctx.fillStyle='#cc2200';
+  ctx.fillStyle = P.blinking ? '#ffff00' : sColor;
   ctx.fillRect(-4,14+aw,8,12);
   ctx.fillRect(PLAYER_W-4,14-aw,8,12);
   // gun
@@ -735,7 +868,7 @@ function drawPlayer(){
   ctx.fillStyle='#ffcc99';
   ctx.fillRect(5,0,16,14);
   // helmet
-  ctx.fillStyle='#cc2200';
+  ctx.fillStyle = sColor;
   ctx.fillRect(3,-5,20,8);
   // eyes
   ctx.fillStyle='#111';
@@ -982,12 +1115,13 @@ function drawTitle(){
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
   ctx.textAlign='center';
+  const titleText = CONTRA_CFG.game_title || 'CONTRA';
   ctx.font='bold 72px Arial Black';
-  ctx.fillStyle='#000'; ctx.fillText('CONTRA',W/2+3,140);
+  ctx.fillStyle='#000'; ctx.fillText(titleText,W/2+3,140);
   const tg=ctx.createLinearGradient(0,80,0,150);
   tg.addColorStop(0,'#ff4400'); tg.addColorStop(1,'#ff0000');
   ctx.fillStyle=tg; ctx.shadowColor='#ff2200'; ctx.shadowBlur=30;
-  ctx.fillText('CONTRA',W/2,137);
+  ctx.fillText(titleText,W/2,137);
   ctx.shadowBlur=0;
 
   ctx.font='bold 16px Arial Black'; ctx.fillStyle='#ffcc00';
@@ -1103,20 +1237,88 @@ btnJump.addEventListener('touchstart',e=>{
 btnJump.addEventListener('touchend',e=>{ e.preventDefault(); btnJump.classList.remove('pressed'); },{passive:false});
 
 btnShoot.addEventListener('touchstart',e=>{ e.preventDefault(); btnShoot.classList.add('pressed'); if(P)P.mobileShoot=true; },{passive:false});
-btnShoot.addEventListener('touchend',  e=>{ e.preventDefault(); btnShoot.classList.remove('pressed'); if(P)P.mobileShoot=false; },{passive:false});
+btnShoot.addEventListener('touchend',   e=>{ e.preventDefault(); btnShoot.classList.remove('pressed'); if(P)P.mobileShoot=false; },{passive:false});
 btnShoot.addEventListener('touchcancel',e=>{ btnShoot.classList.remove('pressed'); if(P)P.mobileShoot=false; },{passive:false});
 
+// btn-up — aim up while held
+const btnUp = document.getElementById('btn-up');
+btnUp?.addEventListener('touchstart', e=>{ e.preventDefault(); btnUp.classList.add('pressed'); keys['ArrowUp']=true; },{passive:false});
+btnUp?.addEventListener('touchend',   e=>{ e.preventDefault(); btnUp.classList.remove('pressed'); keys['ArrowUp']=false; },{passive:false});
+btnUp?.addEventListener('touchcancel',e=>{ btnUp.classList.remove('pressed'); keys['ArrowUp']=false; },{passive:false});
+
+// auto-shoot برای موبایل
+let _autoShootTimer = 0;
+function updateAutoShoot(){
+  if(state!=='playing'||!('ontouchstart' in window)) return;
+  if(!P||P.dead) return;
+  _autoShootTimer++;
+  if(_autoShootTimer >= 14){ _autoShootTimer=0; playerShoot(); }
+}
+
+let _tutorialShown = false;
 function syncControls(){
-  const show = state==='playing' && 'ontouchstart' in window;
-  ctrlDiv.style.display=show?'block':'none';
+  const isTouch = 'ontouchstart' in window;
+  const show    = state==='playing' && isTouch;
+  ctrlDiv.style.display = show?'block':'none';
+
+  // tutorial — فقط اولین بار
+  const tut = document.getElementById('touch-tutorial');
+  if(tut){
+    if(show && !_tutorialShown){
+      _tutorialShown=true;
+      tut.style.display='block';
+      setTimeout(()=>{ tut.style.display='none'; }, 4200);
+    } else if(!show){
+      tut.style.display='none';
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+//  CONTRA CONFIG — از Supabase مثل BulletHead
+// ═══════════════════════════════════════
+let CONTRA_CFG = {
+  slug:         null,
+  game_title:   'Contra',
+  hero_name:    'Soldier',
+  hero_color:   '#cc2200',
+  enemy_names:  { drone:'Sniper', bomber:'Soldier', speeder:'Tank' },
+  gun_names:    { pistol:'The General' },
+  msg_start:    'Good luck, soldier!',
+  msg_gameover: 'Mission Failed!',
+  color_theme:  'default',
+  players:      [],
+};
+
+// نام soldier بازیکن (انتخاب از dropdown)
+let playerName = localStorage.getItem('contra_player_name') || '';
+
+async function loadContraConfig() {
+  const params = new URLSearchParams(location.search);
+  const slug   = params.get('g');
+  if (!slug) return;
+
+  const _sbC = window.PZ_SB || supabase.createClient(
+    'https://oshkqzxmnqvbfkuvxwbc.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk'
+  );
+
+  const { data, error } = await _sbC.from('game_configs').select('*').eq('slug', slug).single();
+  if (error || !data) { console.warn('Config not found:', slug); return; }
+
+  CONTRA_CFG = { ...CONTRA_CFG, ...data };
+  document.title = data.game_title + ' — PlayZone';
+
+  // increment play count
+  _sbC.rpc('increment_play_count', { p_slug: slug });
 }
 
 // ═══════════════════════════════════════
 //  PLAYZONE PLATFORM
 // ═══════════════════════════════════════
 PZUI.inject({
-  gameName: 'Contra',
-  gameSlug: 'contra',
+  gameName: CONTRA_CFG.game_title,
+  gameSlug: CONTRA_CFG.slug || 'contra',
   onPause:  () => {
     Object.keys(keys).forEach(k => keys[k] = false);
     if (state === 'playing') state = 'paused';
@@ -1150,6 +1352,12 @@ document.addEventListener('touchstart',()=>{
   if(state==='title'){ state='playing'; initGame(); syncControls(); }
 },{once:false});
 
+// ── لود config و شروع ──
+loadContraConfig().then(()=>{
+  PZUI.gameName = CONTRA_CFG.game_title;
+  PZUI.gameSlug = CONTRA_CFG.slug || 'contra';
+});
+
 // ── Override loop to handle paused + platform ──
 function loop(){
   ctx.clearRect(0,0,W,H);
@@ -1173,6 +1381,7 @@ function loop(){
     updatePlayer(); updateBullets(); updateSnipers();
     updateSoldiers(); updateTanks(); updateBoss();
     updatePowerups(); updateParticles();
+    updateAutoShoot();
     drawBackground(); drawPlatforms(); drawGround();
     drawParticles(); drawPowerups();
     drawSnipers(); drawSoldiers(); drawTanks(); drawBoss();

@@ -1338,6 +1338,10 @@ function startEditor(gameType) {
   playersList   = [];
   selectedTheme = 'default';
   resetForm();
+
+  // panel-1 رو بر اساس بازی تغییر بده
+  _buildCharPanel(gameType);
+
   goStep(0);
   showScreen('edit');
   document.getElementById('btn-back').classList.add('show');
@@ -1348,6 +1352,114 @@ function startEditor(gameType) {
   buildThemeGrid();
   livePreview();
   updateStepNav();
+}
+
+function _buildCharPanel(gameType) {
+  const panel = document.getElementById('panel-1');
+  if (!panel) return;
+
+  if (gameType === 'contra') {
+    panel.innerHTML = `
+      <div class="step-heading">
+        <h3>💥 Soldier & Enemies</h3>
+        <p>Customize your soldier and rename the enemies. Leave blank to keep defaults.</p>
+      </div>
+      <div class="sub-label">🪖 Your Soldier</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Soldier Name</label>
+          <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20" oninput="livePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>Uniform Color</label>
+          <div class="color-row">
+            <input type="color" id="f-hero-color-pick" value="#cc2200" oninput="syncColor('hero')"/>
+            <input type="text"  id="f-hero-color" value="#cc2200" maxlength="7" oninput="syncColorFromText('hero')"/>
+          </div>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div class="sub-label">👾 Enemies</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Enemy 1 (Sniper)</label>
+          <input type="text" id="f-enemy-drone" placeholder="Sniper" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Enemy 2 (Soldier)</label>
+          <input type="text" id="f-enemy-bomber" placeholder="Soldier" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Enemy 3 (Tank)</label>
+          <input type="text" id="f-enemy-speeder" placeholder="Tank" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Boss Name</label>
+          <input type="text" id="f-gun-pistol" placeholder="The General" maxlength="20"/>
+        </div>
+      </div>`;
+  } else {
+    // BulletHead — همون محتوای قبلی
+    panel.innerHTML = `
+      <div class="step-heading">
+        <h3>🧑 Characters & Weapons</h3>
+        <p>Rename the hero and enemies to make the game personal. Or leave blank to keep the defaults.</p>
+      </div>
+      <div class="sub-label">🦸 Hero</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Hero Name</label>
+          <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20" oninput="livePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>Hero Shirt Color</label>
+          <div class="color-row">
+            <input type="color" id="f-hero-color-pick" value="#e82020" oninput="syncColor('hero')"/>
+            <input type="text"  id="f-hero-color" value="#e82020" maxlength="7" oninput="syncColorFromText('hero')"/>
+          </div>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div class="sub-label">👾 Enemies</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Enemy 1 name</label>
+          <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20" oninput="livePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>Enemy 2 name</label>
+          <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20" oninput="livePreview()"/>
+        </div>
+        <div class="form-group">
+          <label>Enemy 3 name</label>
+          <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20" oninput="livePreview()"/>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div class="sub-label">🔫 Weapons <span style="color:var(--muted);font-weight:400;font-size:10px;text-transform:none">(optional rename)</span></div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Gun 1 (Pistol)</label>
+          <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Gun 2 (SMG)</label>
+          <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Gun 3 (Shotgun)</label>
+          <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Gun 4 (Sniper)</label>
+          <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Gun 5 (Rocket)</label>
+          <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20"/>
+        </div>
+      </div>`;
+  }
 }
 
 function goBack() {
@@ -1492,7 +1604,8 @@ async function loadMyGames() {
   listEl.innerHTML = data.map(g => {
     const players  = g.players || [];
     const theme    = THEMES.find(t => t.id === g.color_theme) || THEMES[0];
-    const link     = `${location.origin}/game?g=${g.slug}`;
+    const gameRoute = g.game === 'contra' ? '/contra' : '/game';
+    const link     = `${location.origin}${gameRoute}?g=${g.slug}`;
     const best     = bestMap[g.slug];
     const last     = lastMap[g.slug];
 
@@ -1589,11 +1702,15 @@ async function loadGame(slug) {
   goStep(3);
   livePreview();
 
-  // show link
-  const link = `${location.origin}/game?g=${slug}`;
+  // show link — route بر اساس نوع بازی
+  const gameRoute2 = currentGame === 'contra' ? '/contra' : '/game';
+  const link = `${location.origin}${gameRoute2}?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('play-btn-link').href = link;
   document.getElementById('link-box').style.display = 'block';
+
+  // panel-1 رو برای این بازی بساز
+  _buildCharPanel(currentGame);
 
   // load stats
   loadStats(slug);
@@ -1655,6 +1772,7 @@ async function createGame() {
     slug = genSlug();
     ({ error } = await sb.from('game_configs').insert({
       user_id: user.id, slug,
+      game:    currentGame,  // 'bullethead' یا 'contra'
       game_title: cfg.game_title, hero_name: cfg.hero_name,
       hero_color: cfg.hero_color, enemy_names: cfg.enemy_names,
       gun_names: cfg.gun_names, msg_start: cfg.msg_start,
@@ -1669,7 +1787,8 @@ async function createGame() {
 
   if (error) { showToast('❌ Error: ' + error.message); return; }
 
-  const link = `${location.origin}/game?g=${slug}`;
+  const gameRoute3 = currentGame === 'contra' ? '/contra' : '/game';
+  const link = `${location.origin}${gameRoute3}?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('play-btn-link').href = link;
   document.getElementById('link-box').style.display = 'block';
