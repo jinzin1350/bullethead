@@ -1698,75 +1698,84 @@ function drawEnterName(){
   dropdownZones = [];
 
   if(players.length === 0){
-    // اگه لیست خالیه — فرم متنی ساده
+    // no player list — simple text form
     roundRect(W/2-160,100,320,120,14,'#0d0d20','#00b4d8',2);
     ctx.fillStyle='#aaa';ctx.font='14px Arial';
-    ctx.fillText('اسمت رو بنویس:',W/2,132);
+    ctx.fillText('Enter your name:',W/2,132);
     roundRect(W/2-110,148,220,40,8,'#111122','#00b4d8',1.5);
     ctx.fillStyle='#fff';ctx.font='bold 18px Arial Black';ctx.textBaseline='middle';
     ctx.fillText(playerName||'...',W/2,168);ctx.textBaseline='alphabetic';
     const blink=Math.floor(Date.now()/480)%2===0;
     roundRect(W/2-90,200,180,40,10,blink?'#00cc66':'#008844','#00ff88',2);
     ctx.fillStyle='#000';ctx.font='bold 15px Arial Black';ctx.textBaseline='middle';
-    ctx.fillText('▶ شروع',W/2,220);ctx.textBaseline='alphabetic';
+    ctx.fillText('▶ Start',W/2,220);ctx.textBaseline='alphabetic';
     dropdownZones.push({x:W/2-90,y:200,w:180,h:40,action:()=>{ if(playerName) confirmName(); }});
     ctx.textAlign='left';
     return;
   }
 
-  // Card
-  roundRect(W/2-180,90,360,260,16,'#0d0d20','#00b4d8',2);
+  // Card background
+  const cardW=340, cardX=W/2-cardW/2;
+  const listVisible = dropdownOpen;
+  const itemH=44;
+  const listH=players.length*itemH+8;
+  const cardH=listVisible ? 80+listH+16 : 200;
+  roundRect(cardX,88,cardW,cardH,16,'#0d0d20','#00b4d8',2);
 
-  ctx.fillStyle='#aaa';ctx.font='14px Arial';
-  ctx.fillText('کی هستی؟ اسمت رو انتخاب کن 👇',W/2,120);
+  // subtitle
+  ctx.fillStyle='#aaa';ctx.font='13px Arial';
+  ctx.fillText('Who are you? Pick your name 👇',W/2,114);
 
   // Dropdown box
   const selName = players[selectedPlayerIdx] || players[0];
   const blink2=Math.floor(Date.now()/600)%2===0;
   ctx.shadowColor='#00b4d8';ctx.shadowBlur=blink2?10:4;
-  roundRect(W/2-140,132,280,44,10,'#111830','#00b4d8',2);
+  roundRect(cardX+10,124,cardW-20,46,10,'#111830','#00b4d8',2);
   ctx.shadowBlur=0;
-  ctx.fillStyle='#fff';ctx.font='bold 18px Arial Black';ctx.textBaseline='middle';
-  ctx.fillText(selName,W/2-10,154);
-  // فلش dropdown
-  ctx.fillStyle='#00b4d8';ctx.font='bold 18px Arial';
-  ctx.fillText(dropdownOpen?'▲':'▼',W/2+110,154);
+  // name — centered
+  ctx.fillStyle='#fff';ctx.font='bold 17px Arial Black';ctx.textBaseline='middle';
+  ctx.textAlign='center';
+  ctx.fillText(selName, W/2, 147);
+  // arrow — right side
+  ctx.fillStyle='#00b4d8';ctx.font='bold 16px Arial';
+  ctx.fillText(dropdownOpen?'▲':'▼', cardX+cardW-22, 147);
   ctx.textBaseline='alphabetic';
-  dropdownZones.push({x:W/2-140,y:132,w:280,h:44,action:()=>{ dropdownOpen=!dropdownOpen; }});
+  dropdownZones.push({x:cardX+10,y:124,w:cardW-20,h:46,action:()=>{ dropdownOpen=!dropdownOpen; }});
 
-  // لیست dropdown
+  // dropdown list
   if(dropdownOpen){
-    const itemH=38, listY=180;
-    const listH = players.length*itemH+8;
-    roundRect(W/2-140,listY,280,listH,10,'#0d1530','#00b4d8aa',1.5);
+    const listY=178;
+    roundRect(cardX+10,listY,cardW-20,listH,10,'#0d1530','#00b4d8aa',1.5);
     players.forEach((name,i)=>{
       const iy=listY+4+i*itemH;
       const isSelected = i===selectedPlayerIdx;
       if(isSelected){
-        roundRect(W/2-136,iy+2,272,itemH-4,8,'#1a3060','#00b4d8',1.5);
+        roundRect(cardX+14,iy+3,cardW-28,itemH-6,8,'#1a3060','#00b4d8',1.5);
       }
       ctx.fillStyle=isSelected?'#00ff88':'#ccc';
       ctx.font=isSelected?'bold 15px Arial Black':'15px Arial';
       ctx.textBaseline='middle';
-      ctx.fillText((isSelected?'✓ ':'')+name,W/2-120,iy+itemH/2);
+      ctx.textAlign='center';
+      ctx.fillText((isSelected?'✓  ':'')+name, W/2, iy+itemH/2);
       ctx.textBaseline='alphabetic';
-      dropdownZones.push({x:W/2-140,y:iy,w:280,h:itemH,action:()=>{
+      dropdownZones.push({x:cardX+10,y:iy,w:cardW-20,h:itemH,action:()=>{
         selectedPlayerIdx=i;
         dropdownOpen=false;
       }});
     });
   }
 
-  // دکمه شروع
+  // Start button — only when dropdown closed
   if(!dropdownOpen){
-    const btnY=220;
+    const btnY=186;
     const blink=Math.floor(Date.now()/480)%2===0;
     ctx.shadowColor='#00ff88';ctx.shadowBlur=blink?14:4;
-    roundRect(W/2-110,btnY,220,48,12,blink?'#00cc66':'#008844','#00ff88',2.5);
+    roundRect(cardX+20,btnY,cardW-40,50,12,blink?'#00cc66':'#008844','#00ff88',2.5);
     ctx.shadowBlur=0;
     ctx.fillStyle='#000';ctx.font='bold 18px Arial Black';ctx.textBaseline='middle';
-    ctx.fillText('▶ شروع بازی',W/2,btnY+24);ctx.textBaseline='alphabetic';
-    dropdownZones.push({x:W/2-110,y:btnY,w:220,h:48,action:()=>{ confirmName(); }});
+    ctx.textAlign='center';
+    ctx.fillText('▶  Start Game',W/2,btnY+25);ctx.textBaseline='alphabetic';
+    dropdownZones.push({x:cardX+20,y:btnY,w:cardW-40,h:50,action:()=>{ confirmName(); }});
   }
 
   ctx.textAlign='left';
