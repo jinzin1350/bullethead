@@ -8,8 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="BulletHead"/>
   <meta name="theme-color" content="#111111"/>
-  <title>BulletHead</title>
+  <title>BulletHead — PlayZone</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/pz-core.js"></script>
+  <script src="/pz-ui.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body {
@@ -2689,81 +2691,6 @@ function confirmName(){
 }
 
 // ═══════════════════════════════════════════════
-//  MAIN LOOP
-// ═══════════════════════════════════════════════
-function loop(){
-  ctx.clearRect(0,0,W,H);
-  frame++;
-
-  if(state==='title'){
-    drawTitle();
-  } else if(state==='enterName'){
-    drawEnterName();
-  } else if(state==='shop'){
-    drawShop();
-  } else if(state==='gameover'){
-    drawBackground();
-    drawGameOver();
-  } else if(state==='quiz'){
-    // بازی رو زمینه بکش، quiz روش
-    drawBackground();drawPlatforms();drawParticles();
-    drawPowerups();drawEnemies();drawBullets();drawBoss();drawPlayer();
-    drawHUD();
-    updateQuiz();
-    drawQuiz();
-  } else {
-    updatePlayer();updateEnemies();updateBullets();
-    updatePowerups();updateParticles();updateSpawner();
-    updateBoss();updateAutoShoot();
-    updateRewardTimer();updatePlatTransition();
-    if(bossDefeatedTimer>0) bossDefeatedTimer--;
-    if(bossFlashTimer>0)    bossFlashTimer--;
-
-    // screen flash هنگام ورود boss
-    if(bossFlashTimer>0){
-      ctx.fillStyle=`rgba(255,0,0,${bossFlashTimer/18*0.45})`;
-      ctx.fillRect(0,0,W,H);
-    }
-
-    drawBackground();drawPlatforms();drawParticles();
-    drawPowerups();drawEnemies();drawBullets();
-    drawBoss();
-    drawPlayer();
-    drawFloatingTexts();drawHUD();
-    drawBossHUD();
-
-    // boss warning banner
-    if(bossWarningTimer>0){
-      const a=Math.min(1,bossWarningTimer/30);
-      const pulse=Math.floor(frame/10)%2===0;
-      ctx.globalAlpha=a;
-      ctx.fillStyle=pulse?'#ff0000':'#cc0000';
-      ctx.font='bold 36px Arial Black';
-      ctx.textAlign='center';
-      ctx.shadowColor='#ff0000'; ctx.shadowBlur=40;
-      ctx.fillText('⚠️  BOSS INCOMING!  ⚠️',W/2,H/2-20);
-      ctx.font='bold 16px Arial Black';
-      ctx.fillStyle='#ffcc00';
-      ctx.fillText('LVL '+level+' BOSS — Get Ready!',W/2,H/2+18);
-      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
-    }
-
-    // boss defeated banner
-    if(bossDefeatedTimer>0){
-      const a=Math.min(1,bossDefeatedTimer/30);
-      ctx.globalAlpha=a;
-      ctx.font='bold 38px Arial Black'; ctx.textAlign='center';
-      ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=40;
-      ctx.fillText('🎉  BOSS DEFEATED!',W/2,H/2);
-      ctx.font='bold 16px Arial Black'; ctx.fillStyle='#00ff88'; ctx.shadowColor='#00ff88'; ctx.shadowBlur=20;
-      ctx.fillText('Bonus coins collected!',W/2,H/2+36);
-      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
-    }
-  }
-  requestAnimationFrame(loop);
-}
-
-// ═══════════════════════════════════════════════
 //  INIT — لود config و شروع
 // ═══════════════════════════════════════════════
 // ── Prevent pull-to-refresh, bounce, and context menu ──
@@ -2806,6 +2733,161 @@ document.addEventListener('touchstart', () => {
 
 window.addEventListener('orientationchange', () => setTimeout(() => { forceFullscreen(); resizeCanvas(); }, 400));
 window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════
+//  PLAYZONE PLATFORM INTEGRATION
+// ═══════════════════════════════════════════════
+PZUI.inject({
+  gameName: GAME_CFG.game_title || 'BulletHead',
+  gameSlug: GAME_CFG.slug       || 'bullethead',
+  onPause:  () => {
+    // بازی رو pause کن وقتی panel باز میشه
+    Object.keys(keys).forEach(k => keys[k] = false);
+    if (state === 'playing') state = 'paused';
+  },
+  onResume: () => {
+    if (state === 'paused') state = 'playing';
+    syncControlsVisibility();
+  },
+});
+
+// ── Sync global coins → local coins on login ──
+PZ.on('profile', (profile) => {
+  if (profile) {
+    coins = profile.coins || 0;
+    saveAll();
+  }
+});
+
+// ── 2-Player room message handler ──
+window.PZ_GAME_HANDLER = (msg) => {
+  // آینده: sync state بین دو بازیکن
+  if (msg.type === 'start') {
+    startGame();
+  }
+};
+
+// ── Override goToShop to also save score to PZ platform ──
+const _origGoToShop = goToShop;
+async function goToShopPZ() {
+  // sync coins به platform
+  if (PZ.isLoggedIn() && gameOverCoinsEarned > 0) {
+    await PZ.addCoins(gameOverCoinsEarned);
+    await PZ.saveScore(
+      GAME_CFG.slug || 'bullethead',
+      score, level
+    );
+  }
+  _origGoToShop();
+}
+
+// ── Override hitPlayer to show death screenshot ──
+const _origHitPlayer = hitPlayer;
+function hitPlayer() {
+  _origHitPlayer();
+  if (P && P.lives <= 0 && PZ.isLoggedIn()) {
+    // screenshot قبل از quiz
+    setTimeout(() => {
+      if (state === 'quiz') return; // quiz داره نشون میده
+      PZUI.showDeath(canvas, score, () => startGame());
+    }, 500);
+  }
+}
+
+// ── paused state در loop ──
+const _origLoop = loop;
+
+// override loop to handle paused state
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  frame++;
+
+  if (state === 'paused') {
+    drawBackground();
+    drawPlatforms();
+    drawParticles();
+    drawPowerups();
+    drawEnemies();
+    drawBullets();
+    drawBoss();
+    drawPlayer();
+    drawFloatingTexts();
+    drawHUD();
+    // dim overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px Arial Black';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏸ PAUSED', W/2, H/2);
+    ctx.textAlign = 'left';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  if(state==='title'){
+    drawTitle();
+  } else if(state==='enterName'){
+    drawEnterName();
+  } else if(state==='shop'){
+    drawShop();
+  } else if(state==='gameover'){
+    drawBackground();
+    drawGameOver();
+  } else if(state==='quiz'){
+    drawBackground();drawPlatforms();drawParticles();
+    drawPowerups();drawEnemies();drawBullets();drawBoss();drawPlayer();
+    drawHUD();
+    updateQuiz();
+    drawQuiz();
+  } else {
+    updatePlayer();updateEnemies();updateBullets();
+    updatePowerups();updateParticles();updateSpawner();
+    updateBoss();updateAutoShoot();
+    updateRewardTimer();updatePlatTransition();
+    if(bossDefeatedTimer>0) bossDefeatedTimer--;
+    if(bossFlashTimer>0)    bossFlashTimer--;
+
+    if(bossFlashTimer>0){
+      ctx.fillStyle=`rgba(255,0,0,${bossFlashTimer/18*0.45})`;
+      ctx.fillRect(0,0,W,H);
+    }
+
+    drawBackground();drawPlatforms();drawParticles();
+    drawPowerups();drawEnemies();drawBullets();
+    drawBoss();
+    drawPlayer();
+    drawFloatingTexts();drawHUD();
+    drawBossHUD();
+
+    if(bossWarningTimer>0){
+      const a=Math.min(1,bossWarningTimer/30);
+      const pulse=Math.floor(frame/10)%2===0;
+      ctx.globalAlpha=a;
+      ctx.fillStyle=pulse?'#ff0000':'#cc0000';
+      ctx.font='bold 36px Arial Black';
+      ctx.textAlign='center';
+      ctx.shadowColor='#ff0000'; ctx.shadowBlur=40;
+      ctx.fillText('⚠️  BOSS INCOMING!  ⚠️',W/2,H/2-20);
+      ctx.font='bold 16px Arial Black';
+      ctx.fillStyle='#ffcc00';
+      ctx.fillText('LVL '+level+' BOSS — Get Ready!',W/2,H/2+18);
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
+    }
+
+    if(bossDefeatedTimer>0){
+      const a=Math.min(1,bossDefeatedTimer/30);
+      ctx.globalAlpha=a;
+      ctx.font='bold 38px Arial Black'; ctx.textAlign='center';
+      ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=40;
+      ctx.fillText('🎉  BOSS DEFEATED!',W/2,H/2);
+      ctx.font='bold 16px Arial Black'; ctx.fillStyle='#00ff88'; ctx.shadowColor='#00ff88'; ctx.shadowBlur=20;
+      ctx.fillText('Bonus coins collected!',W/2,H/2+36);
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
+    }
+  }
+  requestAnimationFrame(loop);
+}
 
 loadGameConfig().then(() => loop());
 </script>

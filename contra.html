@@ -6,6 +6,9 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <title>Contra — PlayZone</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/pz-core.js"></script>
+  <script src="/pz-ui.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     html,body{
@@ -1107,56 +1110,84 @@ function syncControls(){
   ctrlDiv.style.display=show?'block':'none';
 }
 
-// ═══════════════════════════════════════════════════
-//  MAIN LOOP
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════
+//  PLAYZONE PLATFORM
+// ═══════════════════════════════════════
+PZUI.inject({
+  gameName: 'Contra',
+  gameSlug: 'contra',
+  onPause:  () => {
+    Object.keys(keys).forEach(k => keys[k] = false);
+    if (state === 'playing') state = 'paused';
+  },
+  onResume: () => {
+    if (state === 'paused') state = 'playing';
+    syncControls();
+  },
+});
+
+// sync coins on login
+PZ.on('profile', (profile) => {
+  if (profile) PZUI.toast('🪙 ' + profile.coins.toLocaleString() + ' coins loaded!');
+});
+
+// save score on game over
+const _origGameOver = () => { state = 'gameover'; };
+async function saveContraScore() {
+  if (PZ.isLoggedIn()) {
+    const earned = Math.floor(score / 30);
+    if (earned > 0) await PZ.addCoins(earned);
+    await PZ.saveScore('contra', score);
+  }
+}
+
+// ── touch to start ──
+document.addEventListener('touchstart',()=>{
+  if(state==='title'){ state='playing'; initGame(); syncControls(); }
+},{once:false});
+
+// ── Override loop to handle paused + platform ──
 function loop(){
   ctx.clearRect(0,0,W,H);
   frame++;
+
+  if(state==='paused'){
+    drawBackground(); drawPlatforms(); drawGround();
+    drawSnipers(); drawSoldiers(); drawTanks(); drawBoss(); drawPlayer();
+    drawHUD();
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.font='bold 22px Arial Black';
+    ctx.textAlign='center'; ctx.fillText('⏸ PAUSED',W/2,H/2);
+    ctx.textAlign='left';
+    requestAnimationFrame(loop); return;
+  }
 
   if(state==='title'){
     drawTitle();
     if(keys['Enter']||keys['Space']){ state='playing'; initGame(); syncControls(); }
   } else if(state==='playing'){
-    updatePlayer();
-    updateBullets();
-    updateSnipers();
-    updateSoldiers();
-    updateTanks();
-    updateBoss();
-    updatePowerups();
-    updateParticles();
-
-    drawBackground();
-    drawPlatforms();
-    drawGround();
-    drawParticles();
-    drawPowerups();
-    drawSnipers();
-    drawSoldiers();
-    drawTanks();
-    drawBoss();
-    drawBullets();
-    drawPlayer();
-    drawHUD();
+    updatePlayer(); updateBullets(); updateSnipers();
+    updateSoldiers(); updateTanks(); updateBoss();
+    updatePowerups(); updateParticles();
+    drawBackground(); drawPlatforms(); drawGround();
+    drawParticles(); drawPowerups();
+    drawSnipers(); drawSoldiers(); drawTanks(); drawBoss();
+    drawBullets(); drawPlayer(); drawHUD();
   } else if(state==='gameover'){
     drawBackground(); drawPlatforms(); drawGround();
     drawSnipers(); drawSoldiers(); drawTanks(); drawBoss();
     drawGameOver();
+    saveContraScore();
     if(keys['Enter']){ state='playing'; initGame(); syncControls(); }
   } else if(state==='stageclear'){
     drawBackground(); drawPlatforms(); drawGround();
     drawStageClear();
+    saveContraScore();
     if(keys['Enter']){ state='title'; syncControls(); }
   }
 
   requestAnimationFrame(loop);
 }
-
-// touch to start
-document.addEventListener('touchstart',()=>{
-  if(state==='title'){ state='playing'; initGame(); syncControls(); }
-},{once:false});
 
 loop();
 </script>
