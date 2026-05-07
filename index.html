@@ -636,34 +636,62 @@ function spawnEnemy(){
 }
 
 // ═══════════════════════════════════════════════
-//  BOSS
+//  BOSS — 10 skins + full movement
 // ═══════════════════════════════════════════════
 let boss = null;
-let bossWarningTimer = 0;   // countdown قبل از ظهور boss
-let bossDefeatedTimer = 0;  // banner بعد از کشتن
-let bossFlashTimer = 0;     // screen flash هنگام ورود
-let bossShakeTimer = 0;     // screen shake وقتی ضربه میخوره
+let bossWarningTimer = 0;
+let bossDefeatedTimer = 0;
+let bossFlashTimer = 0;
+let bossShakeTimer = 0;
+
+// ── 10 boss skins ──
+const BOSS_SKINS = [
+  // 0: Classic Devil — قرمز با شاخ
+  { name:'Devil',      body:'#cc0022', head:'#dd1133', horn:'#660000', eye:'#ffff00', teeth:'#ffffff', glow:'#ff0000', icon:'😈' },
+  // 1: Ice Witch — آبی یخ
+  { name:'Ice Witch',  body:'#0044aa', head:'#0066cc', horn:'#88ccff', eye:'#00ffff', teeth:'#aaddff', glow:'#00ccff', icon:'🧊' },
+  // 2: Lava King — نارنجی
+  { name:'Lava King',  body:'#882200', head:'#aa3300', horn:'#ff6600', eye:'#ffaa00', teeth:'#ff4400', glow:'#ff6600', icon:'🌋' },
+  // 3: Shadow Lord — بنفش تیره
+  { name:'Shadow Lord',body:'#330044', head:'#440055', horn:'#cc44ff', eye:'#ff00ff', teeth:'#cc88ff', glow:'#cc00ff', icon:'👾' },
+  // 4: Toxic Slime — سبز سمی
+  { name:'Toxic Slime',body:'#224400', head:'#336600', horn:'#88ff00', eye:'#ccff00', teeth:'#aaffaa', glow:'#44ff00', icon:'☠️' },
+  // 5: Iron Golem — خاکستری فلزی
+  { name:'Iron Golem', body:'#444444', head:'#555555', horn:'#888888', eye:'#ff4444', teeth:'#cccccc', glow:'#aaaaaa', icon:'🤖' },
+  // 6: Dark Pirate — قهوه‌ای تیره
+  { name:'Dark Pirate',body:'#3a1a00', head:'#4a2200', horn:'#cc8800', eye:'#ff4400', teeth:'#ffdd88', glow:'#ff8800', icon:'💀' },
+  // 7: Alien Overlord — سبز فضایی
+  { name:'Alien Lord', body:'#003322', head:'#004433', horn:'#00ffcc', eye:'#00ff88', teeth:'#88ffee', glow:'#00ffaa', icon:'👽' },
+  // 8: Storm Titan — آبی嵐 嵐
+  { name:'Storm Titan',body:'#001a33', head:'#002244', horn:'#4488ff', eye:'#ffff00', teeth:'#aaccff', glow:'#0088ff', icon:'⚡' },
+  // 9: Candy Demon — صورتی دیوانه
+  { name:'Candy Demon',body:'#660033', head:'#880044', horn:'#ff44aa', eye:'#ffaadd', teeth:'#ffccee', glow:'#ff44cc', icon:'🍬' },
+];
 
 function isBossLevel(){ return level>0 && level%5===0; }
 
 function spawnBoss(){
-  const hp = level * 18;
+  const hp      = level * 18;
+  const skinIdx = Math.floor(Math.random() * BOSS_SKINS.length);
   boss = {
-    x: W/2 - 36, y: -120,       // از بالا میاد پایین
-    w: 72, h: 108,               // 3x بزرگتر
-    vx: 1.4, vy: 0,
-    targetY: 80,                 // جای نهایی‌اش
+    x: W/2 - 36, y: -120,
+    w: 72, h: 108,
+    vx: 1.6, vy: 0,
+    onGround: false,
     landed: false,
     hp, maxHp: hp,
     sTimer: 0,
-    phase: 0,                    // انیمیشن sinusoidal
+    phase: 0,
     hitFlash: 0,
-    attackMode: 0,               // 0=targeted, 1=spiral, 2=spread
-    attackTimer: 0,
+    attackMode: 0,
     spiralAngle: 0,
-    enraged: false,              // phase 2 — HP < 50%
+    enraged: false,
     walkFrame: 0, walkTimer: 0,
     smokeTimer: 0,
+    skin: BOSS_SKINS[skinIdx],
+    // movement AI
+    jumpCooldown: 0,
+    chaseTimer: 0,
   };
 }
 
@@ -672,28 +700,96 @@ function updateBoss(){
 
   // ── entry: سقوط از بالا ──
   if(!boss.landed){
-    boss.vy += 0.6;
+    boss.vy += 0.7;
     boss.y  += boss.vy;
-    if(boss.y >= boss.targetY){ boss.y = boss.targetY; boss.vy = 0; boss.landed = true; bossFlashTimer = 18; bossShakeTimer = 22; burst(boss.x+boss.w/2, boss.y+boss.h, '#ff2200', 30); }
+    boss.x  += boss.vx;
+    if(boss.x < 20)          { boss.vx =  Math.abs(boss.vx); }
+    if(boss.x+boss.w > W-20) { boss.vx = -Math.abs(boss.vx); }
+    // زمین یا platform
+    for(const pl of PLAT_LAYOUT){
+      const prevB = boss.y + boss.h - boss.vy;
+      if(boss.x+boss.w > pl.x && boss.x < pl.x+pl.w &&
+         boss.y+boss.h >= pl.y && prevB <= pl.y+10 && boss.vy >= 0){
+        boss.y = pl.y - boss.h;
+        boss.vy = 0;
+        boss.onGround = true;
+        boss.landed = true;
+        bossFlashTimer = 18; bossShakeTimer = 22;
+        burst(boss.x+boss.w/2, boss.y+boss.h, boss.skin.glow, 30);
+      }
+    }
+    if(!boss.landed && boss.y > H+50) { boss.y=-120; boss.vy=0; } // retry اگه miss کرد
     return;
   }
 
   // enrage check
   const rage = boss.hp / boss.maxHp < 0.5;
-  if(rage && !boss.enraged){ boss.enraged = true; floatText(boss.x+boss.w/2, boss.y-20, '😡 ENRAGED!', '#ff2200'); burst(boss.x+boss.w/2,boss.y+boss.h/2,'#ff0000',25); }
+  if(rage && !boss.enraged){
+    boss.enraged = true;
+    floatText(boss.x+boss.w/2, boss.y-20, '😡 ENRAGED!', boss.skin.glow);
+    burst(boss.x+boss.w/2, boss.y+boss.h/2, boss.skin.glow, 25);
+  }
 
-  // حرکت sinusoidal
-  boss.phase += boss.enraged ? 0.032 : 0.018;
-  boss.x     += boss.vx * (boss.enraged ? 1.6 : 1);
-  boss.y      = boss.targetY + Math.sin(boss.phase) * 28;
-  if(boss.x < 20)          { boss.x = 20;        boss.vx = Math.abs(boss.vx); }
-  if(boss.x+boss.w > W-20) { boss.x = W-20-boss.w; boss.vx = -Math.abs(boss.vx); }
+  const spd = boss.enraged ? 2.4 : 1.6;
+
+  // ── GRAVITY ──
+  boss.vy += 0.55;
+  boss.y  += boss.vy;
+  boss.onGround = false;
+
+  // ── PLATFORM COLLISION ──
+  for(const pl of PLAT_LAYOUT){
+    const prevB = boss.y + boss.h - boss.vy;
+    if(boss.x+boss.w > pl.x && boss.x < pl.x+pl.w &&
+       boss.y+boss.h >= pl.y && prevB <= pl.y+10 && boss.vy >= 0){
+      boss.y = pl.y - boss.h;
+      boss.vy = 0;
+      boss.onGround = true;
+    }
+  }
+  // floor
+  if(boss.y + boss.h > H-10){ boss.y = H-10-boss.h; boss.vy=0; boss.onGround=true; }
+
+  // ── HORIZONTAL CHASE ──
+  boss.chaseTimer++;
+  const px = P.x + P.w/2;
+  const bCx = boss.x + boss.w/2;
+  const diffX = px - bCx;
+
+  // chase player horizontally
+  if(Math.abs(diffX) > 30){
+    boss.vx = diffX > 0 ? spd : -spd;
+  } else {
+    boss.vx *= 0.8;
+  }
+  boss.x += boss.vx;
+  if(boss.x < 0)          { boss.x = 0;        boss.vx = Math.abs(boss.vx); }
+  if(boss.x+boss.w > W)   { boss.x = W-boss.w; boss.vx = -Math.abs(boss.vx); }
+
+  // ── JUMP AI — اگه player بالاتر از boss هست ──
+  boss.jumpCooldown--;
+  if(boss.onGround && boss.jumpCooldown <= 0){
+    const py = P.y + P.h/2;
+    const bMy = boss.y + boss.h/2;
+    // اگه player حداقل 60px بالاتره → jump
+    if(bMy - py > 60){
+      boss.vy = boss.enraged ? -13 : -11;
+      boss.onGround = false;
+      boss.jumpCooldown = boss.enraged ? 60 : 100;
+    }
+    // گاهی random jump برای unpredictability
+    else if(boss.chaseTimer % (boss.enraged ? 120 : 200) === 0){
+      boss.vy = -10;
+      boss.onGround = false;
+      boss.jumpCooldown = 80;
+    }
+  }
 
   // walk anim
   boss.walkTimer++; if(boss.walkTimer>6){boss.walkTimer=0;boss.walkFrame^=1;}
 
   // smoke particles (phase 2)
-  if(boss.enraged){ boss.smokeTimer++; if(boss.smokeTimer%8===0) burst(boss.x+boss.w/2,boss.y+boss.h/2,'#ff4400',3); }
+  if(boss.enraged){ boss.smokeTimer++; if(boss.smokeTimer%6===0) burst(boss.x+boss.w/2,boss.y+boss.h/2,boss.skin.glow,3); }
 
   // hit flash
   if(boss.hitFlash>0) boss.hitFlash--;
@@ -769,107 +865,133 @@ function hitBoss(dmg){
   return true;
 }
 
-// draw boss
+// draw boss — 10 skins
 function drawBoss(){
   if(!boss) return;
 
   const flash = boss.hitFlash > 0;
   const rage  = boss.enraged;
+  const sk    = boss.skin;
 
-  // screen shake offset
+  // screen shake
   const sx = bossShakeTimer>0 ? (Math.random()-0.5)*6 : 0;
   const sy = bossShakeTimer>0 ? (Math.random()-0.5)*6 : 0;
-
   ctx.save();
   ctx.translate(sx, sy);
 
   // glow aura
-  ctx.shadowColor = rage ? '#ff0000' : '#cc0033';
-  ctx.shadowBlur  = flash ? 50 : (rage ? 35 : 20) + Math.sin(frame*0.1)*8;
+  ctx.shadowColor = sk.glow;
+  ctx.shadowBlur  = flash ? 55 : (rage ? 38 : 22) + Math.sin(frame*0.1)*8;
 
   const bx = boss.x, by = boss.y;
   const bw = boss.w, bh = boss.h;
-  const cx2 = bx + bw/2;
 
   const s = c => flash ? '#ffffff' : c;
 
-  // ── BODY ──
-  // torso
-  ctx.fillStyle = s(rage?'#880000':'#aa0022');
-  ctx.fillRect(bx+8,  by+36, bw-16, 36);
-
-  // arms
-  const aw = boss.walkFrame ? 4 : -4;
-  ctx.fillStyle = s(rage?'#770000':'#990011');
-  ctx.fillRect(bx-10, by+36+aw, 14, 30);
-  ctx.fillRect(bx+bw-4, by+36-aw, 14, 30);
-
-  // legs
+  // ── LEGS ──
   const lL = boss.walkFrame?8:0, lR = boss.walkFrame?0:8;
-  ctx.fillStyle = s('#440000');
-  ctx.fillRect(bx+8,  by+72, 22, 26+lL);
-  ctx.fillRect(bx+bw-30, by+72, 22, 26+lR);
-
+  ctx.fillStyle = s(sk.body);
+  ctx.fillRect(bx+8,     by+72, 22, 28+lL);
+  ctx.fillRect(bx+bw-30, by+72, 22, 28+lR);
   // shoes
-  ctx.fillStyle = s('#220000');
-  ctx.fillRect(bx+6,  by+98+lL, 24, 8);
-  ctx.fillRect(bx+bw-32, by+98+lR, 24, 8);
+  ctx.fillStyle = s('#111');
+  ctx.fillRect(bx+5,     by+100+lL, 26, 8);
+  ctx.fillRect(bx+bw-33, by+100+lR, 26, 8);
 
-  // ── HEAD (bigger, scary) ──
-  ctx.fillStyle = s(rage?'#cc0000':'#dd1133');
-  ctx.fillRect(bx+6, by, bw-12, 38);
+  // ── TORSO ──
+  ctx.fillStyle = s(sk.body);
+  ctx.fillRect(bx+6, by+36, bw-12, 38);
+  // belly stripe (for variety)
+  ctx.fillStyle = s(sk.head);
+  ctx.fillRect(bx+18, by+42, bw-36, 20);
 
-  // horns
-  ctx.fillStyle = s('#660000');
-  ctx.fillRect(bx+8,  by-14, 10, 16);
-  ctx.fillRect(bx+bw-18, by-14, 10, 16);
-  ctx.fillRect(bx+6,  by-8,  8,  10);
-  ctx.fillRect(bx+bw-14, by-8, 8,  10);
+  // ── ARMS ──
+  const aw = boss.walkFrame ? 5 : -5;
+  ctx.fillStyle = s(sk.body);
+  ctx.fillRect(bx-12, by+38+aw, 14, 32);
+  ctx.fillRect(bx+bw-2, by+38-aw, 14, 32);
+  // fists
+  ctx.fillStyle = s(sk.head);
+  ctx.fillRect(bx-14, by+68+aw, 16, 14);
+  ctx.fillRect(bx+bw-4, by+68-aw, 16, 14);
 
-  // eyes — glowing red
-  const eyeGlow = Math.sin(frame*0.15)*0.5+0.5;
-  ctx.shadowColor = '#ff0000';
-  ctx.shadowBlur  = 15 + eyeGlow*15;
-  ctx.fillStyle   = s(rage?'#ffff00':'#ff4400');
-  ctx.fillRect(bx+12, by+8,  16, 14);
-  ctx.fillRect(bx+bw-28, by+8, 16, 14);
-  ctx.fillStyle = s('#000');
-  ctx.fillRect(bx+16, by+11, 8, 8);
-  ctx.fillRect(bx+bw-24, by+11, 8, 8);
+  // ── HEAD ──
+  ctx.fillStyle = s(sk.head);
+  ctx.fillRect(bx+4, by, bw-8, 40);
+
+  // ── HORNS (shape varies by skin index) ──
+  ctx.fillStyle = s(sk.horn);
+  ctx.shadowColor = sk.horn; ctx.shadowBlur = 12;
+  const si = BOSS_SKINS.indexOf(sk);
+  if(si % 3 === 0){
+    // classic pointed horns
+    ctx.beginPath();
+    ctx.moveTo(bx+10,by); ctx.lineTo(bx+6,by-22); ctx.lineTo(bx+20,by-4); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx+bw-10,by); ctx.lineTo(bx+bw-6,by-22); ctx.lineTo(bx+bw-20,by-4); ctx.fill();
+  } else if(si % 3 === 1){
+    // wide crown horns
+    for(let i=0;i<3;i++){
+      ctx.fillRect(bx+8+i*20, by-16-i%2*8, 8, 18+i%2*8);
+    }
+  } else {
+    // spiral/spike horns
+    ctx.fillRect(bx+6,  by-18, 12, 20);
+    ctx.fillRect(bx+bw-18, by-18, 12, 20);
+    ctx.fillRect(bx+10, by-24, 6,  8);
+    ctx.fillRect(bx+bw-16, by-24, 6, 8);
+  }
+  ctx.shadowBlur = 0;
+
+  // ── EYES ──
+  const eyePulse = Math.sin(frame*0.18)*0.5+0.5;
+  ctx.shadowColor = sk.eye; ctx.shadowBlur = 14+eyePulse*14;
+  ctx.fillStyle   = s(sk.eye);
+  ctx.fillRect(bx+10, by+7, 16, 14);
+  ctx.fillRect(bx+bw-26, by+7, 16, 14);
   // pupils
-  ctx.fillStyle = s(rage?'#ff0000':'#ff6600');
-  ctx.fillRect(bx+18, by+13, 4, 4);
-  ctx.fillRect(bx+bw-22, by+13, 4, 4);
-
-  // teeth
-  ctx.shadowBlur = 0;
-  ctx.fillStyle  = s('#ffffff');
-  for(let i=0;i<5;i++){
-    ctx.fillRect(bx+10+i*10, by+28, 6, 10);
+  ctx.fillStyle = s('#000');
+  ctx.fillRect(bx+14, by+10, 8, 8);
+  ctx.fillRect(bx+bw-22, by+10, 8, 8);
+  // angry eyebrows when enraged
+  if(rage){
+    ctx.fillStyle=s(sk.horn); ctx.shadowBlur=0;
+    ctx.fillRect(bx+9, by+5, 18, 4);
+    ctx.fillRect(bx+bw-27, by+5, 18, 4);
   }
-  ctx.fillStyle = s('#cccccc');
-  for(let i=0;i<4;i++){
-    ctx.fillRect(bx+15+i*10, by+36, 5, 7);
-  }
+  ctx.shadowBlur=0;
 
-  // scars
+  // ── MOUTH / TEETH ──
+  ctx.fillStyle = s('#111');
+  ctx.fillRect(bx+10, by+26, bw-20, 12);
+  ctx.fillStyle = s(sk.teeth);
+  for(let i=0;i<5;i++) ctx.fillRect(bx+11+i*10, by+26, 7, 10);
+  // bottom teeth
+  ctx.fillStyle = s(sk.teeth);
+  for(let i=0;i<4;i++) ctx.fillRect(bx+16+i*10, by+33, 6, 5);
+
+  // ── SCAR (always visible) ──
   if(!flash){
-    ctx.strokeStyle='#660000'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(bx+22,by+12); ctx.lineTo(bx+28,by+22); ctx.stroke();
+    ctx.strokeStyle = sk.horn; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bx+20,by+8); ctx.lineTo(bx+28,by+20); ctx.stroke();
   }
 
-  // ── HP BAR (روی boss) ──
-  ctx.shadowBlur = 0;
-  const barW = bw+20, barX = bx-10, barY = by-28;
-  ctx.fillStyle = '#222'; ctx.fillRect(barX, barY, barW, 10);
-  const pct = boss.hp/boss.maxHp;
-  const barCol = pct>0.5?'#ff4400': pct>0.25?'#ff8800':'#ff0000';
-  ctx.fillStyle = barCol;
-  ctx.shadowColor = barCol; ctx.shadowBlur = 8;
-  ctx.fillRect(barX, barY, barW*pct, 10);
+  // ── SKIN NAME TAG ──
+  ctx.shadowBlur=0;
+  ctx.fillStyle = sk.glow; ctx.font='bold 9px Arial Black';
+  ctx.textAlign='center';
+  ctx.fillText(sk.icon+' '+sk.name.toUpperCase(), bx+bw/2, by-32);
+
+  // ── HP BAR ──
+  const barW=bw+24, barX=bx-12, barY=by-22;
+  ctx.fillStyle='#111'; ctx.fillRect(barX,barY,barW,9);
+  const pct=boss.hp/boss.maxHp;
+  const barCol=pct>0.5?sk.glow:pct>0.25?'#ff8800':'#ff2200';
+  ctx.fillStyle=barCol; ctx.shadowColor=barCol; ctx.shadowBlur=8;
+  ctx.fillRect(barX,barY,barW*pct,9);
   ctx.shadowBlur=0;
   ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
-  ctx.fillText(boss.hp+'/'+boss.maxHp, bx+bw/2, barY-3);
+  ctx.fillText(boss.hp+'/'+boss.maxHp, bx+bw/2, barY-2);
 
   ctx.restore();
   ctx.shadowBlur=0;
@@ -888,10 +1010,11 @@ function drawBossHUD(){
 
   // label
   ctx.textAlign='center';
-  ctx.fillStyle = rage?'#ff4400':'#ff2244';
+  const sk2 = boss.skin;
+  ctx.fillStyle = rage ? '#ff4400' : sk2.glow;
   ctx.font='bold 11px Arial Black';
   ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=8;
-  ctx.fillText((rage?'😡 ':'💀 ')+'BOSS  LVL '+level+(rage?' — ENRAGED!':''), W/2, 60);
+  ctx.fillText((rage?'😡 ':sk2.icon+' ')+sk2.name.toUpperCase()+'  —  LVL '+level+(rage?' 🔥 ENRAGED!':''), W/2, 60);
   ctx.shadowBlur=0;
 
   // bar track
