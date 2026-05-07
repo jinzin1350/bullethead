@@ -42,70 +42,80 @@
       max-height:100%;
     }
     /* ── TOUCH CONTROLS ── */
-    /* کنترل‌ها روی canvas float می‌کنن — canvas تمام صفحه می‌شه */
     #controls {
-      position:fixed;
-      bottom:0; left:0; right:0;
-      height:140px;
-      pointer-events:none;
-      z-index:10;
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
     }
-    /* گروه چپ — حرکت */
-    #ctrl-left-group {
-      position:absolute;
-      bottom:18px; left:16px;
-      display:flex; gap:10px;
-      pointer-events:auto;
+
+    /* ── JOYSTICK (left side) ── */
+    #joystick-zone {
+      position: absolute;
+      left: 0; top: 0;
+      width: 50%; height: 100%;
+      pointer-events: auto;
     }
-    /* گروه راست — jump + shoot (کلاستر مثل Dead Cells) */
-    #ctrl-right-group {
-      position:absolute;
-      bottom:18px; right:16px;
-      display:flex; gap:10px;
-      pointer-events:auto;
-      flex-direction:row;
-      align-items:flex-end;
+    #joystick-base {
+      position: absolute;
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      background: rgba(0,180,216,0.12);
+      border: 2.5px solid rgba(0,180,216,0.35);
+      display: none;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
     }
-    .ctrl-btn {
-      width:72px; height:72px;
-      border-radius:50%;
-      border:3px solid rgba(255,255,255,0.22);
-      background:rgba(0,0,0,0.45);
-      color:#fff;
-      font-size:28px;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      -webkit-user-select:none;
-      transition:background 0.07s, transform 0.07s;
-      backdrop-filter:blur(6px);
-      -webkit-backdrop-filter:blur(6px);
+    #joystick-knob {
+      position: absolute;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(0,180,216,0.7);
+      border: 2px solid #00b4d8;
+      box-shadow: 0 0 14px #00b4d8aa;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: box-shadow 0.1s;
     }
-    .ctrl-btn:active, .ctrl-btn.pressed {
-      transform:scale(0.88);
-    }
-    /* دکمه چپ */
-    #btn-left  { border-color:rgba(0,180,216,0.5); }
-    #btn-left.pressed  { background:rgba(0,180,216,0.4); border-color:#00b4d8; }
-    /* دکمه راست */
-    #btn-right { border-color:rgba(0,180,216,0.5); }
-    #btn-right.pressed { background:rgba(0,180,216,0.4); border-color:#00b4d8; }
-    /* دکمه jump — کمی بزرگتر، سبز */
+
+    /* ── JUMP BUTTON (right side) ── */
     #btn-jump {
-      width:76px; height:76px;
-      font-size:30px;
-      border-color:rgba(0,255,136,0.5);
-      margin-bottom:8px; /* بالاتر از shoot */
+      position: absolute;
+      right: 28px;
+      bottom: 36px;
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: rgba(0,255,136,0.18);
+      border: 3px solid rgba(0,255,136,0.6);
+      color: #00ff88;
+      font-size: 38px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.08s, transform 0.08s;
+      box-shadow: 0 0 18px rgba(0,255,136,0.25);
     }
-    #btn-jump.pressed { background:rgba(0,255,136,0.4); border-color:#00ff88; }
-    /* دکمه shoot — بزرگترین، قرمز */
-    #btn-shoot {
-      width:86px; height:86px;
-      font-size:34px;
-      border-color:rgba(255,70,70,0.6);
-      background:rgba(100,0,0,0.45);
+    #btn-jump.pressed {
+      background: rgba(0,255,136,0.45);
+      transform: scale(0.88);
+      box-shadow: 0 0 28px rgba(0,255,136,0.6);
     }
-    #btn-shoot.pressed { background:rgba(255,50,50,0.5); border-color:#ff3333; }
+
+    /* ── AUTO-SHOOT INDICATOR ── */
+    #autoshoot-badge {
+      position: absolute;
+      right: 28px;
+      bottom: 148px;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,136,0.7);
+      font-family: 'Arial Black', Arial, sans-serif;
+      letter-spacing: 1px;
+      pointer-events: none;
+      text-align: center;
+      width: 96px;
+    }
 
     /* ── PORTRAIT WARNING ── */
     #portrait-warn {
@@ -173,18 +183,17 @@
   <canvas id="gameCanvas"></canvas>
 </div>
 
-<!-- کنترل‌های لمسی — float روی صفحه، خارج از wrapper -->
+<!-- کنترل‌های لمسی -->
 <div id="controls" style="display:none">
-  <!-- چپ: حرکت -->
-  <div id="ctrl-left-group">
-    <div class="ctrl-btn" id="btn-left">◀</div>
-    <div class="ctrl-btn" id="btn-right">▶</div>
+  <!-- چپ: Joystick zone -->
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
   </div>
-  <!-- راست: jump بالا، shoot پایین (مثل Dead Cells) -->
-  <div id="ctrl-right-group">
-    <div class="ctrl-btn" id="btn-jump">▲</div>
-    <div class="ctrl-btn" id="btn-shoot">🔫</div>
-  </div>
+  <!-- راست: فقط jump -->
+  <div id="btn-jump">▲</div>
+  <div id="autoshoot-badge">🔫 AUTO</div>
 </div>
 
 <div id="bottomBar"></div>
@@ -1104,40 +1113,103 @@ canvas.addEventListener('touchend', e => {
   handleCanvasInteract(x, y);
 }, {passive: false});
 
-// ── On-screen button touch controls ──
+// ══════════════════════════════════════════════
+//  JOYSTICK + AUTO-SHOOT CONTROLS
+// ══════════════════════════════════════════════
+const joystickZone = document.getElementById('joystick-zone');
+const joystickBase = document.getElementById('joystick-base');
+const joystickKnob = document.getElementById('joystick-knob');
+const btnJump      = document.getElementById('btn-jump');
+
+const JOYSTICK_RADIUS = 55; // max knob travel (px on screen)
+const DEAD_ZONE       = 10; // min px to register movement
+
+let joyActive   = false;
+let joyOriginX  = 0;
+let joyOriginY  = 0;
+let joyTouchId  = null;
+
+function joystickStart(cx, cy) {
+  joyActive  = true;
+  joyOriginX = cx;
+  joyOriginY = cy;
+  joystickBase.style.display = 'block';
+  joystickBase.style.left = cx + 'px';
+  joystickBase.style.top  = cy + 'px';
+  joystickKnob.style.left = cx + 'px';
+  joystickKnob.style.top  = cy + 'px';
+}
+
+function joystickMove(cx, cy) {
+  if (!joyActive) return;
+  const dx = cx - joyOriginX;
+  const dy = cy - joyOriginY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const clamped = Math.min(dist, JOYSTICK_RADIUS);
+  const angle   = Math.atan2(dy, dx);
+  const knobX   = joyOriginX + Math.cos(angle) * clamped;
+  const knobY   = joyOriginY + Math.sin(angle) * clamped;
+
+  joystickKnob.style.left = knobX + 'px';
+  joystickKnob.style.top  = knobY + 'px';
+
+  // map to keys
+  if (dx > DEAD_ZONE)        { keys['KeyD'] = true;  keys['KeyA'] = false; }
+  else if (dx < -DEAD_ZONE)  { keys['KeyA'] = true;  keys['KeyD'] = false; }
+  else                       { keys['KeyA'] = false;  keys['KeyD'] = false; }
+}
+
+function joystickEnd() {
+  joyActive = false;
+  joyTouchId = null;
+  keys['KeyA'] = false;
+  keys['KeyD'] = false;
+  joystickBase.style.display = 'none';
+}
+
+// ── Joystick touch events ──
+joystickZone.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joyTouchId = t.identifier;
+  joystickStart(t.clientX, t.clientY);
+}, {passive: false});
+
+joystickZone.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) joystickMove(t.clientX, t.clientY);
+  }
+}, {passive: false});
+
+joystickZone.addEventListener('touchend',    e => { e.preventDefault(); joystickEnd(); }, {passive:false});
+joystickZone.addEventListener('touchcancel', e => { e.preventDefault(); joystickEnd(); }, {passive:false});
+
+// ── Jump button ──
+btnJump.addEventListener('touchstart', e => {
+  e.preventDefault();
+  btnJump.classList.add('pressed');
+  if (P && P.onGround && !P.dead) { P.vy = -12.5; P.onGround = false; }
+}, {passive: false});
+btnJump.addEventListener('touchend',    e => { e.preventDefault(); btnJump.classList.remove('pressed'); }, {passive:false});
+btnJump.addEventListener('touchcancel', e => { btnJump.classList.remove('pressed'); }, {passive:false});
+
+// ── AUTO-SHOOT: fires every N frames in facing direction ──
+const AUTO_SHOOT_CD = 18; // frames between shots (same as pistol cd)
+let   autoShootTimer = 0;
+
+function updateAutoShoot() {
+  if (state !== 'playing' || !('ontouchstart' in window)) return;
+  if (!P || P.dead) return;
+  autoShootTimer++;
+  if (autoShootTimer >= AUTO_SHOOT_CD) {
+    autoShootTimer = 0;
+    shootPlayer(); // fires in P.facing direction (existing logic)
+  }
+}
+
 function setupTouchControls() {
-  const map = {
-    'btn-left':  () => { keys['KeyA'] = true; },
-    'btn-right': () => { keys['KeyD'] = true; },
-    'btn-jump':  () => { keys['KeyW'] = true; },
-    'btn-shoot': () => { keys['KeyJ'] = true; shootPlayer(); },
-  };
-  const unmap = {
-    'btn-left':  () => { keys['KeyA'] = false; },
-    'btn-right': () => { keys['KeyD'] = false; },
-    'btn-jump':  () => { keys['KeyW'] = false; },
-    'btn-shoot': () => { keys['KeyJ'] = false; },
-  };
-  Object.keys(map).forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('touchstart', e => {
-      e.preventDefault();
-      el.classList.add('pressed');
-      map[id]();
-      // Jump fires once on tap
-      if (id === 'btn-jump' && P && P.onGround) { P.vy = -12.5; P.onGround = false; }
-    }, {passive: false});
-    el.addEventListener('touchend', e => {
-      e.preventDefault();
-      el.classList.remove('pressed');
-      unmap[id]();
-    }, {passive: false});
-    el.addEventListener('touchcancel', e => {
-      el.classList.remove('pressed');
-      unmap[id]();
-    }, {passive: false});
-  });
+  // legacy keyboard jump (desktop)
 }
 setupTouchControls();
 
@@ -2366,7 +2438,7 @@ function loop(){
   } else {
     updatePlayer();updateEnemies();updateBullets();
     updatePowerups();updateParticles();updateSpawner();
-    updateBoss();
+    updateBoss();updateAutoShoot();
     updateRewardTimer();updatePlatTransition();
     if(bossDefeatedTimer>0) bossDefeatedTimer--;
     if(bossFlashTimer>0)    bossFlashTimer--;
