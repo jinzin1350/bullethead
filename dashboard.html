@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PlayZone — Game Creator Dashboard</title>
+  <title>PlayZone — Game Creator</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -21,624 +21,807 @@
       --muted:   #666688;
     }
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { font-size:16px; }
     body {
       background: var(--bg);
       color: var(--text);
       font-family: Arial, sans-serif;
       min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
     }
 
-    /* ══ LOGIN ══ */
+    /* ════════════════════════════
+       LOGIN
+    ════════════════════════════ */
     #login-screen {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
     }
     .login-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 20px;
       padding: 36px 28px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 0 40px #00b4d822;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 0 60px #00b4d822;
+    }
+    .login-logo {
+      text-align: center; margin-bottom: 6px;
+      font-size: 32px;
     }
     .login-card h1 {
-      font-size: 26px; font-weight: 900;
+      font-size: 24px; font-weight: 900;
       font-family: 'Arial Black', Arial, sans-serif;
       text-align: center; margin-bottom: 4px;
       background: linear-gradient(90deg, var(--accent), var(--green));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .login-card .subtitle { text-align:center; color:var(--muted); font-size:13px; margin-bottom:28px; }
+    .login-subtitle { text-align:center; color:var(--muted); font-size:13px; margin-bottom:28px; }
     .field { margin-bottom: 16px; }
-    .field label { display:block; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--muted); margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
     .field input {
-      width:100%; padding:13px 14px;
-      background:var(--card); border:1px solid var(--border);
-      border-radius:8px; color:var(--text); font-size:16px; outline:none;
-      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
+      width: 100%; padding: 14px 16px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; /* 16px prevents iOS zoom */
+      outline: none; transition: border-color .2s;
+      font-family: inherit; -webkit-appearance: none;
     }
-    .field input:focus { border-color:var(--accent); }
-    .btn-primary {
-      width:100%; padding:14px;
-      background:var(--accent); color:#000;
-      font-size:15px; font-weight:900;
-      font-family:'Arial Black',Arial,sans-serif;
-      border:none; border-radius:8px; cursor:pointer;
-      transition:opacity .15s,transform .1s; letter-spacing:1px;
+    .field input:focus { border-color: var(--accent); }
+    .btn-login {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      color: #000; font-size: 16px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      margin-bottom: 10px;
     }
-    .btn-primary:hover  { opacity:.85; }
-    .btn-primary:active { transform:scale(.97); }
-    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-    .error-msg { color:var(--red); font-size:13px; margin-top:10px; text-align:center; min-height:20px; }
+    .btn-login:hover  { opacity: .88; }
+    .btn-login:active { transform: scale(.97); }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-signup {
+      width: 100%; padding: 14px;
+      background: transparent; color: var(--green);
+      font-size: 15px; font-weight: 700;
+      border: 1.5px solid var(--green); border-radius: 10px;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-signup:hover { background: #00ff8811; }
+    .error-msg { color: var(--red); font-size: 13px; margin-top: 12px; text-align: center; min-height: 20px; line-height: 1.4; }
 
-    /* ══ HEADER ══ */
-    #dashboard-screen { display:none; }
-    header {
-      background:var(--surface); border-bottom:1px solid var(--border);
-      padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:10px;
-      position:sticky; top:0; z-index:50;
-    }
-    .header-left { display:flex; align-items:center; gap:12px; }
-    .logo { font-size:17px; font-weight:900; font-family:'Arial Black',Arial,sans-serif; color:var(--accent); white-space:nowrap; }
-    .breadcrumb { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
-    .breadcrumb .sep { color:var(--border); }
-    .breadcrumb .current { color:var(--text); font-weight:700; }
-    .btn-back {
-      display:none; align-items:center; gap:6px;
-      padding:6px 14px; background:transparent;
-      border:1px solid var(--border); border-radius:6px;
-      color:var(--muted); font-size:12px; cursor:pointer;
-      transition:border-color .15s,color .15s;
-    }
-    .btn-back:hover { border-color:var(--accent); color:var(--accent); }
-    .btn-back.show { display:flex; }
-    .user-info { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); min-width:0; }
-    .user-email { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px; }
-    .btn-logout {
-      padding:6px 14px; background:transparent;
-      border:1px solid var(--border); border-radius:6px;
-      color:var(--muted); font-size:12px; cursor:pointer;
-      transition:border-color .15s,color .15s; white-space:nowrap; flex-shrink:0;
-    }
-    .btn-logout:hover { border-color:var(--red); color:var(--red); }
+    /* ════════════════════════════
+       DASHBOARD WRAPPER
+    ════════════════════════════ */
+    #dashboard-screen { display: none; min-height: 100vh; }
 
-    /* ══ SCREENS ══ */
-    .screen { display:none; }
-    .screen.active { display:block; }
-
-    /* ══════════════════════════════
-       SCREEN 1 — GAME PICKER
-    ══════════════════════════════ */
-    #screen-pick {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 32px 20px;
+    /* ── sticky header ── */
+    .top-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,20,.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
-    .pick-header { margin-bottom: 28px; }
-    .pick-header h2 {
-      font-family:'Arial Black',Arial,sans-serif;
-      font-size:22px; font-weight:900; margin-bottom:6px;
+    .top-bar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .top-logo {
+      font-size: 16px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      color: var(--accent); white-space: nowrap; flex-shrink: 0;
     }
-    .pick-header p { color:var(--muted); font-size:14px; }
-
-    /* game type cards */
-    .game-type-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 18px;
-      margin-bottom: 40px;
-    }
-    .game-type-card {
-      background: var(--card);
-      border: 2px solid var(--border);
-      border-radius: 16px;
+    .top-step {
+      display: none; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--muted);
       overflow: hidden;
-      cursor: pointer;
-      transition: transform .18s, border-color .18s, box-shadow .18s;
     }
-    .game-type-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--accent);
-      box-shadow: 0 0 30px #00b4d822;
+    .top-step.show { display: flex; }
+    .top-step .sep { color: var(--border); flex-shrink: 0; }
+    .top-step .label { color: var(--text); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-back-top {
+      display: none; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: 20px;
+      border: 1.5px solid var(--border); background: transparent;
+      color: var(--muted); font-size: 13px; cursor: pointer;
+      transition: border-color .15s, color .15s; white-space: nowrap; flex-shrink: 0;
     }
-    .game-type-card.coming-soon {
-      opacity: .55;
-      cursor: default;
+    .btn-back-top:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-back-top.show { display: flex; }
+    .top-bar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #fff;
+      flex-shrink: 0;
     }
-    .game-type-card.coming-soon:hover {
-      transform: none;
-      border-color: var(--border);
-      box-shadow: none;
+    .btn-logout-sm {
+      padding: 6px 12px; background: transparent;
+      border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); font-size: 12px; cursor: pointer;
+      transition: border-color .15s, color .15s; white-space: nowrap;
     }
-    .gtc-banner {
-      height: 130px;
-      display: flex; align-items:center; justify-content:center;
-      font-size: 64px;
-      position: relative;
-    }
-    .gtc-banner .badge {
-      position: absolute; top: 10px; right: 10px;
-      padding: 3px 10px; border-radius: 20px;
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .badge-available { background:#00ff8820; border:1px solid var(--green); color:var(--green); }
-    .badge-soon      { background:#cc44ff18; border:1px solid var(--purple); color:var(--purple); }
-    .gtc-body { padding: 16px 18px 20px; }
-    .gtc-title { font-family:'Arial Black',Arial,sans-serif; font-size:16px; font-weight:900; margin-bottom:4px; }
-    .gtc-desc  { font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
-    .gtc-tags  { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
-    .gtc-tag   { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
-    .btn-pick {
-      width:100%; padding:11px; border:none; border-radius:8px;
-      font-size:13px; font-weight:900; font-family:'Arial Black',Arial,sans-serif;
-      cursor:pointer; transition:opacity .15s;
-      background:linear-gradient(135deg, var(--accent), var(--green)); color:#000;
-    }
-    .btn-pick:hover { opacity:.88; }
-    .btn-pick-soon {
-      width:100%; padding:11px; border:1px dashed var(--border); border-radius:8px;
-      font-size:13px; font-weight:700; color:var(--muted);
-      background:transparent; cursor:default;
-    }
+    .btn-logout-sm:hover { border-color: var(--red); color: var(--red); }
 
-    /* my existing games */
-    .my-games-section { margin-top: 10px; }
-    .my-games-section h3 {
-      font-size:13px; font-weight:700; color:var(--muted);
-      text-transform:uppercase; letter-spacing:1px;
-      margin-bottom:12px;
-    }
-    .my-game-chips {
-      display: flex; flex-wrap: wrap; gap: 10px;
-    }
-    .my-game-chip {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 16px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; cursor: pointer;
-      transition: border-color .15s, background .15s;
-    }
-    .my-game-chip:hover { border-color:var(--accent); background:var(--card); }
-    .mgc-icon  { font-size:20px; }
-    .mgc-name  { font-size:13px; font-weight:700; }
-    .mgc-plays { font-size:11px; color:var(--yellow); }
-    .mgc-type  { font-size:10px; color:var(--muted); }
+    /* ════════════════════════════
+       SCREENS
+    ════════════════════════════ */
+    .screen { display: none; }
+    .screen.active { display: block; }
 
-    /* ══════════════════════════════
-       SCREEN 2 — EDITOR
-    ══════════════════════════════ */
-    #screen-edit {
-      max-width: 1100px;
+    /* ════════════════════════════
+       SCREEN 1 — HOME
+       Shows: how it works + pick game
+    ════════════════════════════ */
+    #screen-home {
+      max-width: 700px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 28px 16px 60px;
     }
-    .main-layout {
+
+    /* welcome banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, #0d1a30, #0a1a12);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .welcome-banner h2 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 20px; font-weight: 900;
+      margin-bottom: 8px;
+    }
+    .welcome-banner p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+    /* how it works */
+    .how-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    .steps-row {
       display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 28px;
     }
-    @media (max-width: 768px) {
-      .main-layout { grid-template-columns:1fr; padding:0; gap:14px; }
-      .preview-panel { order:-1; }
-      #screen-edit { padding:12px; }
+    .step-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      background: var(--purple);
+      border-radius: 50%;
+      font-size: 12px; font-weight: 900; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px;
+    }
+    .step-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+    .step-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #fff; }
+    .step-box p  { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+    /* game pick section */
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    .game-pick-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+
+    .game-pick-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: border-color .18s, background .18s, transform .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-pick-card:hover  { border-color: var(--accent); background: var(--card); }
+    .game-pick-card:active { transform: scale(.98); }
+    .game-pick-card.locked { opacity: .5; cursor: default; }
+    .game-pick-card.locked:hover { border-color: var(--border); background: var(--surface); transform: none; }
+    .gpc-emoji { font-size: 36px; flex-shrink: 0; }
+    .gpc-info { flex: 1; min-width: 0; }
+    .gpc-name { font-family: 'Arial Black', Arial, sans-serif; font-size: 16px; font-weight: 900; margin-bottom: 3px; }
+    .gpc-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .gpc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .gpc-tag  { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+    .gpc-arrow { font-size: 20px; color: var(--accent); flex-shrink: 0; }
+    .gpc-soon  { font-size: 11px; font-weight: 700; color: var(--purple); flex-shrink: 0; }
+
+    /* my games */
+    .my-games-list { display: flex; flex-direction: column; gap: 8px; }
+    .my-game-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .my-game-row:hover { border-color: var(--accent); background: var(--card); }
+    .mgr-icon { font-size: 22px; flex-shrink: 0; }
+    .mgr-info { flex: 1; min-width: 0; }
+    .mgr-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mgr-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .mgr-plays { font-size: 13px; color: var(--yellow); font-weight: 700; flex-shrink: 0; }
+    .mgr-arrow { font-size: 16px; color: var(--muted); flex-shrink: 0; }
+    .empty-state { text-align: center; color: var(--muted); font-size: 13px; padding: 20px; line-height: 1.6; }
+
+    /* ════════════════════════════
+       SCREEN 2 — EDITOR
+    ════════════════════════════ */
+    #screen-edit { padding: 0 0 80px; }
+
+    /* progress bar */
+    .progress-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+    .progress-label {
+      font-size: 12px; color: var(--muted); margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .progress-label span { font-weight: 700; color: var(--green); }
+    .progress-track {
+      height: 6px; background: var(--card); border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width .3s ease;
     }
 
-    .editor-panel {
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:14px; overflow:hidden;
+    /* step tabs — big, mobile-friendly */
+    .step-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 56px;
+      z-index: 40;
     }
-    .panel-header {
-      padding:14px 20px; border-bottom:1px solid var(--border);
-      font-size:13px; font-weight:700; color:var(--accent);
-      display:flex; align-items:center; gap:8px;
+    .step-tab {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 4px;
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      gap: 3px; text-align: center;
+      -webkit-tap-highlight-color: transparent;
     }
-    .panel-header .game-icon { font-size:20px; }
+    .step-tab .tab-icon { font-size: 18px; }
+    .step-tab:hover  { color: var(--text); }
+    .step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .step-tab.done   { color: var(--green); }
+    .step-tab.done .tab-icon::after { content: ' ✓'; font-size: 10px; }
 
-    /* tabs */
-    .tabs { display:flex; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
-    .tabs::-webkit-scrollbar { display:none; }
-    .tab {
-      flex:1; min-width:70px; padding:11px 8px;
-      text-align:center; font-size:12px; font-weight:700;
-      color:var(--muted); cursor:pointer;
-      border-bottom:2px solid transparent;
-      transition:color .15s,border-color .15s; white-space:nowrap;
+    /* editor body */
+    .editor-body {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 20px 16px;
     }
-    .tab:hover { color:var(--text); }
-    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-    .tab-content { display:none; padding:18px; }
-    .tab-content.active { display:block; }
 
-    /* form */
-    .form-group { margin-bottom:18px; }
+    /* step panels */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .step-heading {
+      margin-bottom: 20px;
+    }
+    .step-heading h3 {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 18px; font-weight: 900; margin-bottom: 4px;
+    }
+    .step-heading p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* form fields */
+    .form-group { margin-bottom: 18px; }
     .form-group label {
-      display:block; font-size:11px; font-weight:700;
-      color:var(--muted); margin-bottom:7px;
-      text-transform:uppercase; letter-spacing:1px;
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--muted); margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 1px;
     }
     .form-group input[type="text"],
     .form-group textarea {
-      width:100%; padding:10px 13px;
-      background:var(--card); border:1px solid var(--border);
-      border-radius:8px; color:var(--text); font-size:15px; outline:none;
-      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
+      width: 100%; padding: 13px 14px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; /* prevents iOS zoom */
+      outline: none; transition: border-color .2s;
+      font-family: inherit; -webkit-appearance: none;
     }
-    .form-group input[type="text"]:focus,
-    .form-group textarea:focus { border-color:var(--accent); }
-    .form-group textarea { resize:vertical; min-height:60px; }
-    .color-row { display:flex; align-items:center; gap:12px; }
+    .form-group input:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .field-hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .color-row { display: flex; align-items: center; gap: 10px; }
     .color-row input[type="color"] {
-      width:44px; height:44px; padding:2px;
-      border-radius:8px; border:1px solid var(--border);
-      background:var(--card); cursor:pointer; flex-shrink:0;
+      width: 48px; height: 48px; padding: 3px;
+      border-radius: 10px; border: 1.5px solid var(--border);
+      background: var(--card); cursor: pointer; flex-shrink: 0;
     }
-    .color-row input[type="text"] { flex:1; }
-    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media (max-width:480px) { .grid-2 { grid-template-columns:1fr; } }
-    .section-title {
-      font-size:11px; font-weight:700; color:var(--yellow);
-      text-transform:uppercase; letter-spacing:1px;
-      margin-bottom:12px; margin-top:4px;
+    .color-row input[type="text"] { flex: 1; }
+
+    .sub-label {
+      font-size: 11px; font-weight: 700; color: var(--yellow);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 16px 0 10px;
     }
-    .divider { border:none; border-top:1px solid var(--border); margin:18px 0; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
     /* theme grid */
-    .theme-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+    .theme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    @media (max-width: 360px) { .theme-grid { grid-template-columns: repeat(4, 1fr); } }
     .theme-swatch {
-      height:38px; border-radius:8px; cursor:pointer;
-      border:2px solid transparent;
-      transition:border-color .15s,transform .1s;
-      display:flex; align-items:center; justify-content:center; font-size:16px;
+      aspect-ratio: 1; border-radius: 10px; cursor: pointer;
+      border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      transition: border-color .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
     }
-    .theme-swatch:hover  { transform:scale(1.08); }
-    .theme-swatch.active { border-color:#fff; }
+    .theme-swatch:hover  { transform: scale(1.08); }
+    .theme-swatch.active { border-color: #fff; }
 
     /* players */
-    .player-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .player-row {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+    }
     .player-row input {
-      flex:1; padding:10px 12px;
-      background:var(--card); border:1px solid var(--border);
-      border-radius:8px; color:var(--text); font-size:15px; outline:none;
-      transition:border-color .2s; font-family:inherit; -webkit-appearance:none;
+      flex: 1; padding: 13px 14px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; outline: none;
+      transition: border-color .2s; font-family: inherit; -webkit-appearance: none;
     }
-    .player-row input:focus { border-color:var(--accent); }
+    .player-row input:focus { border-color: var(--accent); }
     .btn-remove {
-      width:36px; height:36px; flex-shrink:0;
-      background:transparent; border:1px solid #ff444466;
-      border-radius:8px; color:#ff4444; font-size:16px; cursor:pointer;
-      transition:background .15s; display:flex; align-items:center; justify-content:center;
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: transparent; border: 1.5px solid #ff444455;
+      border-radius: 10px; color: var(--red); font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
     }
-    .btn-remove:hover { background:#ff444422; }
+    .btn-remove:hover { background: #ff444422; }
     .btn-add-player {
-      width:100%; padding:10px; background:transparent;
-      border:1px dashed var(--accent); border-radius:8px;
-      color:var(--accent); font-size:13px; font-weight:700;
-      cursor:pointer; transition:background .15s;
+      width: 100%; padding: 13px;
+      background: transparent; border: 1.5px dashed var(--accent);
+      border-radius: 10px; color: var(--accent);
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: background .15s; margin-top: 4px;
     }
-    .btn-add-player:hover { background:#00b4d811; }
+    .btn-add-player:hover { background: #00b4d811; }
 
-    /* preview panel */
-    .preview-panel { display:flex; flex-direction:column; gap:14px; }
-    .preview-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-    .preview-card .panel-header { padding:13px 18px; font-size:13px; }
-    #preview-canvas { display:block; width:100%; height:170px; background:#0a0a18; }
-
-    /* stats */
-    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13px; }
-    .stat-row:last-child { border-bottom:none; }
-    .stat-label { color:var(--muted); }
-    .stat-value { font-weight:700; color:var(--text); }
-    .stat-value.green { color:var(--green); }
-    .stat-value.yellow { color:var(--yellow); }
-
-    /* action card */
-    .action-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
-    .btn-create {
-      width:100%; padding:16px;
-      background:linear-gradient(135deg,var(--green),var(--accent)); color:#000;
-      font-size:15px; font-weight:900; font-family:'Arial Black',Arial,sans-serif;
-      border:none; border-radius:10px; cursor:pointer;
-      transition:opacity .15s,transform .1s; margin-bottom:12px;
+    /* ── bottom nav buttons ── */
+    .step-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(10,10,20,.97);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: none;
+      gap: 10px;
+      z-index: 80;
     }
-    .btn-create:hover  { opacity:.88; }
-    .btn-create:active { transform:scale(.97); }
-    .btn-create:disabled { opacity:.4; cursor:not-allowed; }
+    .step-nav.show { display: flex; }
+    .btn-prev {
+      padding: 14px 20px; border-radius: 10px;
+      background: transparent; border: 1.5px solid var(--border);
+      color: var(--muted); font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+    .btn-prev:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-next {
+      flex: 1; padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      color: #000; font-size: 15px; font-weight: 900;
+      font-family: 'Arial Black', Arial, sans-serif;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-next:hover  { opacity: .88; }
+    .btn-next:active { transform: scale(.97); }
+    .btn-next:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── PREVIEW (step 4) ── */
+    #preview-canvas {
+      display: block; width: 100%; border-radius: 12px;
+      border: 1px solid var(--border); background: #0a0a18;
+      margin-bottom: 16px;
+    }
 
     /* link box */
-    .link-box { display:none; margin-top:14px; padding:14px; background:var(--card); border:1px solid var(--green); border-radius:10px; }
-    .link-label { font-size:11px; color:var(--green); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
-    .link-row { display:flex; gap:8px; align-items:center; }
-    .link-row input { flex:1; min-width:0; padding:9px 11px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--green); font-size:11px; font-family:monospace; outline:none; }
-    .btn-copy { padding:9px 14px; background:var(--green); color:#000; font-size:12px; font-weight:700; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; transition:opacity .15s; flex-shrink:0; }
-    .btn-copy:hover { opacity:.8; }
-
-    /* toast */
-    .toast {
-      position:fixed; bottom:24px; left:50%;
-      transform:translateX(-50%) translateY(80px);
-      background:var(--green); color:#000;
-      padding:12px 24px; border-radius:30px;
-      font-size:14px; font-weight:700;
-      transition:transform .3s; z-index:999;
-      pointer-events:none; white-space:nowrap;
+    .link-box {
+      display: none; margin-top: 16px;
+      padding: 16px; background: var(--card);
+      border: 1.5px solid var(--green); border-radius: 12px;
     }
-    .toast.show { transform:translateX(-50%) translateY(0); }
+    .link-label {
+      font-size: 12px; color: var(--green); font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    }
+    .link-row { display: flex; gap: 8px; align-items: center; }
+    .link-row input {
+      flex: 1; min-width: 0; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--green);
+      font-size: 12px; font-family: monospace; outline: none;
+    }
+    .btn-copy {
+      padding: 10px 16px; background: var(--green); color: #000;
+      font-size: 13px; font-weight: 700; border: none;
+      border-radius: 8px; cursor: pointer; white-space: nowrap;
+      transition: opacity .15s; flex-shrink: 0;
+    }
+    .btn-copy:hover { opacity: .8; }
 
-    /* empty */
-    .empty-state { padding:28px; text-align:center; color:var(--muted); font-size:13px; }
+    /* stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 10px; text-align: center;
+    }
+    .stat-val { font-size: 22px; font-weight: 900; margin-bottom: 2px; }
+    .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── toast ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--green); color: #000;
+      padding: 12px 24px; border-radius: 30px;
+      font-size: 14px; font-weight: 700;
+      transition: transform .3s, opacity .3s;
+      opacity: 0; z-index: 999; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ── responsive tweaks ── */
+    @media (max-width: 480px) {
+      .steps-row { grid-template-columns: repeat(3,1fr); gap: 6px; }
+      .step-box { padding: 12px 8px; }
+      .step-icon { font-size: 22px; }
+      .step-box h4 { font-size: 11px; }
+      .step-box p  { display: none; }
+      .welcome-banner h2 { font-size: 17px; }
+      .gpc-name { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ══ LOGIN ══ -->
+<!-- ════════════════ LOGIN ════════════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <h1>🎮 PlayZone</h1>
-    <div class="subtitle">Game Creator Dashboard</div>
+    <div class="login-logo">🎮</div>
+    <h1>PlayZone Creator</h1>
+    <div class="login-subtitle">Make your own game. Share with friends.</div>
     <div class="field">
       <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" inputmode="email"/>
     </div>
     <div class="field">
       <label>Password</label>
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
     </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">Login</button>
-    <button class="btn-primary" id="signup-btn" onclick="doSignup()"
-      style="margin-top:10px;background:#1a3a1a;color:var(--green);border:1px solid var(--green);">
-      Create Account
-    </button>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">🔑 Login</button>
+    <button class="btn-signup" onclick="doSignup()">✨ Create Free Account</button>
     <div class="error-msg" id="login-error"></div>
   </div>
 </div>
 
-<!-- ══ DASHBOARD ══ -->
+<!-- ════════════════ DASHBOARD ════════════════ -->
 <div id="dashboard-screen">
 
-  <header>
-    <div class="header-left">
-      <div class="logo">🎮 PlayZone</div>
-      <button class="btn-back" id="btn-back" onclick="goBack()">← Back</button>
-      <div class="breadcrumb" id="breadcrumb" style="display:none">
+  <!-- sticky top bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="top-logo">🎮 PlayZone</div>
+      <button class="btn-back-top" id="btn-back" onclick="goHome()">← Back</button>
+      <div class="top-step" id="top-step">
         <span class="sep">/</span>
-        <span class="current" id="breadcrumb-text"></span>
+        <span class="label" id="top-step-label"></span>
       </div>
     </div>
-    <div class="user-info">
-      <span class="user-email" id="user-email-display"></span>
-      <button class="btn-logout" onclick="doLogout()">Logout</button>
-    </div>
-  </header>
-
-  <!-- ── SCREEN 1: PICK A GAME ── -->
-  <div id="screen-pick" class="screen active">
-    <div class="pick-header">
-      <h2>🕹️ Choose a Game to Customize</h2>
-      <p>Pick a game, make it yours, share the link with friends.</p>
-    </div>
-
-    <!-- Available Games -->
-    <div class="game-type-grid" id="game-type-grid">
-
-      <!-- BulletHead -->
-      <div class="game-type-card" onclick="pickGame('bullethead')">
-        <div class="gtc-banner" style="background:linear-gradient(135deg,#071a20,#0d2535)">
-          🔫
-          <span class="badge badge-available">✅ Available</span>
-        </div>
-        <div class="gtc-body">
-          <div class="gtc-title">BulletHead</div>
-          <div class="gtc-desc">Fast-paced platformer shooter. 14 characters, 5 weapons, 10 maps, leaderboard.</div>
-          <div class="gtc-tags">
-            <span class="gtc-tag">🎮 Action</span>
-            <span class="gtc-tag">👥 Multiplayer</span>
-            <span class="gtc-tag">🏆 Leaderboard</span>
-          </div>
-          <button class="btn-pick">✏️ Customize This Game</button>
-        </div>
-      </div>
-
-      <!-- Coming Soon 1 -->
-      <div class="game-type-card coming-soon">
-        <div class="gtc-banner" style="background:linear-gradient(135deg,#1a0f00,#2a1800)">
-          🏎️
-          <span class="badge badge-soon">🚧 Coming Soon</span>
-        </div>
-        <div class="gtc-body">
-          <div class="gtc-title" style="color:var(--muted)">Racing Game</div>
-          <div class="gtc-desc">Custom kart racing with power-ups. Race your friends on wild tracks.</div>
-          <div class="gtc-tags">
-            <span class="gtc-tag">🏁 Racing</span>
-            <span class="gtc-tag">⚡ Fast-paced</span>
-          </div>
-          <div class="btn-pick-soon">🔔 Coming Soon</div>
-        </div>
-      </div>
-
-      <!-- Coming Soon 2 -->
-      <div class="game-type-card coming-soon">
-        <div class="gtc-banner" style="background:linear-gradient(135deg,#0a001a,#12002a)">
-          🧩
-          <span class="badge badge-soon">🚧 Coming Soon</span>
-        </div>
-        <div class="gtc-body">
-          <div class="gtc-title" style="color:var(--muted)">Puzzle Party</div>
-          <div class="gtc-desc">Co-op puzzle solving. Think together, win together.</div>
-          <div class="gtc-tags">
-            <span class="gtc-tag">🧠 Puzzle</span>
-            <span class="gtc-tag">🤝 Co-op</span>
-          </div>
-          <div class="btn-pick-soon">🔔 Coming Soon</div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- My existing games -->
-    <div class="my-games-section">
-      <h3>📋 My Created Games</h3>
-      <div class="my-game-chips" id="my-game-chips">
-        <div class="empty-state" style="padding:12px;font-size:13px">Loading...</div>
-      </div>
+    <div class="top-bar-right">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <button class="btn-logout-sm" onclick="doLogout()">Logout</button>
     </div>
   </div>
 
-  <!-- ── SCREEN 2: EDITOR ── -->
-  <div id="screen-edit" class="screen">
-    <div class="main-layout">
+  <!-- ══ SCREEN: HOME ══ -->
+  <div id="screen-home" class="screen active">
+    <div id="screen-home-inner">
 
-      <!-- LEFT: editor -->
-      <div>
-        <div class="editor-panel">
-          <div class="panel-header">
-            <span class="game-icon" id="editor-game-icon">🔫</span>
-            <span id="editor-game-title">BulletHead — Customize</span>
+      <!-- section A: welcome + how it works -->
+      <div style="max-width:700px;margin:0 auto;padding:24px 16px 0;">
+        <div class="welcome-banner">
+          <h2>👋 Welcome to PlayZone Creator!</h2>
+          <p>Create a custom version of any game, add your friends' names, pick a theme — then share a private link. It takes less than 2 minutes!</p>
+        </div>
+
+        <div class="how-title">How it works</div>
+        <div class="steps-row">
+          <div class="step-box">
+            <div class="step-num">1</div>
+            <span class="step-icon">🎮</span>
+            <h4>Pick a Game</h4>
+            <p>Choose which game you want to customize</p>
           </div>
-
-          <div class="tabs">
-            <div class="tab active" onclick="switchTab('game')">🎮 Game</div>
-            <div class="tab" onclick="switchTab('chars')">🧑 Characters</div>
-            <div class="tab" onclick="switchTab('items')">🔫 Weapons</div>
-            <div class="tab" onclick="switchTab('theme')">🎨 Theme</div>
+          <div class="step-box">
+            <div class="step-num">2</div>
+            <span class="step-icon">✏️</span>
+            <h4>Customize</h4>
+            <p>Add names, pick colors & theme</p>
           </div>
-
-          <!-- Tab: Game -->
-          <div class="tab-content active" id="tab-game">
-            <div class="form-group">
-              <label>Game Title</label>
-              <input type="text" id="f-game-title" placeholder="e.g. AliWars" maxlength="30" oninput="livePreview()"/>
-            </div>
-            <div class="form-group">
-              <label>Start Message</label>
-              <textarea id="f-msg-start" placeholder="e.g. Made by Ali 😎" maxlength="60" oninput="livePreview()"></textarea>
-            </div>
-            <div class="form-group">
-              <label>Game Over Message</label>
-              <textarea id="f-msg-gameover" placeholder="e.g. Try again!" maxlength="60" oninput="livePreview()"></textarea>
-            </div>
-            <div class="form-group">
-              <label>👥 Players</label>
-              <div id="players-list" style="margin-bottom:10px;"></div>
-              <button class="btn-add-player" onclick="addPlayer()">+ Add Player</button>
-              <div style="font-size:11px;color:var(--muted);margin-top:8px;">Players pick their name from a dropdown when the game starts.</div>
-            </div>
+          <div class="step-box">
+            <div class="step-num">3</div>
+            <span class="step-icon">🔗</span>
+            <h4>Share Link</h4>
+            <p>Send the link to your friends only</p>
           </div>
-
-          <!-- Tab: Characters -->
-          <div class="tab-content" id="tab-chars">
-            <div class="section-title">🦸 Hero</div>
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Hero Name</label>
-                <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Hero Color</label>
-                <div class="color-row">
-                  <input type="color" id="f-hero-color-pick" value="#e82020" oninput="syncColor('hero')"/>
-                  <input type="text"  id="f-hero-color" value="#e82020" maxlength="7" oninput="syncColorFromText('hero')"/>
-                </div>
-              </div>
-            </div>
-            <hr class="divider"/>
-            <div class="section-title">👾 Enemies</div>
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Enemy 1 (Drone)</label>
-                <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Enemy 2 (Bomber)</label>
-                <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Enemy 3 (Speeder)</label>
-                <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20" oninput="livePreview()"/>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab: Weapons -->
-          <div class="tab-content" id="tab-items">
-            <div class="section-title">🔫 Weapons</div>
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Gun 1 (Pistol)</label>
-                <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Gun 2 (SMG)</label>
-                <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Gun 3 (Shotgun)</label>
-                <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Gun 4 (Sniper)</label>
-                <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20" oninput="livePreview()"/>
-              </div>
-              <div class="form-group">
-                <label>Gun 5 (Rocket)</label>
-                <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20" oninput="livePreview()"/>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab: Theme -->
-          <div class="tab-content" id="tab-theme">
-            <div class="section-title">🎨 Color Theme</div>
-            <div class="theme-grid" id="theme-grid"></div>
-          </div>
-
-        </div><!-- /editor-panel -->
+        </div>
       </div>
 
-      <!-- RIGHT: preview + action -->
-      <div class="preview-panel">
+      <!-- section B: pick a game -->
+      <div style="max-width:700px;margin:0 auto;padding:0 16px;">
+        <div class="section-label">👇 Step 1 — Pick a game to customize</div>
+        <div class="game-pick-list">
 
-        <div class="preview-card">
-          <div class="panel-header">👁️ Preview</div>
-          <canvas id="preview-canvas" width="300" height="170"></canvas>
-        </div>
-
-        <div class="preview-card" id="stats-card" style="display:none">
-          <div class="panel-header">📊 Stats</div>
-          <div class="stat-row">
-            <span class="stat-label">Total Plays</span>
-            <span class="stat-value green" id="stat-plays">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">High Score</span>
-            <span class="stat-value yellow" id="stat-best">—</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Top Player</span>
-            <span class="stat-value" id="stat-last">—</span>
-          </div>
-        </div>
-
-        <div class="action-card">
-          <button class="btn-create" id="create-btn" onclick="createGame()">🚀 Build &amp; Get Link!</button>
-          <div class="link-box" id="link-box">
-            <div class="link-label">✅ Your game link is ready!</div>
-            <div class="link-row">
-              <input type="text" id="game-link" readonly/>
-              <button class="btn-copy" onclick="copyLink()">Copy</button>
+          <div class="game-pick-card" onclick="startEditor('bullethead')">
+            <div class="gpc-emoji">🔫</div>
+            <div class="gpc-info">
+              <div class="gpc-name">BulletHead</div>
+              <div class="gpc-desc">Fast-paced shooter — 14 characters, 5 weapons, 10 maps, leaderboard</div>
+              <div class="gpc-tags">
+                <span class="gpc-tag">🎮 Action</span>
+                <span class="gpc-tag">👥 Multiplayer</span>
+                <span class="gpc-tag">🏆 Scores</span>
+              </div>
             </div>
+            <div class="gpc-arrow">›</div>
           </div>
-        </div>
 
+          <div class="game-pick-card locked">
+            <div class="gpc-emoji">🏎️</div>
+            <div class="gpc-info">
+              <div class="gpc-name" style="color:var(--muted)">Racing Game</div>
+              <div class="gpc-desc">Custom kart racing with power-ups — coming soon!</div>
+              <div class="gpc-tags"><span class="gpc-tag">🏁 Racing</span></div>
+            </div>
+            <div class="gpc-soon">🚧 Soon</div>
+          </div>
+
+          <div class="game-pick-card locked">
+            <div class="gpc-emoji">🧩</div>
+            <div class="gpc-info">
+              <div class="gpc-name" style="color:var(--muted)">Puzzle Party</div>
+              <div class="gpc-desc">Co-op puzzle solving for the whole family — coming soon!</div>
+              <div class="gpc-tags"><span class="gpc-tag">🧠 Co-op</span></div>
+            </div>
+            <div class="gpc-soon">🚧 Soon</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- section C: my games -->
+      <div style="max-width:700px;margin:0 auto;padding:0 16px 60px;">
+        <div class="section-label" id="my-games-label" style="display:none">📋 My Created Games — tap to edit</div>
+        <div class="my-games-list" id="my-games-list"></div>
+      </div>
+
+    </div>
+  </div><!-- /screen-home -->
+
+  <!-- ══ SCREEN: EDITOR ══ -->
+  <div id="screen-edit" class="screen">
+
+    <!-- step tabs -->
+    <div class="step-tabs" id="step-tabs">
+      <div class="step-tab active" data-step="0" onclick="goStep(0)">
+        <span class="tab-icon">🎮</span>Game Info
+      </div>
+      <div class="step-tab" data-step="1" onclick="goStep(1)">
+        <span class="tab-icon">🧑</span>Characters
+      </div>
+      <div class="step-tab" data-step="2" onclick="goStep(2)">
+        <span class="tab-icon">🎨</span>Theme
+      </div>
+      <div class="step-tab" data-step="3" onclick="goStep(3)">
+        <span class="tab-icon">🚀</span>Publish
       </div>
     </div>
+
+    <div class="editor-body">
+
+      <!-- STEP 0: Game Info -->
+      <div class="step-panel active" id="panel-0">
+        <div class="step-heading">
+          <h3>🎮 Name Your Game</h3>
+          <p>Give your game a title and add the names of the players who'll join.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Game Title *</label>
+          <input type="text" id="f-game-title" placeholder="e.g. Ali's BattleZone 🔥" maxlength="30" oninput="livePreview(); checkStep0()"/>
+          <div class="field-hint">This name shows on the title screen when the game starts.</div>
+        </div>
+
+        <div class="form-group">
+          <label>👥 Who's Playing?</label>
+          <div id="players-list" style="margin-bottom:8px;"></div>
+          <button class="btn-add-player" onclick="addPlayer()">+ Add a player name</button>
+          <div class="field-hint" style="margin-top:8px;">Players will pick their name from a list when the game starts. Add at least one!</div>
+        </div>
+
+        <div class="form-group">
+          <label>Welcome Message <span style="color:var(--muted);font-weight:400;font-size:10px;">(optional)</span></label>
+          <input type="text" id="f-msg-start" placeholder="e.g. Made by Ali 😎 — Good luck!" maxlength="60" oninput="livePreview()"/>
+        </div>
+      </div>
+
+      <!-- STEP 1: Characters -->
+      <div class="step-panel" id="panel-1">
+        <div class="step-heading">
+          <h3>🧑 Characters & Weapons</h3>
+          <p>Rename the hero and enemies to make the game personal. Or leave blank to keep the defaults.</p>
+        </div>
+
+        <div class="sub-label">🦸 Hero</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Hero Name</label>
+            <input type="text" id="f-hero-name" placeholder="e.g. Ali" maxlength="20" oninput="livePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Hero Shirt Color</label>
+            <div class="color-row">
+              <input type="color" id="f-hero-color-pick" value="#e82020" oninput="syncColor('hero')"/>
+              <input type="text"  id="f-hero-color" value="#e82020" maxlength="7" oninput="syncColorFromText('hero')"/>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider"/>
+        <div class="sub-label">👾 Enemies</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Enemy 1 name</label>
+            <input type="text" id="f-enemy-drone" placeholder="Drone" maxlength="20" oninput="livePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Enemy 2 name</label>
+            <input type="text" id="f-enemy-bomber" placeholder="Bomber" maxlength="20" oninput="livePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Enemy 3 name</label>
+            <input type="text" id="f-enemy-speeder" placeholder="Speeder" maxlength="20" oninput="livePreview()"/>
+          </div>
+        </div>
+
+        <hr class="divider"/>
+        <div class="sub-label">🔫 Weapons <span style="color:var(--muted);font-weight:400;font-size:10px;text-transform:none">(optional rename)</span></div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Gun 1 (Pistol)</label>
+            <input type="text" id="f-gun-pistol" placeholder="Pistol" maxlength="20"/>
+          </div>
+          <div class="form-group">
+            <label>Gun 2 (SMG)</label>
+            <input type="text" id="f-gun-smg" placeholder="SMG" maxlength="20"/>
+          </div>
+          <div class="form-group">
+            <label>Gun 3 (Shotgun)</label>
+            <input type="text" id="f-gun-shotgun" placeholder="Shotgun" maxlength="20"/>
+          </div>
+          <div class="form-group">
+            <label>Gun 4 (Sniper)</label>
+            <input type="text" id="f-gun-sniper" placeholder="Sniper" maxlength="20"/>
+          </div>
+          <div class="form-group">
+            <label>Gun 5 (Rocket)</label>
+            <input type="text" id="f-gun-rocket" placeholder="Rocket" maxlength="20"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Theme -->
+      <div class="step-panel" id="panel-2">
+        <div class="step-heading">
+          <h3>🎨 Pick a Theme</h3>
+          <p>Choose the look and feel of your game's world. You can always change it later.</p>
+        </div>
+        <div class="theme-grid" id="theme-grid"></div>
+        <div style="margin-top:20px;">
+          <canvas id="preview-canvas" width="640" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- STEP 3: Publish -->
+      <div class="step-panel" id="panel-3">
+        <div class="step-heading">
+          <h3>🚀 Almost Done!</h3>
+          <p>Review your game and hit the button to get your private link.</p>
+        </div>
+
+        <!-- summary card -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Your Game Summary</div>
+          <div id="summary-content" style="display:flex;flex-direction:column;gap:8px;font-size:14px;"></div>
+        </div>
+
+        <!-- stats if editing -->
+        <div id="stats-section" style="display:none;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📊 Game Stats</div>
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-val" id="stat-plays" style="color:var(--green)">0</div>
+              <div class="stat-lbl">Total Plays</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="stat-best" style="color:var(--yellow)">—</div>
+              <div class="stat-lbl">High Score</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="stat-last" style="color:var(--accent);font-size:14px;">—</div>
+              <div class="stat-lbl">Top Player</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-next" id="publish-btn" onclick="createGame()" style="width:100%;padding:18px;font-size:16px;">
+          🚀 Build &amp; Get My Link!
+        </button>
+
+        <div class="link-box" id="link-box">
+          <div class="link-label">✅ Your private game link is ready!</div>
+          <div class="link-row">
+            <input type="text" id="game-link" readonly/>
+            <button class="btn-copy" onclick="copyLink()">📋 Copy</button>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+            Share this link with your friends. Only people with the link can play!
+          </div>
+          <a id="play-btn-link" href="#" target="_blank" style="display:block;margin-top:12px;padding:13px;background:linear-gradient(135deg,var(--green),var(--accent));color:#000;font-weight:900;font-family:'Arial Black',Arial,sans-serif;font-size:14px;border-radius:10px;text-align:center;text-decoration:none;">▶ Open &amp; Play My Game</a>
+        </div>
+      </div>
+
+    </div><!-- /editor-body -->
+
+    <!-- fixed bottom nav -->
+    <div class="step-nav show" id="step-nav">
+      <button class="btn-prev" id="btn-prev" onclick="prevStep()">← Back</button>
+      <button class="btn-next" id="btn-next" onclick="nextStep()">Next: Characters →</button>
+    </div>
+
   </div><!-- /screen-edit -->
 
-</div><!-- /dashboard-screen -->
+</div><!-- /dashboard -->
 
 <div class="toast" id="toast"></div>
 
@@ -654,13 +837,15 @@ const sb = createClient(SUPA_URL, SUPA_KEY);
 // ═══════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════
-let currentGameType = 'bullethead'; // فعلاً فقط این داریم
-let editingSlug     = null;         // وقتی game موجود رو لود می‌کنیم
+let currentStep    = 0;
+let currentGame    = 'bullethead';
+let editingSlug    = null;
+let playersList    = [];
+let selectedTheme  = 'default';
 
-const GAME_TYPES = {
-  bullethead: { icon:'🔫', label:'BulletHead', gameUrl: '/game' }
-  // بعداً اضافه میشه
-};
+const TOTAL_STEPS  = 4;
+const STEP_LABELS  = ['Game Info','Characters','Theme','Publish'];
+const STEP_NEXTS   = ['Next: Characters →','Next: Theme →','Next: Preview →', null];
 
 // ═══════════════════════════════════════════
 //  AUTH
@@ -670,27 +855,26 @@ async function doLogin() {
   const pass  = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   const btn   = document.getElementById('login-btn');
-  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  if (!email || !pass) { errEl.textContent = 'Please fill in email and password.'; return; }
   btn.disabled = true; btn.textContent = 'Logging in...';
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Login';
-  if (error) { errEl.textContent = error.message; return; }
+  btn.disabled = false; btn.textContent = '🔑 Login';
+  if (error) { errEl.textContent = error.message; }
 }
 
 async function doSignup() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
-  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
-  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!email || !pass) { errEl.textContent = 'Please fill in email and password.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password needs at least 6 characters.'; return; }
+  errEl.style.color = 'var(--muted)';
+  errEl.textContent = 'Creating account...';
   const { error } = await sb.auth.signUp({ email, password: pass });
-  if (error) { errEl.textContent = error.message; return; }
-  // بعد از signup مستقیم login کن
-  const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (loginErr) {
-    errEl.style.color = 'var(--green)';
-    errEl.textContent = '✅ Account created! Please log in.';
-  }
+  if (error) { errEl.style.color='var(--red)'; errEl.textContent = error.message; return; }
+  // auto-login
+  const { error: le } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (le) { errEl.style.color='var(--green)'; errEl.textContent = '✅ Account created! Please log in.'; }
 }
 
 async function doLogout() {
@@ -708,56 +892,111 @@ async function showDashboard() {
   if (!user) return;
   document.getElementById('login-screen').style.display    = 'none';
   document.getElementById('dashboard-screen').style.display = 'block';
-  document.getElementById('user-email-display').textContent = user.email;
-  showScreen('pick');
+  // avatar initial
+  const initial = (user.email || '?')[0].toUpperCase();
+  document.getElementById('user-avatar').textContent = initial;
+  goHome();
   loadMyGames();
 }
 
 // ═══════════════════════════════════════════
-//  SCREEN NAVIGATION
+//  NAVIGATION
 // ═══════════════════════════════════════════
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
+}
 
-  const backBtn    = document.getElementById('btn-back');
-  const breadcrumb = document.getElementById('breadcrumb');
+function goHome() {
+  showScreen('home');
+  document.getElementById('btn-back').classList.remove('show');
+  document.getElementById('top-step').classList.remove('show');
+  document.getElementById('step-nav').classList.remove('show');
+}
 
-  if (name === 'pick') {
-    backBtn.classList.remove('show');
-    breadcrumb.style.display = 'none';
-  } else {
-    backBtn.classList.add('show');
-    breadcrumb.style.display = 'flex';
-    const gt = GAME_TYPES[currentGameType];
-    document.getElementById('breadcrumb-text').textContent = gt ? gt.label : 'Editor';
-  }
+function startEditor(gameType) {
+  currentGame   = gameType;
+  editingSlug   = null;
+  playersList   = [];
+  selectedTheme = 'default';
+  resetForm();
+  goStep(0);
+  showScreen('edit');
+  document.getElementById('btn-back').classList.add('show');
+  document.getElementById('top-step').classList.add('show');
+  document.getElementById('step-nav').classList.add('show');
+  document.getElementById('link-box').style.display = 'none';
+  document.getElementById('stats-section').style.display = 'none';
+  buildThemeGrid();
+  livePreview();
+  updateStepNav();
 }
 
 function goBack() {
-  showScreen('pick');
-  // ریست فرم
-  resetEditor();
-  editingSlug = null;
-  document.getElementById('link-box').style.display = 'none';
-  document.getElementById('stats-card').style.display = 'none';
+  if (currentStep > 0) prevStep();
+  else goHome();
 }
 
 // ═══════════════════════════════════════════
-//  PICK GAME
+//  STEP NAVIGATION
 // ═══════════════════════════════════════════
-function pickGame(type) {
-  currentGameType = type;
-  editingSlug = null;
-  resetEditor();
-  const gt = GAME_TYPES[type];
-  document.getElementById('editor-game-icon').textContent  = gt.icon;
-  document.getElementById('editor-game-title').textContent = gt.label + ' — Customize';
-  document.getElementById('create-btn').textContent = '🚀 Build & Get Link!';
-  document.getElementById('link-box').style.display = 'none';
-  document.getElementById('stats-card').style.display = 'none';
-  livePreview();
-  showScreen('edit');
+function goStep(n) {
+  currentStep = n;
+
+  // panels
+  document.querySelectorAll('.step-panel').forEach((p,i) => p.classList.toggle('active', i === n));
+
+  // tabs
+  document.querySelectorAll('.step-tab').forEach((t,i) => {
+    t.classList.toggle('active', i === n);
+    t.classList.toggle('done', i < n);
+  });
+
+  // top label
+  document.getElementById('top-step-label').textContent = STEP_LABELS[n];
+
+  // scroll top
+  window.scrollTo({top:0, behavior:'smooth'});
+
+  // summary on last step
+  if (n === TOTAL_STEPS - 1) buildSummary();
+
+  // preview on theme step
+  if (n === 2) livePreview();
+
+  updateStepNav();
+}
+
+function nextStep() {
+  if (currentStep === 0) {
+    const title = document.getElementById('f-game-title').value.trim();
+    if (!title) { showToast('⚠️ Please enter a game title first!'); document.getElementById('f-game-title').focus(); return; }
+  }
+  if (currentStep < TOTAL_STEPS - 1) goStep(currentStep + 1);
+}
+
+function prevStep() {
+  if (currentStep > 0) goStep(currentStep - 1);
+  else goHome();
+}
+
+function updateStepNav() {
+  const prev = document.getElementById('btn-prev');
+  const next = document.getElementById('btn-next');
+  const nav  = document.getElementById('step-nav');
+
+  // hide nav on last step (publish btn handles it)
+  if (currentStep === TOTAL_STEPS - 1) {
+    nav.classList.remove('show');
+  } else {
+    nav.classList.add('show');
+    prev.textContent = currentStep === 0 ? '✕ Cancel' : '← Back';
+    next.textContent = STEP_NEXTS[currentStep];
+  }
+}
+
+function checkStep0() {
+  // nothing blocking for now
 }
 
 // ═══════════════════════════════════════════
@@ -766,26 +1005,30 @@ function pickGame(type) {
 async function loadMyGames() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
-
   const { data, error } = await sb.from('game_configs')
-    .select('slug, game_title, play_count, created_at, color_theme')
+    .select('slug, game_title, play_count, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  const el = document.getElementById('my-game-chips');
+  const listEl  = document.getElementById('my-games-list');
+  const labelEl = document.getElementById('my-games-label');
+
   if (error || !data || data.length === 0) {
-    el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No games yet — create your first one above! 🎮</div>';
+    labelEl.style.display = 'none';
+    listEl.innerHTML = '';
     return;
   }
 
-  el.innerHTML = data.map(g => `
-    <div class="my-game-chip" onclick="loadGame('${g.slug}')">
-      <span class="mgc-icon">🔫</span>
-      <div>
-        <div class="mgc-name">${g.game_title}</div>
-        <div class="mgc-type">BulletHead · ${new Date(g.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+  labelEl.style.display = 'block';
+  listEl.innerHTML = data.map(g => `
+    <div class="my-game-row" onclick="loadGame('${g.slug}')">
+      <div class="mgr-icon">🔫</div>
+      <div class="mgr-info">
+        <div class="mgr-name">${g.game_title}</div>
+        <div class="mgr-meta">BulletHead · ${new Date(g.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
       </div>
-      <div class="mgc-plays">${g.play_count} 🎮</div>
+      <div class="mgr-plays">${g.play_count}🎮</div>
+      <div class="mgr-arrow">›</div>
     </div>
   `).join('');
 }
@@ -797,15 +1040,14 @@ async function loadGame(slug) {
   const { data, error } = await sb.from('game_configs').select('*').eq('slug', slug).single();
   if (error || !data) return;
 
-  currentGameType = 'bullethead'; // فعلاً همه bullethead هستن
   editingSlug = slug;
+  currentGame = 'bullethead';
 
   document.getElementById('f-game-title').value     = data.game_title   || '';
   document.getElementById('f-hero-name').value       = data.hero_name    || '';
   document.getElementById('f-hero-color').value      = data.hero_color   || '#e82020';
   document.getElementById('f-hero-color-pick').value = data.hero_color   || '#e82020';
   document.getElementById('f-msg-start').value       = data.msg_start    || '';
-  document.getElementById('f-msg-gameover').value    = data.msg_gameover || '';
 
   const en = data.enemy_names || {};
   document.getElementById('f-enemy-drone').value   = en.drone   || '';
@@ -819,159 +1061,186 @@ async function loadGame(slug) {
   document.getElementById('f-gun-sniper').value  = gn.sniper  || '';
   document.getElementById('f-gun-rocket').value  = gn.rocket  || '';
 
-  playersList = data.players || [];
-  renderPlayersList();
-
+  playersList   = data.players || [];
   selectedTheme = data.color_theme || 'default';
+
+  renderPlayersList();
   buildThemeGrid();
+
+  showScreen('edit');
+  document.getElementById('btn-back').classList.add('show');
+  document.getElementById('top-step').classList.add('show');
+  document.getElementById('step-nav').classList.add('show');
+  goStep(0);
   livePreview();
 
-  const gt = GAME_TYPES[currentGameType];
-  document.getElementById('editor-game-icon').textContent  = gt.icon;
-  document.getElementById('editor-game-title').textContent = data.game_title + ' — Edit';
-  document.getElementById('create-btn').textContent = '💾 Save & Update Link';
-
+  // show link
   const link = `${location.origin}/game?g=${slug}`;
   document.getElementById('game-link').value = link;
+  document.getElementById('play-btn-link').href = link;
   document.getElementById('link-box').style.display = 'block';
 
+  // load stats
   loadStats(slug);
-  showScreen('edit');
-  showToast('Loaded: ' + data.game_title);
+  showToast('✅ Loaded: ' + data.game_title);
 }
 
 async function loadStats(slug) {
   const [scoresRes, configRes] = await Promise.all([
-    sb.from('scores').select('score,player_name').eq('game_slug', slug).order('score',{ascending:false}).limit(1),
-    sb.from('game_configs').select('play_count').eq('slug', slug).single()
+    sb.from('scores').select('score,player_name').eq('game_slug',slug).order('score',{ascending:false}).limit(1),
+    sb.from('game_configs').select('play_count').eq('slug',slug).single()
   ]);
-  document.getElementById('stats-card').style.display = 'block';
+  document.getElementById('stats-section').style.display = 'block';
   document.getElementById('stat-plays').textContent = configRes.data?.play_count ?? 0;
   if (scoresRes.data && scoresRes.data.length > 0) {
     document.getElementById('stat-best').textContent = scoresRes.data[0].score;
-    document.getElementById('stat-last').textContent = scoresRes.data[0].player_name;
+    document.getElementById('stat-last').textContent = scoresRes.data[0].player_name || '—';
   }
 }
 
 // ═══════════════════════════════════════════
-//  RESET EDITOR
+//  RESET FORM
 // ═══════════════════════════════════════════
-function resetEditor() {
-  ['f-game-title','f-hero-name','f-msg-start','f-msg-gameover',
+function resetForm() {
+  ['f-game-title','f-hero-name','f-msg-start',
    'f-enemy-drone','f-enemy-bomber','f-enemy-speeder',
    'f-gun-pistol','f-gun-smg','f-gun-shotgun','f-gun-sniper','f-gun-rocket']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-hero-color').value = '#e82020';
   document.getElementById('f-hero-color-pick').value = '#e82020';
   playersList = [];
   renderPlayersList();
   selectedTheme = 'default';
-  buildThemeGrid();
-  livePreview();
-  switchTab('game');
 }
 
 // ═══════════════════════════════════════════
-//  CREATE / UPDATE GAME
+//  CREATE / UPDATE
 // ═══════════════════════════════════════════
 async function createGame() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) { showToast('Please log in first!'); return; }
-
   const cfg = getFormConfig();
-  if (!cfg.game_title.trim()) { showToast('Please enter a game title!'); return; }
+  if (!cfg.game_title.trim()) { showToast('⚠️ Please enter a game title!'); goStep(0); return; }
 
-  const btn = document.getElementById('create-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Saving...';
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = true; btn.textContent = '⏳ Saving...';
 
   let slug = editingSlug;
   let error;
 
   if (slug) {
-    // UPDATE
     ({ error } = await sb.from('game_configs').update({
-      game_title:   cfg.game_title,
-      hero_name:    cfg.hero_name,
-      hero_color:   cfg.hero_color,
-      enemy_names:  cfg.enemy_names,
-      gun_names:    cfg.gun_names,
-      msg_start:    cfg.msg_start,
-      msg_gameover: cfg.msg_gameover,
-      color_theme:  cfg.color_theme,
-      players:      cfg.players,
+      game_title: cfg.game_title, hero_name: cfg.hero_name,
+      hero_color: cfg.hero_color, enemy_names: cfg.enemy_names,
+      gun_names: cfg.gun_names, msg_start: cfg.msg_start,
+      msg_gameover: cfg.msg_gameover, color_theme: cfg.color_theme,
+      players: cfg.players,
     }).eq('slug', slug));
   } else {
-    // INSERT
     slug = genSlug();
     ({ error } = await sb.from('game_configs').insert({
-      user_id:      user.id,
-      slug,
-      game_title:   cfg.game_title,
-      hero_name:    cfg.hero_name,
-      hero_color:   cfg.hero_color,
-      enemy_names:  cfg.enemy_names,
-      gun_names:    cfg.gun_names,
-      msg_start:    cfg.msg_start,
-      msg_gameover: cfg.msg_gameover,
-      color_theme:  cfg.color_theme,
-      players:      cfg.players,
+      user_id: user.id, slug,
+      game_title: cfg.game_title, hero_name: cfg.hero_name,
+      hero_color: cfg.hero_color, enemy_names: cfg.enemy_names,
+      gun_names: cfg.gun_names, msg_start: cfg.msg_start,
+      msg_gameover: cfg.msg_gameover, color_theme: cfg.color_theme,
+      players: cfg.players,
     }));
     if (!error) editingSlug = slug;
   }
 
   btn.disabled = false;
-  btn.textContent = editingSlug ? '💾 Save & Update Link' : '🚀 Build & Get Link!';
+  btn.textContent = editingSlug ? '💾 Update My Game' : '🚀 Build & Get My Link!';
 
-  if (error) { showToast('Error: ' + error.message); return; }
+  if (error) { showToast('❌ Error: ' + error.message); return; }
 
   const link = `${location.origin}/game?g=${slug}`;
   document.getElementById('game-link').value = link;
+  document.getElementById('play-btn-link').href = link;
   document.getElementById('link-box').style.display = 'block';
-  showToast(editingSlug ? '✅ Game updated!' : '✅ Game created!');
+  showToast(editingSlug ? '✅ Game updated!' : '🎉 Game created!');
   loadMyGames();
+  window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
 }
 
 // ═══════════════════════════════════════════
-//  TABS
+//  BUILD SUMMARY (step 3)
 // ═══════════════════════════════════════════
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['game','chars','items','theme'];
-    t.classList.toggle('active', names[i] === name);
+function buildSummary() {
+  const cfg = getFormConfig();
+  const th  = THEMES.find(t => t.id === cfg.color_theme) || THEMES[0];
+  const rows = [
+    ['🎮 Game Title',   cfg.game_title || '—'],
+    ['👥 Players',      cfg.players.length > 0 ? cfg.players.join(', ') : 'None added'],
+    ['🦸 Hero Name',    cfg.hero_name  || 'Default'],
+    ['🎨 Theme',        th.icon + ' ' + th.id],
+  ];
+  document.getElementById('summary-content').innerHTML = rows.map(([l,v]) =>
+    `<div style="display:flex;gap:8px;align-items:center;">
+       <span style="color:var(--muted);min-width:110px;font-size:12px;">${l}</span>
+       <span style="font-weight:700;font-size:14px;">${v}</span>
+     </div>`
+  ).join('');
+  document.getElementById('publish-btn').textContent = editingSlug ? '💾 Update My Game' : '🚀 Build & Get My Link!';
+}
+
+// ═══════════════════════════════════════════
+//  PLAYERS
+// ═══════════════════════════════════════════
+function renderPlayersList() {
+  const container = document.getElementById('players-list');
+  if (!container) return;
+  container.innerHTML = '';
+  playersList.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    const inp = document.createElement('input');
+    inp.type='text'; inp.value=name; inp.maxLength=20;
+    inp.placeholder='Player name (e.g. Sara)';
+    inp.oninput = () => { playersList[i] = inp.value; };
+    const btn = document.createElement('button');
+    btn.className='btn-remove'; btn.innerHTML='✕';
+    btn.onclick = () => { playersList.splice(i,1); renderPlayersList(); };
+    row.appendChild(inp); row.appendChild(btn);
+    container.appendChild(row);
   });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function addPlayer() {
+  playersList.push('');
+  renderPlayersList();
+  const inputs = document.getElementById('players-list').querySelectorAll('input');
+  if (inputs.length) inputs[inputs.length-1].focus();
 }
 
 // ═══════════════════════════════════════════
 //  THEMES
 // ═══════════════════════════════════════════
 const THEMES = [
-  { id:'default', icon:'🌿', bg:'#0a1a0a', accent:'#00ff88' },
-  { id:'ice',     icon:'❄️', bg:'#0a1020', accent:'#00c8ff' },
-  { id:'lava',    icon:'🔥', bg:'#1a0500', accent:'#ff4400' },
-  { id:'space',   icon:'🌌', bg:'#05000f', accent:'#cc44ff' },
-  { id:'desert',  icon:'🏜️', bg:'#1a1200', accent:'#ffcc00' },
-  { id:'ocean',   icon:'🌊', bg:'#001020', accent:'#0088ff' },
-  { id:'electric',icon:'⚡', bg:'#080018', accent:'#8844ff' },
-  { id:'castle',  icon:'🏰', bg:'#111118', accent:'#aaaacc' },
-  { id:'forest',  icon:'🌲', bg:'#051005', accent:'#44cc44' },
-  { id:'candy',   icon:'🍬', bg:'#1a0010', accent:'#ff44cc' },
+  { id:'default',  icon:'🌿', bg:'#0a1a0a', accent:'#00ff88' },
+  { id:'ice',      icon:'❄️', bg:'#0a1020', accent:'#00c8ff' },
+  { id:'lava',     icon:'🔥', bg:'#1a0500', accent:'#ff4400' },
+  { id:'space',    icon:'🌌', bg:'#05000f', accent:'#cc44ff' },
+  { id:'desert',   icon:'🏜️', bg:'#1a1200', accent:'#ffcc00' },
+  { id:'ocean',    icon:'🌊', bg:'#001020', accent:'#0088ff' },
+  { id:'electric', icon:'⚡', bg:'#080018', accent:'#8844ff' },
+  { id:'castle',   icon:'🏰', bg:'#111118', accent:'#aaaacc' },
+  { id:'forest',   icon:'🌲', bg:'#051005', accent:'#44cc44' },
+  { id:'candy',    icon:'🍬', bg:'#1a0010', accent:'#ff44cc' },
 ];
-let selectedTheme = 'default';
 
 function buildThemeGrid() {
   const grid = document.getElementById('theme-grid');
+  if (!grid) return;
   grid.innerHTML = '';
   THEMES.forEach(t => {
     const el = document.createElement('div');
-    el.className = 'theme-swatch' + (t.id === selectedTheme ? ' active' : '');
+    el.className = 'theme-swatch' + (t.id===selectedTheme?' active':'');
     el.style.background = t.bg;
-    el.style.borderColor = t.id === selectedTheme ? t.accent : 'transparent';
-    el.textContent = t.icon;
+    el.style.borderColor = t.id===selectedTheme ? t.accent : 'transparent';
     el.title = t.id;
-    el.onclick = () => { selectedTheme = t.id; buildThemeGrid(); livePreview(); };
+    el.innerHTML = `<span>${t.icon}</span>`;
+    el.onclick = () => { selectedTheme=t.id; buildThemeGrid(); livePreview(); };
     grid.appendChild(el);
   });
 }
@@ -991,47 +1260,16 @@ function syncColorFromText(key) {
 }
 
 // ═══════════════════════════════════════════
-//  PLAYERS
-// ═══════════════════════════════════════════
-let playersList = [];
-
-function renderPlayersList() {
-  const container = document.getElementById('players-list');
-  if (!container) return;
-  container.innerHTML = '';
-  playersList.forEach((name, i) => {
-    const row = document.createElement('div');
-    row.className = 'player-row';
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.value = name; inp.maxLength = 20;
-    inp.placeholder = 'Player name...';
-    inp.oninput = () => { playersList[i] = inp.value; };
-    const btn = document.createElement('button');
-    btn.className = 'btn-remove'; btn.textContent = '✕';
-    btn.onclick = () => { playersList.splice(i,1); renderPlayersList(); };
-    row.appendChild(inp); row.appendChild(btn);
-    container.appendChild(row);
-  });
-}
-
-function addPlayer() {
-  playersList.push('');
-  renderPlayersList();
-  const inputs = document.getElementById('players-list').querySelectorAll('input');
-  if (inputs.length) inputs[inputs.length-1].focus();
-}
-
-// ═══════════════════════════════════════════
 //  FORM CONFIG
 // ═══════════════════════════════════════════
 function getFormConfig() {
-  const players = playersList.map(s => s.trim()).filter(s => s.length > 0);
+  const players = playersList.map(s=>s.trim()).filter(s=>s.length>0);
   return {
     game_title:   document.getElementById('f-game-title').value   || 'BulletHead',
     hero_name:    document.getElementById('f-hero-name').value    || 'Hero',
     hero_color:   document.getElementById('f-hero-color').value   || '#e82020',
     msg_start:    document.getElementById('f-msg-start').value    || 'Good luck!',
-    msg_gameover: document.getElementById('f-msg-gameover').value || 'Game Over!',
+    msg_gameover: 'Game Over!',
     players,
     enemy_names: {
       drone:   document.getElementById('f-enemy-drone').value   || 'Drone',
@@ -1053,92 +1291,91 @@ function getFormConfig() {
 //  LIVE PREVIEW
 // ═══════════════════════════════════════════
 const pCanvas = document.getElementById('preview-canvas');
-const pCtx    = pCanvas.getContext('2d');
+const pCtx    = pCanvas ? pCanvas.getContext('2d') : null;
 
 function livePreview() {
+  if (!pCtx) return;
   const cfg   = getFormConfig();
-  const theme = THEMES.find(t => t.id === cfg.color_theme) || THEMES[0];
-  const W = pCanvas.width, H = pCanvas.height;
+  const theme = THEMES.find(t=>t.id===cfg.color_theme)||THEMES[0];
+  const W=pCanvas.width, H=pCanvas.height;
 
-  const g = pCtx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0, theme.bg);
-  g.addColorStop(1, shadeColor(theme.bg, 20));
-  pCtx.fillStyle = g; pCtx.fillRect(0,0,W,H);
+  const g=pCtx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,theme.bg); g.addColorStop(1,shadeColor(theme.bg,20));
+  pCtx.fillStyle=g; pCtx.fillRect(0,0,W,H);
 
-  pCtx.textAlign = 'center';
-  pCtx.shadowColor = theme.accent; pCtx.shadowBlur = 14;
-  pCtx.fillStyle = theme.accent;
-  pCtx.font = 'bold 18px Arial Black';
-  pCtx.fillText(cfg.game_title, W/2, 34);
-  pCtx.shadowBlur = 0;
+  pCtx.textAlign='center';
+  pCtx.shadowColor=theme.accent; pCtx.shadowBlur=18;
+  pCtx.fillStyle=theme.accent;
+  pCtx.font='bold 28px Arial Black';
+  pCtx.fillText(cfg.game_title, W/2, 52);
+  pCtx.shadowBlur=0;
 
-  pCtx.fillStyle = '#aaa'; pCtx.font = '9px Arial';
-  pCtx.fillText(cfg.msg_start, W/2, 50);
+  pCtx.fillStyle='#aaa'; pCtx.font='13px Arial';
+  pCtx.fillText(cfg.msg_start||'', W/2, 76);
 
-  drawMiniHero(pCtx, W/2-28, 62, cfg.hero_color, theme.accent);
-  pCtx.fillStyle = '#fff'; pCtx.font = 'bold 9px Arial';
-  pCtx.fillText(cfg.hero_name, W/2-28+10, 112);
+  drawMiniHero(pCtx, W/2-50, 100, cfg.hero_color, theme.accent, 1.4);
+  pCtx.fillStyle='#fff'; pCtx.font='bold 12px Arial';
+  pCtx.fillText(cfg.hero_name||'Hero', W/2-50+14, 170);
 
   [
-    { name:cfg.enemy_names.drone,   color:'#ff4466', x:W/2+16  },
-    { name:cfg.enemy_names.bomber,  color:'#ff8800', x:W/2+52  },
-    { name:cfg.enemy_names.speeder, color:'#ff00cc', x:W/2+88  },
-  ].forEach(e => {
-    drawMiniHero(pCtx, e.x, 62, e.color, e.color);
-    pCtx.fillStyle = '#888'; pCtx.font = '7px Arial';
-    pCtx.fillText(e.name, e.x+10, 112);
+    { name:cfg.enemy_names.drone,   color:'#ff4466', x:W/2+30  },
+    { name:cfg.enemy_names.bomber,  color:'#ff8800', x:W/2+85  },
+    { name:cfg.enemy_names.speeder, color:'#ff00cc', x:W/2+140 },
+  ].forEach(e=>{
+    drawMiniHero(pCtx, e.x, 100, e.color, e.color, 1.1);
+    pCtx.fillStyle='#888'; pCtx.font='10px Arial';
+    pCtx.fillText(e.name, e.x+12, 170);
   });
 
-  pCtx.strokeStyle = theme.accent+'44'; pCtx.lineWidth = 2;
-  pCtx.shadowColor = theme.accent; pCtx.shadowBlur = 4;
-  [[14,126,110],[148,134,128],[14,144,W-28]].forEach(([x,y,w])=>{
+  pCtx.strokeStyle=theme.accent+'44'; pCtx.lineWidth=2;
+  pCtx.shadowColor=theme.accent; pCtx.shadowBlur=5;
+  [[20,190,580],[20,205,580]].forEach(([x,y,w])=>{
     pCtx.beginPath(); pCtx.moveTo(x,y); pCtx.lineTo(x+w,y); pCtx.stroke();
   });
-  pCtx.shadowBlur = 0; pCtx.textAlign = 'left';
+  pCtx.shadowBlur=0; pCtx.textAlign='left';
 }
 
-function drawMiniHero(ctx, x, y, shirtColor, glowColor) {
-  ctx.shadowColor = glowColor; ctx.shadowBlur = 7;
-  ctx.fillStyle = '#ffcc99'; ctx.fillRect(x+5, y,    11, 10);
-  ctx.fillStyle = shirtColor; ctx.fillRect(x+4, y+10, 13, 9);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(x+4,  y+19, 5, 7);
-  ctx.fillRect(x+11, y+19, 5, 7);
-  ctx.shadowBlur = 0;
+function drawMiniHero(ctx, x, y, shirtColor, glowColor, scale) {
+  scale = scale||1;
+  const s = Math.round;
+  ctx.shadowColor=glowColor; ctx.shadowBlur=8;
+  ctx.fillStyle='#ffcc99'; ctx.fillRect(s(x+6*scale),s(y),s(13*scale),s(12*scale));
+  ctx.fillStyle=shirtColor; ctx.fillRect(s(x+4*scale),s(y+12*scale),s(17*scale),s(12*scale));
+  ctx.fillStyle='#1a1a3a';
+  ctx.fillRect(s(x+4*scale),s(y+24*scale),s(7*scale),s(10*scale));
+  ctx.fillRect(s(x+14*scale),s(y+24*scale),s(7*scale),s(10*scale));
+  ctx.shadowBlur=0;
 }
 
 function shadeColor(hex, pct) {
-  const n = parseInt(hex.slice(1),16);
-  const r = Math.min(255,((n>>16)&255)+pct);
-  const g = Math.min(255,((n>>8)&255)+pct);
-  const b = Math.min(255,(n&255)+pct);
-  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,((n>>16)&255)+pct);
+  const gv=Math.min(255,((n>>8)&255)+pct);
+  const b=Math.min(255,(n&255)+pct);
+  return '#'+[r,gv,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
 // ═══════════════════════════════════════════
-//  SLUG + COPY + TOAST
+//  UTILS
 // ═══════════════════════════════════════════
 function genSlug() {
-  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
 }
 
 function copyLink() {
-  const input = document.getElementById('game-link');
+  const input=document.getElementById('game-link');
   input.select();
-  navigator.clipboard.writeText(input.value).then(() => showToast('📋 Link copied!'));
+  navigator.clipboard.writeText(input.value).then(()=>showToast('📋 Link copied!'));
 }
 
 let toastTimer;
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
-
-// init
-livePreview();
 </script>
 </body>
 </html>
