@@ -117,6 +117,62 @@
       width: 96px;
     }
 
+    /* ── TUTORIAL OVERLAY ── */
+    #touch-tutorial {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      pointer-events: none;
+      display: none;
+      animation: tutFadeOut 0.5s ease 3.5s forwards;
+    }
+    @keyframes tutFadeOut {
+      to { opacity: 0; }
+    }
+    /* left hint */
+    .tut-left {
+      position: absolute;
+      left: 0; top: 0;
+      width: 50%; height: 100%;
+      border: 2.5px dashed rgba(0,180,216,0.4);
+      border-radius: 0 12px 12px 0;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 8px;
+    }
+    .tut-left .tut-icon { font-size: 36px; }
+    .tut-left .tut-label {
+      font-size: 13px; font-weight: 900;
+      color: rgba(0,200,255,0.85);
+      font-family: 'Arial Black', Arial, sans-serif;
+      letter-spacing: 1px;
+    }
+    /* right hint */
+    .tut-right {
+      position: absolute;
+      right: 0; top: 0;
+      width: 50%; height: 100%;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 55px;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tut-right .tut-icon { font-size: 36px; }
+    .tut-right .tut-label {
+      font-size: 13px; font-weight: 900;
+      color: rgba(0,255,136,0.85);
+      font-family: 'Arial Black', Arial, sans-serif;
+      letter-spacing: 1px;
+    }
+    .tut-autoshoot {
+      position: absolute;
+      bottom: 160px; right: 10px;
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,220,80,0.85);
+      font-family: 'Arial Black', Arial, sans-serif;
+      text-align: center; width: 116px;
+      letter-spacing: 1px;
+    }
+
     /* ── PORTRAIT WARNING ── */
     #portrait-warn {
       display:none;
@@ -194,6 +250,19 @@
   <!-- راست: فقط jump -->
   <div id="btn-jump">▲</div>
   <div id="autoshoot-badge">🔫 AUTO</div>
+</div>
+
+<!-- Tutorial — فقط اولین بار -->
+<div id="touch-tutorial">
+  <div class="tut-left">
+    <span class="tut-icon">🕹️</span>
+    <span class="tut-label">DRAG TO MOVE</span>
+  </div>
+  <div class="tut-right">
+    <span class="tut-icon">⬆️</span>
+    <span class="tut-label">TAP TO JUMP</span>
+  </div>
+  <div class="tut-autoshoot">🔫 AUTO-SHOOT<br/>aims at enemies</div>
 </div>
 
 <div id="bottomBar"></div>
@@ -1128,6 +1197,7 @@ let joyActive   = false;
 let joyOriginX  = 0;
 let joyOriginY  = 0;
 let joyTouchId  = null;
+let joyKnobDx   = 0; // -1..1 نرمال‌شده برای smooth speed
 
 function joystickStart(cx, cy) {
   joyActive  = true;
@@ -1153,15 +1223,19 @@ function joystickMove(cx, cy) {
   joystickKnob.style.left = knobX + 'px';
   joystickKnob.style.top  = knobY + 'px';
 
-  // map to keys
+  // نرمال‌سازی برای smooth speed
+  joyKnobDx = Math.abs(dx) > DEAD_ZONE ? Math.max(-1, Math.min(1, dx / JOYSTICK_RADIUS)) : 0;
+
+  // legacy keys (برای jump logic)
   if (dx > DEAD_ZONE)        { keys['KeyD'] = true;  keys['KeyA'] = false; }
   else if (dx < -DEAD_ZONE)  { keys['KeyA'] = true;  keys['KeyD'] = false; }
   else                       { keys['KeyA'] = false;  keys['KeyD'] = false; }
 }
 
 function joystickEnd() {
-  joyActive = false;
+  joyActive  = false;
   joyTouchId = null;
+  joyKnobDx  = 0;
   keys['KeyA'] = false;
   keys['KeyD'] = false;
   joystickBase.style.display = 'none';
@@ -1194,17 +1268,74 @@ btnJump.addEventListener('touchstart', e => {
 btnJump.addEventListener('touchend',    e => { e.preventDefault(); btnJump.classList.remove('pressed'); }, {passive:false});
 btnJump.addEventListener('touchcancel', e => { btnJump.classList.remove('pressed'); }, {passive:false});
 
-// ── AUTO-SHOOT: fires every N frames in facing direction ──
-const AUTO_SHOOT_CD = 18; // frames between shots (same as pistol cd)
-let   autoShootTimer = 0;
+// ── AUTO-SHOOT: aims at nearest enemy (including upward) ──
+let autoShootTimer = 0;
+
+function getNearestTarget() {
+  // ترتیب: boss اول، بعد نزدیک‌ترین دشمن
+  let best = null, bestDist = Infinity;
+  const px = P.x + P.w/2, py = P.y + P.h/2;
+  if (boss && boss.landed) {
+    const dx = (boss.x+boss.w/2)-px, dy = (boss.y+boss.h/2)-py;
+    bestDist = Math.sqrt(dx*dx+dy*dy);
+    best = { x: boss.x+boss.w/2, y: boss.y+boss.h/2 };
+  }
+  for (const e of enemies) {
+    const dx = (e.x+e.w/2)-px, dy = (e.y+e.h/2)-py;
+    const d  = Math.sqrt(dx*dx+dy*dy);
+    if (d < bestDist) { bestDist=d; best={ x:e.x+e.w/2, y:e.y+e.h/2 }; }
+  }
+  return best;
+}
+
+function shootPlayerAimed(tx, ty) {
+  if (P.dead || P.shootCD > 0) return;
+  const gd  = GUNS[P.gunType] || GUNS.pistol;
+  const cd  = P.powerup==='rapid' ? Math.floor(gd.cd*0.4) : gd.cd;
+  const px  = P.x + P.w/2, py = P.y + 12;
+  const dx  = tx - px,     dy  = ty - py;
+  const len = Math.sqrt(dx*dx+dy*dy) || 1;
+  const spd = gd.spd;
+  const col = gd.color;
+
+  // update facing based on horizontal direction
+  if (dx > 0) P.facing = 1; else if (dx < 0) P.facing = -1;
+
+  const bx = P.x + (P.facing > 0 ? P.w+2 : -14);
+
+  if (P.powerup === 'triple') {
+    const base = Math.atan2(dy, dx);
+    for (let i=-1; i<=1; i++) {
+      const a = base + i*0.18;
+      bullets.push({x:bx,y:py,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,w:12,h:5,col,pierce:gd.pierce,explode:gd.explode,gun:P.gunType});
+    }
+  } else if (gd.count > 1) {
+    // shotgun — spread around aim direction
+    for (let i=0; i<gd.count; i++) {
+      const base  = Math.atan2(dy,dx);
+      const spread = gd.spread > 0 ? (i/(gd.count-1)-0.5)*gd.spread*2 : 0;
+      bullets.push({x:bx,y:py,vx:Math.cos(base+spread)*spd,vy:Math.sin(base+spread)*spd,w:12,h:5,col,pierce:gd.pierce,explode:gd.explode,gun:P.gunType});
+    }
+  } else {
+    bullets.push({x:bx,y:py,vx:(dx/len)*spd,vy:(dy/len)*spd,w:12,h:5,col,pierce:gd.pierce,explode:gd.explode,gun:P.gunType});
+  }
+  P.shootCD = cd;
+}
 
 function updateAutoShoot() {
   if (state !== 'playing' || !('ontouchstart' in window)) return;
   if (!P || P.dead) return;
+  const gd = GUNS[P.gunType] || GUNS.pistol;
   autoShootTimer++;
-  if (autoShootTimer >= AUTO_SHOOT_CD) {
+  if (autoShootTimer >= gd.cd) {
     autoShootTimer = 0;
-    shootPlayer(); // fires in P.facing direction (existing logic)
+    const target = getNearestTarget();
+    if (target) {
+      shootPlayerAimed(target.x, target.y);
+    } else {
+      // هیچ دشمنی نیست → شلیک به جهت facing
+      shootPlayer();
+    }
   }
 }
 
@@ -1214,11 +1345,26 @@ function setupTouchControls() {
 setupTouchControls();
 
 // Show/hide controls based on state
+let tutorialShown = false;
 function syncControlsVisibility() {
   const ctrl = document.getElementById('controls');
+  const tut  = document.getElementById('touch-tutorial');
   if (!ctrl) return;
-  const show = (state === 'playing') && ('ontouchstart' in window);
+  const isTouch = 'ontouchstart' in window;
+  const show    = (state === 'playing') && isTouch;
   ctrl.style.display = show ? 'block' : 'none';
+
+  // tutorial — فقط اولین بار که بازی شروع میشه
+  if (tut) {
+    if (show && !tutorialShown) {
+      tutorialShown = true;
+      tut.style.display = 'block';
+      // بعد از 4 ثانیه animation هیدش می‌کنه، بعدش مخفی کن
+      setTimeout(() => { tut.style.display = 'none'; }, 4200);
+    } else if (!show) {
+      tut.style.display = 'none';
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1407,7 +1553,14 @@ function updatePlayer(){
     }
     return;
   }
-  if(keys['KeyA']||keys['ArrowLeft']){P.vx=-3.8;P.facing=-1;}
+  // joystick smooth speed — اگه joystick فعاله، از مقدار dx استفاده کن
+  if (joyActive && ('ontouchstart' in window)) {
+    const rawDx   = joyKnobDx; // -1..1 نرمال‌شده
+    const speed   = 4.2;
+    P.vx = rawDx * speed;
+    if (rawDx >  0.1) P.facing =  1;
+    if (rawDx < -0.1) P.facing = -1;
+  } else if(keys['KeyA']||keys['ArrowLeft']){P.vx=-3.8;P.facing=-1;}
   else if(keys['KeyD']||keys['ArrowRight']){P.vx=3.8;P.facing=1;}
   else P.vx*=0.72;
   if((keys['KeyW']||keys['Space'])&&P.onGround){P.vy=-12.5;P.onGround=false;}
