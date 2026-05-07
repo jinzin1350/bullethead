@@ -30,13 +30,28 @@ window.PZUI = {
       if (PZ.isLoggedIn()) {
         this._onLogin();
       } else {
-        // اگه ?g=slug توی URL هست → کاربر بازیکنه، نه creator
-        // login اجباری نیست — فقط HUD رو مخفی نگه دار
         const hasGameSlug = new URLSearchParams(location.search).get('g');
         if (!hasGameSlug) {
+          // بدون slug → login اجباریه (dashboard یا مستقیم /game)
           this._showAuth();
         }
-        // اگه slug داره → بازی بدون login باز میشه، score ذخیره نمیشه
+        // با slug → guest میتونه بازی کنه بدون login
+        // یه دکمه کوچیک Login نشون بده گوشه صفحه
+        if (hasGameSlug) {
+          const loginBtn = document.createElement('div');
+          loginBtn.id = 'guest-login-btn';
+          loginBtn.style.cssText = `
+            position:fixed;top:8px;right:8px;z-index:8001;
+            padding:6px 12px;border-radius:20px;
+            background:rgba(0,180,216,0.2);border:1px solid #00b4d8;
+            color:#00b4d8;font-size:11px;font-weight:700;
+            cursor:pointer;font-family:'Arial Black',Arial,sans-serif;
+            transition:background .15s;
+          `;
+          loginBtn.textContent = '🔑 Login to save score';
+          loginBtn.onclick = () => this._showAuth();
+          document.body.appendChild(loginBtn);
+        }
       }
     });
     PZ.on('room_msg', (msg) => this._handleRoomMsg(msg));
@@ -407,6 +422,8 @@ window.PZUI = {
 
   // ── LOGIN / LOGOUT ──
   _onLogin() {
+    // guest login btn رو حذف کن
+    document.getElementById('guest-login-btn')?.remove();
     document.getElementById('pz-hud').classList.add('show');
     this._updateHUD();
     this.closePanel();

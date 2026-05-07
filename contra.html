@@ -82,9 +82,9 @@
       transform:translate(-50%,-50%);
       pointer-events:none;
     }
-    /* Jump button */
+    /* Jump button — وسط راست */
     #btn-jump{
-      position:absolute;right:110px;bottom:36px;
+      position:absolute;right:28px;bottom:36px;
       width:96px;height:96px;border-radius:50%;
       background:rgba(0,200,80,0.18);
       border:3px solid rgba(0,255,100,0.6);
@@ -95,22 +95,11 @@
       transition:background 0.08s,transform 0.08s;
     }
     #btn-jump.pressed{background:rgba(0,255,100,0.45);transform:scale(0.88);}
-    /* Shoot button */
-    #btn-shoot{
-      position:absolute;right:20px;bottom:36px;
-      width:96px;height:96px;border-radius:50%;
-      background:rgba(220,0,0,0.18);
-      border:3px solid rgba(255,60,60,0.7);
-      color:#ff4444;font-size:38px;
-      display:flex;align-items:center;justify-content:center;
-      pointer-events:auto;
-      box-shadow:0 0 18px rgba(255,60,60,0.25);
-      transition:background 0.08s,transform 0.08s;
-    }
-    #btn-shoot.pressed{background:rgba(255,60,60,0.45);transform:scale(0.88);}
+    /* Shoot button — hidden, auto-shoot active */
+    #btn-shoot{ display:none; }
     /* Aim up button */
     #btn-up{
-      position:absolute;right:220px;bottom:80px;
+      position:absolute;right:140px;bottom:80px;
       width:70px;height:70px;border-radius:50%;
       background:rgba(255,200,0,0.15);
       border:2px solid rgba(255,200,0,0.5);
@@ -267,53 +256,106 @@ function wy(y){ return y; }
 // ═══════════════════════════════════════════════════
 // Format: [worldX, y, width, height]
 // Converted from Pygame rect definitions
+// ═══════════════════════════════════════════════════
+//  WORLD ZONES — 4 مرحله متفاوت
+//  Zone 0: Jungle     (x=0    - 1600)
+//  Zone 1: Base       (x=1600 - 3200)
+//  Zone 2: Snow       (x=3200 - 5000)
+//  Zone 3: Fortress   (x=5000 - 6764)
+// ═══════════════════════════════════════════════════
+const ZONES = [
+  { name:'🌿 JUNGLE',   x:0,    endX:1600, sky0:'#061006', sky1:'#0d1a0a', platC:'#2a6010', platT:'#44aa22', groundC:'#1a4008', groundT:'#2a6010', starC:'#88ff88',  fogC:'#00440022' },
+  { name:'🏭 BASE',     x:1600, endX:3200, sky0:'#0a0a0a', sky1:'#1a1000', platC:'#444444', platT:'#666666', groundC:'#222222', groundT:'#444444', starC:'#ffcc8888', fogC:'#33220011' },
+  { name:'❄️ SNOW',     x:3200, endX:5000, sky0:'#080a18', sky1:'#0a1030', platC:'#6688aa', platT:'#aaccee', groundC:'#334466', groundT:'#6688aa', starC:'#ffffff',   fogC:'#aaccff22' },
+  { name:'🏰 FORTRESS', x:5000, endX:6764, sky0:'#0a0008', sky1:'#1a0015', platC:'#553355', platT:'#884488', groundC:'#330033', groundT:'#553355', starC:'#ff88ff',   fogC:'#88004422' },
+];
+
+function getZone(worldX) {
+  for(let i=ZONES.length-1;i>=0;i--) if(worldX>=ZONES[i].x) return ZONES[i];
+  return ZONES[0];
+}
+// zone فعلی بر اساس camera
+function currentZone() { return getZone(-camX + W/2); }
+
 const PLATFORMS_DEF = [
-  // ground
-  [0,    H-20, WORLD_W, 20],
-  // level platforms (approximated from original)
-  [300,  360,  120, 12],
-  [500,  300,  100, 12],
-  [700,  340,  80,  12],
-  [900,  280,  120, 12],
-  [1100, 320,  100, 12],
-  [1300, 260,  80,  12],
-  [1500, 300,  120, 12],
-  [1700, 240,  100, 12],
-  [1900, 350,  80,  12],
-  [2100, 290,  120, 12],
-  [2300, 230,  100, 12],
-  [2500, 310,  80,  12],
-  [2700, 260,  120, 12],
-  [2900, 380,  100, 12],
-  [3100, 300,  80,  12],
-  [3300, 240,  120, 12],
-  [3500, 320,  100, 12],
-  [3700, 270,  80,  12],
-  [3900, 350,  120, 12],
-  [4100, 290,  100, 12],
-  [4300, 230,  80,  12],
-  [4500, 310,  120, 12],
-  [4700, 260,  100, 12],
-  [4900, 380,  80,  12],
-  [5100, 300,  120, 12],
-  [5300, 240,  100, 12],
-  [5500, 320,  80,  12],
-  [5700, 270,  120, 12],
-  [5900, 350,  100, 12],
-  [6100, 290,  80,  12],
-  [6300, 240,  120, 12],
-  // raised platforms
-  [400,  200,  80,  12],
-  [800,  180,  80,  12],
-  [1200, 160,  80,  12],
-  [1600, 200,  80,  12],
-  [2000, 180,  80,  12],
-  [2400, 200,  80,  12],
-  [2800, 160,  80,  12],
-  [3200, 200,  80,  12],
-  [3600, 180,  80,  12],
-  [4000, 200,  80,  12],
-  [4400, 160,  80,  12],
+  // ── GROUND (کل جهان) ──
+  [0, H-20, WORLD_W, 20],
+
+  // ════ ZONE 0: JUNGLE (x=0-1600) ════
+  // درخت‌وار — پله‌ای بالا میره
+  [200,  H-80,  60,  12],
+  [320,  H-130, 80,  12],
+  [460,  H-80,  60,  12],
+  [580,  H-160, 100, 12],
+  [720,  H-100, 70,  12],
+  [840,  H-200, 80,  12],
+  [960,  H-130, 60,  12],
+  [1060, H-80,  90,  12],
+  [1180, H-170, 70,  12],
+  [1320, H-220, 120, 12],
+  [1440, H-130, 80,  12],
+  [1100, H-270, 60,  12],  // بالاترین نقطه jungle
+  [950,  H-310, 50,  12],
+  [800,  H-270, 60,  12],
+
+  // ════ ZONE 1: BASE (x=1600-3200) ════
+  // صاف‌تر — مثل کارخانه، platform های عریض
+  [1650, H-100, 160, 14],
+  [1850, H-60,  200, 14],
+  [2080, H-120, 140, 14],
+  [2260, H-180, 100, 14],
+  [2400, H-100, 180, 14],
+  [2620, H-60,  120, 14],
+  [2780, H-140, 160, 14],
+  [2980, H-80,  140, 14],
+  [3100, H-200, 80,  14],
+  // پله‌های بالا توی base
+  [1700, H-200, 80,  14],
+  [1820, H-280, 80,  14],
+  [1940, H-340, 80,  14],
+  [2700, H-220, 80,  14],
+  [2820, H-300, 80,  14],
+  // سکوی وسط base
+  [2200, H-260, 200, 14],
+
+  // ════ ZONE 2: SNOW (x=3200-5000) ════
+  // برفی — platform های کوچیک، فاصله زیاد (سخت‌تر)
+  [3250, H-100, 70,  12],
+  [3380, H-160, 60,  12],
+  [3500, H-100, 70,  12],
+  [3640, H-200, 50,  12],
+  [3750, H-130, 60,  12],
+  [3880, H-80,  80,  12],
+  [4020, H-180, 55,  12],
+  [4140, H-250, 60,  12],
+  [4300, H-160, 70,  12],
+  [4440, H-100, 60,  12],
+  [4580, H-220, 55,  12],
+  [4720, H-150, 70,  12],
+  [4850, H-90,  80,  12],
+  // یخچال بالا
+  [3600, H-300, 120, 12],
+  [4000, H-320, 100, 12],
+  [4400, H-340, 80,  12],
+
+  // ════ ZONE 3: FORTRESS (x=5000-6764) ════
+  // قلعه — platform های بزرگ با دیوار
+  [5050, H-80,  200, 16],
+  [5300, H-60,  150, 16],
+  [5500, H-140, 180, 16],
+  [5720, H-80,  160, 16],
+  [5920, H-180, 140, 16],
+  [6100, H-100, 120, 16],
+  [6260, H-60,  200, 16],
+  // برج‌های قلعه — platform بالا
+  [5100, H-220, 100, 16],
+  [5300, H-280, 80,  16],
+  [5550, H-320, 100, 16],
+  [5800, H-260, 80,  16],
+  [6050, H-300, 100, 16],
+  [6300, H-240, 80,  16],
+  // سکوی boss
+  [5900, H-200, 300, 16],
 ];
 
 // ═══════════════════════════════════════════════════
@@ -503,7 +545,7 @@ function updatePlayer(){
     jumpPressed=false;
   }
   // shoot
-  if(keys['KeyX']||keys['KeyJ']||P.mobileShoot) playerShoot();
+  if(keys['KeyX']||keys['KeyJ']) playerShoot();
 
   // blink/dash
   if((keys['ShiftLeft']||keys['KeyC']) && P.blinkCooldown<=0 && !P.blinking){
@@ -773,38 +815,198 @@ function updateParticles(){
 //  DRAW
 // ═══════════════════════════════════════════════════
 function drawBackground(){
-  // sky gradient
+  const z = currentZone();
+
+  // ── sky gradient ──
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#0a0a1a');
-  g.addColorStop(1,'#1a0a0a');
+  g.addColorStop(0, z.sky0);
+  g.addColorStop(1, z.sky1);
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-  // stars
-  ctx.fillStyle='#ffffff44';
+  // ── fog overlay (zone color) ──
+  if(z.fogC){
+    ctx.fillStyle=z.fogC;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  // ── stars / particles ──
+  ctx.fillStyle=z.starC+'66';
   for(let i=0;i<60;i++){
     const sx=((i*137+camX*0.1)%W+W)%W;
-    const sy=(i*97)%200;
-    ctx.fillRect(sx,sy,1,1);
+    const sy=(i*97)%180;
+    ctx.fillRect(sx,sy,i%3===0?2:1,i%3===0?2:1);
   }
 
-  // far mountains (parallax 0.2)
-  ctx.fillStyle='#1a1a2a';
-  for(let i=0;i<20;i++){
-    const mx=(i*340+(camX*0.2))%( W+200)-100;
-    const mh=60+i%3*30;
-    ctx.beginPath();
-    ctx.moveTo(mx,H-20);
-    ctx.lineTo(mx+80,H-20-mh);
-    ctx.lineTo(mx+160,H-20);
-    ctx.fill();
+  // ── zone-specific background elements ──
+  const worldX = -camX; // camera position in world
+
+  if(z.name.includes('JUNGLE')){
+    // درخت‌های انبوه
+    ctx.fillStyle='#0a2a08';
+    for(let i=0;i<18;i++){
+      const tx=((i*380+(camX*0.3))%(W+300)+W+300)%(W+300)-150;
+      // تنه
+      ctx.fillRect(tx+12,H-20-80,8,80);
+      // برگ‌ها
+      ctx.fillStyle='#1a4a12';
+      ctx.beginPath();ctx.arc(tx+16,H-20-90,28,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#246a1a';
+      ctx.beginPath();ctx.arc(tx+16,H-20-115,20,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#0a2a08';
+    }
+    // بوته‌های کوچیک
+    ctx.fillStyle='#1a3a10';
+    for(let i=0;i<25;i++){
+      const bx=((i*270+(camX*0.6))%(W+200)+W+200)%(W+200)-100;
+      ctx.beginPath();ctx.arc(bx,H-20,12+i%4*4,Math.PI,0);ctx.fill();
+    }
+
+  } else if(z.name.includes('BASE')){
+    // کارخانه — دودکش و دیوار
+    ctx.fillStyle='#1a1a1a';
+    for(let i=0;i<8;i++){
+      const bx=((i*520+(camX*0.25))%(W+400)+W+400)%(W+400)-200;
+      // ساختمان
+      ctx.fillRect(bx,H-20-120,90,120);
+      // دودکش
+      ctx.fillStyle='#111';
+      ctx.fillRect(bx+10,H-20-180,20,60);
+      ctx.fillRect(bx+55,H-20-160,20,40);
+      // دود
+      ctx.fillStyle='rgba(80,80,80,0.3)';
+      ctx.beginPath();ctx.arc(bx+20,H-20-185,15,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(bx+28,H-20-195,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#1a1a1a';
+    }
+    // پنجره‌ها
+    ctx.fillStyle='#ffcc0044';
+    for(let i=0;i<20;i++){
+      const wx2=((i*130+(camX*0.25))%(W+100)+W+100)%(W+100)-50;
+      const wy=H-20-40-Math.floor(i/5)*30;
+      ctx.fillRect(wx2,wy,10,8);
+    }
+
+  } else if(z.name.includes('SNOW')){
+    // کوه‌های برفی
+    ctx.fillStyle='#1a2a44';
+    for(let i=0;i<12;i++){
+      const mx=((i*500+(camX*0.15))%(W+400)+W+400)%(W+400)-200;
+      const mh=80+i%4*40;
+      ctx.beginPath();
+      ctx.moveTo(mx,H-20);
+      ctx.lineTo(mx+100,H-20-mh);
+      ctx.lineTo(mx+200,H-20);
+      ctx.fill();
+      // برف روی قله
+      ctx.fillStyle='#ddeeff';
+      ctx.beginPath();
+      ctx.moveTo(mx+100,H-20-mh);
+      ctx.lineTo(mx+75,H-20-mh+30);
+      ctx.lineTo(mx+125,H-20-mh+30);
+      ctx.fill();
+      ctx.fillStyle='#1a2a44';
+    }
+    // دانه‌های برف
+    ctx.fillStyle='rgba(200,220,255,0.6)';
+    for(let i=0;i<40;i++){
+      const sx=((i*173+frame*0.5+camX*0.05)%W+W)%W;
+      const sy=((i*97+frame*0.8)%(H-20)+H-20)%(H-20);
+      ctx.fillRect(sx,sy,2,2);
+    }
+
+  } else if(z.name.includes('FORTRESS')){
+    // دیوارهای قلعه تاریک
+    ctx.fillStyle='#220022';
+    for(let i=0;i<10;i++){
+      const fx=((i*600+(camX*0.2))%(W+500)+W+500)%(W+500)-250;
+      // برج
+      ctx.fillRect(fx,H-20-200,60,200);
+      ctx.fillRect(fx-10,H-20-220,80,25);
+      // برج‌های کوچیک بالا
+      ctx.fillRect(fx-5,H-20-240,15,22);
+      ctx.fillRect(fx+50,H-20-240,15,22);
+      // پنجره‌های قرمز
+      ctx.fillStyle='#ff000066';
+      ctx.fillRect(fx+22,H-20-160,16,20);
+      ctx.fillRect(fx+22,H-20-120,16,20);
+      ctx.fillStyle='#220022';
+    }
+    // جرقه‌های جادویی
+    ctx.fillStyle='rgba(200,0,255,0.4)';
+    for(let i=0;i<15;i++){
+      const sx=((i*211+frame*1.2+camX*0.1)%W+W)%W;
+      const sy=((i*137+frame*0.7)%(H/2)+50);
+      ctx.beginPath();ctx.arc(sx,sy,2+i%3,0,Math.PI*2);ctx.fill();
+    }
   }
 
-  // mid layer (parallax 0.5)
-  ctx.fillStyle='#0d1a0d';
-  for(let i=0;i<15;i++){
-    const mx=(i*450+(camX*0.5))%(W+300)-150;
-    ctx.fillRect(mx,H-20-40,30,40);
-    ctx.fillRect(mx+10,H-20-70,10,30);
+  // ── zone name banner ──
+  const zoneProgress = Math.max(0,Math.min(1,(-camX-z.x)/(z.endX-z.x)));
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.fillRect(0,H-45,W*zoneProgress,3);
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.font='bold 10px Arial Black';
+  ctx.textAlign='right';
+  ctx.fillText(z.name, W-8, H-50);
+  ctx.textAlign='left';
+}
+
+function drawPlatforms(){
+  const z = currentZone();
+  for(const [px,py,pw,ph] of PLATFORMS_DEF){
+    if(py >= H-20) continue; // ground رو جدا می‌کشیم
+    const sx=wx(px);
+    if(sx>W+10||sx+pw<-10) continue;
+
+    // shadow
+    ctx.fillStyle='#00000055';
+    ctx.fillRect(sx+3,py+4,pw,ph);
+
+    // platform body — رنگ بر اساس zone
+    const pz = getZone(px);
+    ctx.fillStyle = pz.platC;
+    ctx.fillRect(sx,py,pw,ph);
+
+    // top strip
+    ctx.fillStyle = pz.platT;
+    ctx.fillRect(sx,py,pw,4);
+
+    // zone-specific decoration
+    if(pz.name.includes('JUNGLE')){
+      // علف‌های کوچیک
+      ctx.fillStyle='#44cc22';
+      for(let bx=sx+5;bx<sx+pw-5;bx+=12){
+        ctx.fillRect(bx,py-4,2,5);
+        ctx.fillRect(bx+4,py-6,2,7);
+      }
+    } else if(pz.name.includes('BASE')){
+      // خط‌های فلزی
+      ctx.fillStyle='#00000033';
+      for(let bx=sx;bx<sx+pw;bx+=16) ctx.fillRect(bx,py,2,ph);
+      ctx.fillStyle='#ffffff11';
+      ctx.fillRect(sx,py+ph-2,pw,2);
+    } else if(pz.name.includes('SNOW')){
+      // برف روی platform
+      ctx.fillStyle='rgba(200,230,255,0.8)';
+      ctx.fillRect(sx,py,pw,4);
+      // icicles
+      ctx.fillStyle='rgba(180,220,255,0.6)';
+      for(let bx=sx+6;bx<sx+pw-4;bx+=10){
+        ctx.beginPath();
+        ctx.moveTo(bx,py+ph);
+        ctx.lineTo(bx+3,py+ph+6);
+        ctx.lineTo(bx+6,py+ph);
+        ctx.fill();
+      }
+    } else if(pz.name.includes('FORTRESS')){
+      // سنگ قلعه
+      ctx.fillStyle='#00000044';
+      for(let bx=sx;bx<sx+pw;bx+=20) ctx.fillRect(bx,py,1,ph);
+      for(let by=py;by<py+ph;by+=8)  ctx.fillRect(sx,by,pw,1);
+      // گلویی
+      ctx.fillStyle='#cc44ff33';
+      ctx.fillRect(sx,py,pw,3);
+    }
   }
 }
 
@@ -1072,15 +1274,24 @@ function drawParticles(){
 }
 
 function drawGround(){
-  // ground line
+  const z = currentZone();
   const g=ctx.createLinearGradient(0,H-20,0,H);
-  g.addColorStop(0,'#3a6e1a');
-  g.addColorStop(0.1,'#2a5010');
-  g.addColorStop(1,'#1a3008');
+  g.addColorStop(0, z.groundT);
+  g.addColorStop(0.15, z.groundC);
+  g.addColorStop(1,'#0a0a0a');
   ctx.fillStyle=g;
   ctx.fillRect(0,H-20,W,20);
-  ctx.fillStyle='#55aa22';
+  // top strip
+  ctx.fillStyle=z.groundT;
   ctx.fillRect(0,H-20,W,3);
+  // zone decoration on ground
+  if(z.name.includes('SNOW')){
+    ctx.fillStyle='rgba(200,230,255,0.5)';
+    ctx.fillRect(0,H-20,W,3);
+  } else if(z.name.includes('FORTRESS')){
+    ctx.fillStyle='rgba(150,0,200,0.2)';
+    ctx.fillRect(0,H-20,W,3);
+  }
 }
 
 function drawHUD(){
@@ -1236,9 +1447,7 @@ btnJump.addEventListener('touchstart',e=>{
 },{passive:false});
 btnJump.addEventListener('touchend',e=>{ e.preventDefault(); btnJump.classList.remove('pressed'); },{passive:false});
 
-btnShoot.addEventListener('touchstart',e=>{ e.preventDefault(); btnShoot.classList.add('pressed'); if(P)P.mobileShoot=true; },{passive:false});
-btnShoot.addEventListener('touchend',   e=>{ e.preventDefault(); btnShoot.classList.remove('pressed'); if(P)P.mobileShoot=false; },{passive:false});
-btnShoot.addEventListener('touchcancel',e=>{ btnShoot.classList.remove('pressed'); if(P)P.mobileShoot=false; },{passive:false});
+// shoot button حذف شد — auto-shoot active
 
 // btn-up — aim up while held
 const btnUp = document.getElementById('btn-up');
@@ -1246,13 +1455,77 @@ btnUp?.addEventListener('touchstart', e=>{ e.preventDefault(); btnUp.classList.a
 btnUp?.addEventListener('touchend',   e=>{ e.preventDefault(); btnUp.classList.remove('pressed'); keys['ArrowUp']=false; },{passive:false});
 btnUp?.addEventListener('touchcancel',e=>{ btnUp.classList.remove('pressed'); keys['ArrowUp']=false; },{passive:false});
 
-// auto-shoot برای موبایل
+// ── AUTO-SHOOT — aims at nearest enemy (مثل BulletHead) ──
 let _autoShootTimer = 0;
+
+function getNearestContraTarget(){
+  let best = null, bestDist = Infinity;
+  const px = P.wx + PLAYER_W/2, py = P.y + PLAYER_H/2;
+
+  // boss اول
+  if(boss && !boss.dead){
+    const dx=(boss.wx+boss.w/2)-px, dy=(boss.y+boss.h/2)-py;
+    bestDist=Math.sqrt(dx*dx+dy*dy);
+    best={x:boss.wx+boss.w/2, y:boss.y+boss.h/2};
+  }
+  // snipers
+  for(const s of snipers){
+    if(s.dead) continue;
+    const dx=(s.wx+s.w/2)-px, dy=(s.y+s.h/2)-py;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestDist){bestDist=d; best={x:s.wx+s.w/2,y:s.y+s.h/2};}
+  }
+  // soldiers
+  for(const s of soldiers){
+    const dx=(s.wx+s.w/2)-px, dy=(s.y+s.h/2)-py;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestDist){bestDist=d; best={x:s.wx+s.w/2,y:s.y+s.h/2};}
+  }
+  // tanks
+  for(const t of tanks){
+    if(t.dead) continue;
+    const dx=(t.wx+t.w/2)-px, dy=(t.y+t.h/2)-py;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestDist){bestDist=d; best={x:t.wx+t.w/2,y:t.y+t.h/2};}
+  }
+  return best;
+}
+
+function autoShootAimed(){
+  if(!P||P.dead||P.shootCD>0) return;
+  const target = getNearestContraTarget();
+  const px = P.wx + PLAYER_W/2, py = P.y + PLAYER_H/2 - 8;
+
+  let vx, vy;
+  if(target){
+    const dx=target.x-px, dy=target.y-py;
+    const len=Math.sqrt(dx*dx+dy*dy)||1;
+    vx=(dx/len)*BULLET_SPD;
+    vy=(dy/len)*BULLET_SPD;
+    // update facing
+    if(dx>0) P.facing=1; else if(dx<0) P.facing=-1;
+    // update aimY برای animation
+    P.aimY = dy < -20 ? -1 : dy > 20 ? 1 : 0;
+  } else {
+    // هیچ دشمنی نیست → در جهت facing شلیک کن
+    vx = P.facing * BULLET_SPD;
+    vy = 0;
+    P.aimY = 0;
+  }
+
+  bullets.push({
+    wx: P.wx+(P.facing>0?PLAYER_W+2:-10),
+    y:  py,
+    vx, vy, w:8, h:8,
+  });
+  P.shootCD = 14;
+}
+
 function updateAutoShoot(){
   if(state!=='playing'||!('ontouchstart' in window)) return;
   if(!P||P.dead) return;
   _autoShootTimer++;
-  if(_autoShootTimer >= 14){ _autoShootTimer=0; playerShoot(); }
+  if(_autoShootTimer >= 14){ _autoShootTimer=0; autoShootAimed(); }
 }
 
 let _tutorialShown = false;
