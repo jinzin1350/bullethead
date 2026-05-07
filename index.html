@@ -2840,6 +2840,11 @@ function loop(){
     updatePowerups();updateParticles();updateSpawner();
     updateBoss();updateAutoShoot();
     updateRewardTimer();updatePlatTransition();
+    // 2-player
+    if(MP.active){
+      if(MP.isHost){ MP.updateP2(); MP.broadcastState(); }
+      else { MP.sendInput(); }
+    }
     if(bossDefeatedTimer>0) bossDefeatedTimer--;
     if(bossFlashTimer>0)    bossFlashTimer--;
 
@@ -2852,6 +2857,7 @@ function loop(){
     drawPowerups();drawEnemies();drawBullets();
     drawBoss();
     drawPlayer();
+    if(MP.active) MP.drawRemotePlayer();
     drawFloatingTexts();drawHUD();
     drawBossHUD();
 
@@ -2883,6 +2889,242 @@ function loop(){
   }
   requestAnimationFrame(loop);
 }
+
+// ═══════════════════════════════════════════════
+//  2-PLAYER ONLINE ENGINE
+// ═══════════════════════════════════════════════
+const MP = {
+  active:   false,
+  isHost:   false,   // true = Player1 (host), false = Player2 (guest)
+  roomCode: null,
+  channel:  null,
+  p2:       null,    // وضعیت player 2 (برای host که render کنه)
+  syncTimer: 0,
+  SYNC_INTERVAL: 6,  // هر 6 فریم = 100ms @ 60fps
+
+  // شروع session
+  async init(roomCode) {
+    this.roomCode = roomCode;
+    // بررسی host یا guest
+    const { data: room } = await sb.from('game_sessions')
+      .select('*').eq('room_code', roomCode).single();
+    if (!room) return;
+
+    const { data: { user } } = await sb.auth.getSession();
+    const uid = user?.user?.id;
+    this.isHost = (room.player1_id === uid);
+    this.active = true;
+
+    // channel broadcast
+    this.channel = sb.channel('mp:' + roomCode)
+      .on('broadcast', { event: 'state' }, ({ payload }) => {
+        if (this.isHost) {
+          // host: دریافت input از guest
+          this._applyGuestInput(payload);
+        } else {
+          // guest: دریافت state کامل از host
+          this._applyHostState(payload);
+        }
+      })
+      .subscribe();
+
+    // نشون بده
+    if (this.isHost) {
+      floatText(W/2, H/2-30, '👥 2P Host — Friend connected!', '#00ff88');
+    } else {
+      floatText(W/2, H/2-30, '👥 2P Guest — Connected to host!', '#00b4d8');
+    }
+  },
+
+  // Host: broadcast state هر N فریم
+  broadcastState() {
+    if (!this.active || !this.isHost) return;
+    this.syncTimer++;
+    if (this.syncTimer < this.SYNC_INTERVAL) return;
+    this.syncTimer = 0;
+
+    this.channel.send({
+      type: 'broadcast', event: 'state',
+      payload: {
+        // state بازی
+        P2pos: this.p2 ? { x:this.p2.x, y:this.p2.y, vx:this.p2.vx, vy:this.p2.vy,
+                           facing:this.p2.facing, lives:this.p2.lives,
+                           dead:this.p2.dead, invincible:this.p2.invincible,
+                           shirt:this.p2.shirt, walkFrame:this.p2.walkFrame } : null,
+        Ppos:  { x:P.x, y:P.y, vx:P.vx, vy:P.vy,
+                 facing:P.facing, lives:P.lives,
+                 dead:P.dead, invincible:P.invincible,
+                 shirt:P.shirt, walkFrame:P.walkFrame },
+        enemies: enemies.map(e=>({ x:e.x, y:e.y, hp:e.hp, maxHp:e.maxHp, col:e.col })),
+        bullets: bullets.map(b=>({ x:b.x, y:b.y, col:b.col })),
+        eBullets: eBullets.map(b=>({ x:b.x, y:b.y })),
+        score, level, state,
+        boss: boss ? { x:boss.x, y:boss.y, hp:boss.hp, maxHp:boss.maxHp,
+                       w:boss.w, h:boss.h, skin:boss.skin } : null,
+      }
+    });
+  },
+
+  // Guest: فرستادن input به host
+  sendInput() {
+    if (!this.active || this.isHost) return;
+    this.syncTimer++;
+    if (this.syncTimer < this.SYNC_INTERVAL) return;
+    this.syncTimer = 0;
+
+    this.channel.send({
+      type: 'broadcast', event: 'state',
+      payload: {
+        type: 'input',
+        keys: {
+          left:  !!(keys['KeyA']||keys['ArrowLeft']||joyDx<-0.1),
+          right: !!(keys['KeyD']||keys['ArrowRight']||joyDx>0.1),
+          jump:  !!(keys['KeyW']||keys['Space']),
+          shoot: !!(keys['KeyJ']||keys['KeyS']||keys['KeyX']),
+        }
+      }
+    });
+  },
+
+  // Host: اعمال input guest
+  _applyGuestInput(payload) {
+    if (payload.type !== 'input' || !this.p2) return;
+    const k = payload.keys;
+    if (!this.p2.dead) {
+      if (k.left)  { this.p2.vx=-3.8; this.p2.facing=-1; }
+      else if (k.right) { this.p2.vx=3.8;  this.p2.facing=1; }
+      else this.p2.vx *= 0.72;
+      if (k.jump && this.p2.onGround) {
+        this.p2.vy=-12.5; this.p2.onGround=false;
+      }
+      if (k.shoot) this._shootP2();
+    }
+  },
+
+  // Guest: اعمال state از host
+  _applyHostState(payload) {
+    if (payload.type === 'input') return;
+    // host position → P (من = player 2 از دید guest)
+    if (payload.P2pos) {
+      P.x=payload.P2pos.x; P.y=payload.P2pos.y;
+      P.facing=payload.P2pos.facing; P.lives=payload.P2pos.lives;
+      P.dead=payload.P2pos.dead; P.invincible=payload.P2pos.invincible;
+      P.shirt=payload.P2pos.shirt; P.walkFrame=payload.P2pos.walkFrame;
+    }
+    // host pos → p1Remote (player 1 رو render کنه)
+    if (payload.Ppos) this.p2 = payload.Ppos;
+    // دشمن‌ها
+    if (payload.enemies) {
+      enemies = payload.enemies.map(e=>({
+        ...e, w:24, h:36, vx:0, vy:0, phase:0,
+        hitFlash:0, walkFrame:0, walkTimer:0,
+        sTimer:0, sRate:100, pts:100
+      }));
+    }
+    if (payload.bullets)  bullets  = payload.bullets.map(b=>({...b,w:12,h:5,vx:1,vy:0}));
+    if (payload.eBullets) eBullets = payload.eBullets.map(b=>({...b,w:9,h:9,vx:0,vy:0}));
+    if (payload.score !== undefined) score = payload.score;
+    if (payload.level !== undefined) level = payload.level;
+    if (payload.boss) boss = payload.boss;
+  },
+
+  // Host: شلیک P2
+  _shootP2() {
+    if (!this.p2 || this.p2.shootCD > 0) return;
+    const gd = GUNS[selGun] || GUNS.pistol;
+    bullets.push({
+      x: this.p2.x + (this.p2.facing>0 ? PLAYER_W+2 : -14),
+      y: this.p2.y + 12,
+      vx: this.p2.facing * gd.spd, vy: 0,
+      w:12, h:5, col: '#ff44aa',
+      pierce: gd.pierce, explode: gd.explode, gun: selGun
+    });
+    this.p2.shootCD = gd.cd;
+  },
+
+  // Host: update P2 physics
+  updateP2() {
+    if (!this.active || !this.isHost || !this.p2) return;
+    const p2 = this.p2;
+    p2.vy = Math.min((p2.vy||0) + 0.55, 15);
+    p2.x  = (p2.x||290) + (p2.vx||0);
+    p2.y  = (p2.y||395) + p2.vy;
+    if (p2.x < 0) p2.x=0;
+    if (p2.x+24 > W) p2.x=W-24;
+    if (p2.y > H+60) { p2.y=395; p2.vy=0; }
+    applyPlatformLanding(p2);
+    if ((p2.shootCD||0)>0) p2.shootCD--;
+    if ((p2.invincible||0)>0) p2.invincible--;
+    if (Math.abs(p2.vx)>0.5&&p2.onGround) {
+      p2.walkTimer=(p2.walkTimer||0)+1;
+      if(p2.walkTimer>8){p2.walkTimer=0;p2.walkFrame^=1;}
+    } else p2.walkFrame=0;
+  },
+
+  // Host: ایجاد P2 وقتی guest وصل شد
+  spawnP2() {
+    this.p2 = {
+      x:330, y:395, w:24, h:36,
+      vx:0, vy:0, onGround:false, facing:-1,
+      lives:5, shootCD:0, invincible:0,
+      dead:false, walkFrame:0, walkTimer:0,
+      shirt:'#ff44aa', pants:'#001a66',
+      hat:'#333333', shoes:'#001a66',
+    };
+  },
+
+  // رسم P2 (هم host هم guest)
+  drawRemotePlayer() {
+    const remote = this.p2;
+    if (!remote) return;
+    if (remote.dead) return;
+    if (remote.invincible>0 && Math.floor(remote.invincible/5)%2===0) return;
+
+    // گلو برای تشخیص
+    ctx.shadowColor='#ff44aa'; ctx.shadowBlur=15;
+    drawRobloxChar(
+      Math.round(remote.x), Math.round(remote.y),
+      remote.shirt||'#ff44aa', '#001a66', '#ffcc99', '#333333',
+      remote.facing||1, remote.walkFrame||0, 1, false
+    );
+    ctx.shadowBlur=0;
+
+    // اسم بالای سر
+    ctx.fillStyle='#ff44aa'; ctx.font='bold 10px Arial Black';
+    ctx.textAlign='center';
+    ctx.fillText('P2', remote.x+12, remote.y-6);
+    ctx.textAlign='left';
+
+    // HP
+    for(let i=0;i<Math.max(0,remote.lives||0);i++){
+      ctx.fillStyle='#ff44aa';
+      ctx.font='11px Arial';
+      ctx.textAlign='right';
+      ctx.fillText('♥', W-10-i*16, 56);
+    }
+    ctx.textAlign='left';
+  },
+
+  cleanup() {
+    if (this.channel) { sb.removeChannel(this.channel); this.channel=null; }
+    this.active=false; this.isHost=false; this.roomCode=null;
+    this.p2=null; this.syncTimer=0;
+  }
+};
+
+// ── Check ?room=CODE در URL ──
+(async function checkRoom() {
+  const params   = new URLSearchParams(location.search);
+  const roomCode = params.get('room');
+  if (!roomCode) return;
+  // کمی صبر کن تا auth لود بشه
+  setTimeout(async () => {
+    await MP.init(roomCode);
+    if (MP.active && MP.isHost) MP.spawnP2();
+    // شروع بازی
+    if (state === 'title') startGame();
+  }, 1500);
+})();
 
 loadGameConfig().then(() => {
   initPlatform(); // PZUI.inject با config درست
