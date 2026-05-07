@@ -4,12 +4,12 @@
 //  Handles: Auth, Coins, XP, Shop, Profile, Leaderboard, 2-Player
 // ═══════════════════════════════════════════════════════════════
 
-const SUPA_URL = 'https://oshkqzxmnqvbfkuvxwbc.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk';
+const _PZ_SUPA_URL = 'https://oshkqzxmnqvbfkuvxwbc.supabase.co';
+const _PZ_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaGtxenhtbnF2YmZrdXZ4d2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU5OTYsImV4cCI6MjA5MzM5MTk5Nn0.dkTO5a402Xa3AZMUDo53WDTFBSz4tny9o5-Mpsljlgk';
 
-// ── Supabase client (works if loaded via CDN or already available) ──
+// ── Supabase client — از instance موجود استفاده کن یا جدید بساز ──
 const _sb = (typeof supabase !== 'undefined')
-  ? supabase.createClient(SUPA_URL, SUPA_KEY)
+  ? supabase.createClient(_PZ_SUPA_URL, _PZ_SUPA_KEY)
   : null;
 
 // ═══════════════════════════════════════════════════════════════

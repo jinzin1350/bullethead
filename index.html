@@ -2889,7 +2889,12 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-loadGameConfig().then(() => loop());
+loadGameConfig().then(() => {
+  // حالا GAME_CFG لود شده — platform رو update کن
+  PZUI.gameName = GAME_CFG.game_title || 'BulletHead';
+  PZUI.gameSlug = GAME_CFG.slug       || 'bullethead';
+  loop();
+});
 </script>
 </body>
 </html>
