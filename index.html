@@ -524,11 +524,15 @@ const ENEMY_PALETTES=[
   {body:'#44ff88',dark:'#009944',head:'#ffcc99'},
 ];
 function getEnemyDef(){
+  const d = difficultyWave();
   return {
-    spd:  0.9+level*0.15,
-    hp:   level<3?1:level<7?2:3,
-    sRate:Math.max(50,200-level*10),
-    pts:  60+level*25,
+    // سرعت: آسون 0.9، سخت 2.2 — موجی
+    spd:  0.9 + d * 1.3,
+    // HP: لول‌های آسون 1، لول‌های میانی 2، لول‌های سخت 3
+    hp:   d < 0.35 ? 1 : d < 0.7 ? 2 : 3,
+    // نرخ شلیک: آسون هر 220 فریم، سخت هر 55 فریم
+    sRate: Math.round(220 - d * 165),
+    pts:  60 + level * 25,
     col:  ENEMY_PALETTES[(level-1)%ENEMY_PALETTES.length],
   };
 }
@@ -698,12 +702,40 @@ function burst(x,y,color,n){
 function floatText(x,y,text,color){ floatingTexts.push({x,y,text,color,life:70,maxLife:70}); }
 
 // ═══════════════════════════════════════════════
-//  SPAWNER
+//  SPAWNER  — sinusoidal difficulty
+//
+//  ایده: سختی به جای خطی، موجی (sinusoidal) هست
+//  هر ~6 لول یه چرخه کامل:
+//    - 3 لول اول: سخت‌تر میشه
+//    - 1 لول: نفس (آروم‌تر)
+//    - دوباره...
+//  با trend کلی که به تدریج بالا میره
 // ═══════════════════════════════════════════════
 let spawnTimer=0;
-function spawnInterval(){ return Math.max(38,135-level*7); }
-function maxOnScreen(){   return Math.min(3+Math.floor(level/2),10); }
-function killTarget(){    return level; }
+
+// مقدار سختی بین 0 (آسون) تا 1 (سخت)
+function difficultyWave(){
+  const trend  = Math.min(1, (level-1) / 30);          // trend کلی: لول 1→0، لول 30→1
+  const wave   = Math.sin((level-1) * Math.PI / 3);    // موج هر 6 لول یه دوره
+  // wave بین -1 و 1 — نرمالایز به 0..1
+  const waveN  = (wave + 1) / 2;
+  // ترکیب: 60% trend + 40% wave
+  return Math.max(0, Math.min(1, trend*0.6 + waveN*0.4));
+}
+
+function spawnInterval(){
+  const d = difficultyWave();
+  // آسون: 160 فریم، سخت: 45 فریم
+  return Math.round(160 - d * 115);
+}
+
+function maxOnScreen(){
+  const d = difficultyWave();
+  // آسون: 2 دشمن، سخت: 8 دشمن
+  return Math.round(2 + d * 6);
+}
+
+function killTarget(){ return Math.max(1, level); }
 
 // ═══════════════════════════════════════════════
 //  GAME FLOW
