@@ -1046,13 +1046,35 @@ async function doSignup() {
 }
 
 async function doLogout() {
-  await sb.auth.signOut();
+  try {
+    // هر دو client رو sign out کن
+    await sb.auth.signOut({ scope: 'global' });
+  } catch(e) {}
+
+  // localStorage Supabase session رو پاک کن
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-') || key.includes('supabase')) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  // reset UI
   document.getElementById('dashboard-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.display    = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value  = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = '🔑 Login';
 }
 
 sb.auth.onAuthStateChange((event, session) => {
-  if (session) showDashboard();
+  if (event === 'SIGNED_IN' && session) {
+    showDashboard();
+  } else if (event === 'SIGNED_OUT') {
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display    = 'flex';
+  }
 });
 
 async function showDashboard() {
