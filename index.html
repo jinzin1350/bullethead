@@ -548,6 +548,281 @@ function spawnEnemy(){
 }
 
 // ═══════════════════════════════════════════════
+//  BOSS
+// ═══════════════════════════════════════════════
+let boss = null;
+let bossWarningTimer = 0;   // countdown قبل از ظهور boss
+let bossDefeatedTimer = 0;  // banner بعد از کشتن
+let bossFlashTimer = 0;     // screen flash هنگام ورود
+let bossShakeTimer = 0;     // screen shake وقتی ضربه میخوره
+
+function isBossLevel(){ return level>0 && level%5===0; }
+
+function spawnBoss(){
+  const hp = level * 18;
+  boss = {
+    x: W/2 - 36, y: -120,       // از بالا میاد پایین
+    w: 72, h: 108,               // 3x بزرگتر
+    vx: 1.4, vy: 0,
+    targetY: 80,                 // جای نهایی‌اش
+    landed: false,
+    hp, maxHp: hp,
+    sTimer: 0,
+    phase: 0,                    // انیمیشن sinusoidal
+    hitFlash: 0,
+    attackMode: 0,               // 0=targeted, 1=spiral, 2=spread
+    attackTimer: 0,
+    spiralAngle: 0,
+    enraged: false,              // phase 2 — HP < 50%
+    walkFrame: 0, walkTimer: 0,
+    smokeTimer: 0,
+  };
+}
+
+function updateBoss(){
+  if(!boss) return;
+
+  // ── entry: سقوط از بالا ──
+  if(!boss.landed){
+    boss.vy += 0.6;
+    boss.y  += boss.vy;
+    if(boss.y >= boss.targetY){ boss.y = boss.targetY; boss.vy = 0; boss.landed = true; bossFlashTimer = 18; bossShakeTimer = 22; burst(boss.x+boss.w/2, boss.y+boss.h, '#ff2200', 30); }
+    return;
+  }
+
+  // enrage check
+  const rage = boss.hp / boss.maxHp < 0.5;
+  if(rage && !boss.enraged){ boss.enraged = true; floatText(boss.x+boss.w/2, boss.y-20, '😡 ENRAGED!', '#ff2200'); burst(boss.x+boss.w/2,boss.y+boss.h/2,'#ff0000',25); }
+
+  // حرکت sinusoidal
+  boss.phase += boss.enraged ? 0.032 : 0.018;
+  boss.x     += boss.vx * (boss.enraged ? 1.6 : 1);
+  boss.y      = boss.targetY + Math.sin(boss.phase) * 28;
+  if(boss.x < 20)          { boss.x = 20;        boss.vx = Math.abs(boss.vx); }
+  if(boss.x+boss.w > W-20) { boss.x = W-20-boss.w; boss.vx = -Math.abs(boss.vx); }
+
+  // walk anim
+  boss.walkTimer++; if(boss.walkTimer>6){boss.walkTimer=0;boss.walkFrame^=1;}
+
+  // smoke particles (phase 2)
+  if(boss.enraged){ boss.smokeTimer++; if(boss.smokeTimer%8===0) burst(boss.x+boss.w/2,boss.y+boss.h/2,'#ff4400',3); }
+
+  // hit flash
+  if(boss.hitFlash>0) boss.hitFlash--;
+  if(bossShakeTimer>0) bossShakeTimer--;
+
+  // ── ATTACK ──
+  if(!P.dead){
+    // collision
+    if(P.invincible===0 && overlap(boss,P)) hitPlayer();
+
+    boss.sTimer++;
+    const rate = boss.enraged ? 38 : 65;
+
+    if(boss.sTimer >= rate){
+      boss.sTimer = 0;
+      boss.attackMode = (boss.attackMode+1) % 3;
+      const bx = boss.x+boss.w/2, by = boss.y+boss.h/2;
+      const dx = (P.x+P.w/2)-bx, dy = (P.y+P.h/2)-by;
+      const d  = Math.sqrt(dx*dx+dy*dy)||1;
+      const spd = boss.enraged ? 4.5 : 3.2;
+
+      if(boss.attackMode === 0){
+        // targeted — aim at player + 2 side shots
+        eBullets.push({x:bx,y:by,vx:(dx/d)*spd,   vy:(dy/d)*spd,   w:11,h:11,boss:true});
+        eBullets.push({x:bx,y:by,vx:(dx/d)*spd*0.8+1.5,vy:(dy/d)*spd*0.8,w:9,h:9,boss:true});
+        eBullets.push({x:bx,y:by,vx:(dx/d)*spd*0.8-1.5,vy:(dy/d)*spd*0.8,w:9,h:9,boss:true});
+      } else if(boss.attackMode === 1){
+        // spiral — 6 directions
+        const count = boss.enraged ? 8 : 6;
+        for(let i=0;i<count;i++){
+          const a = boss.spiralAngle + (Math.PI*2/count)*i;
+          eBullets.push({x:bx,y:by,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,w:9,h:9,boss:true});
+        }
+        boss.spiralAngle += Math.PI/8;
+      } else {
+        // spread — shotgun style 5 bullets
+        for(let i=-2;i<=2;i++){
+          const a = Math.atan2(dy,dx) + i*0.28;
+          eBullets.push({x:bx,y:by,vx:Math.cos(a)*(spd+0.5),vy:Math.sin(a)*(spd+0.5),w:10,h:10,boss:true});
+        }
+      }
+    }
+  }
+
+  // کشته شد
+  if(boss.hp <= 0){
+    const bossCoins = Math.ceil(boss.maxHp/2);
+    score += boss.maxHp * 8;
+    kills++;
+    gameOverCoinsEarned += bossCoins;
+    coins += bossCoins;
+    saveAll();
+    burst(boss.x+boss.w/2, boss.y+boss.h/2, '#ff2200', 40);
+    burst(boss.x+boss.w/2, boss.y+boss.h/2, '#ffcc00', 30);
+    burst(boss.x+boss.w/2, boss.y+boss.h/2, '#ffffff', 20);
+    floatText(boss.x+boss.w/2, boss.y, '💀 BOSS DOWN!', '#ff2200');
+    floatText(boss.x+boss.w/2, boss.y-24, '🪙+'+coins, '#ffcc44');
+    // power-up تضمینی
+    dropPowerup(boss.x+boss.w/2, boss.y+boss.h/2, ['rapid','triple','shield'][Math.floor(Math.random()*3)]);
+    boss = null;
+    bossDefeatedTimer = 180;
+    // level up بعد از boss
+    doLevelUp();
+  }
+}
+
+function hitBoss(dmg){
+  if(!boss) return false;
+  boss.hp  -= dmg||1;
+  boss.hitFlash = 10;
+  bossShakeTimer = 8;
+  burst(boss.x+boss.w/2, boss.y+boss.h/2, '#ff6600', 6);
+  return true;
+}
+
+// draw boss
+function drawBoss(){
+  if(!boss) return;
+
+  const flash = boss.hitFlash > 0;
+  const rage  = boss.enraged;
+
+  // screen shake offset
+  const sx = bossShakeTimer>0 ? (Math.random()-0.5)*6 : 0;
+  const sy = bossShakeTimer>0 ? (Math.random()-0.5)*6 : 0;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  // glow aura
+  ctx.shadowColor = rage ? '#ff0000' : '#cc0033';
+  ctx.shadowBlur  = flash ? 50 : (rage ? 35 : 20) + Math.sin(frame*0.1)*8;
+
+  const bx = boss.x, by = boss.y;
+  const bw = boss.w, bh = boss.h;
+  const cx2 = bx + bw/2;
+
+  const s = c => flash ? '#ffffff' : c;
+
+  // ── BODY ──
+  // torso
+  ctx.fillStyle = s(rage?'#880000':'#aa0022');
+  ctx.fillRect(bx+8,  by+36, bw-16, 36);
+
+  // arms
+  const aw = boss.walkFrame ? 4 : -4;
+  ctx.fillStyle = s(rage?'#770000':'#990011');
+  ctx.fillRect(bx-10, by+36+aw, 14, 30);
+  ctx.fillRect(bx+bw-4, by+36-aw, 14, 30);
+
+  // legs
+  const lL = boss.walkFrame?8:0, lR = boss.walkFrame?0:8;
+  ctx.fillStyle = s('#440000');
+  ctx.fillRect(bx+8,  by+72, 22, 26+lL);
+  ctx.fillRect(bx+bw-30, by+72, 22, 26+lR);
+
+  // shoes
+  ctx.fillStyle = s('#220000');
+  ctx.fillRect(bx+6,  by+98+lL, 24, 8);
+  ctx.fillRect(bx+bw-32, by+98+lR, 24, 8);
+
+  // ── HEAD (bigger, scary) ──
+  ctx.fillStyle = s(rage?'#cc0000':'#dd1133');
+  ctx.fillRect(bx+6, by, bw-12, 38);
+
+  // horns
+  ctx.fillStyle = s('#660000');
+  ctx.fillRect(bx+8,  by-14, 10, 16);
+  ctx.fillRect(bx+bw-18, by-14, 10, 16);
+  ctx.fillRect(bx+6,  by-8,  8,  10);
+  ctx.fillRect(bx+bw-14, by-8, 8,  10);
+
+  // eyes — glowing red
+  const eyeGlow = Math.sin(frame*0.15)*0.5+0.5;
+  ctx.shadowColor = '#ff0000';
+  ctx.shadowBlur  = 15 + eyeGlow*15;
+  ctx.fillStyle   = s(rage?'#ffff00':'#ff4400');
+  ctx.fillRect(bx+12, by+8,  16, 14);
+  ctx.fillRect(bx+bw-28, by+8, 16, 14);
+  ctx.fillStyle = s('#000');
+  ctx.fillRect(bx+16, by+11, 8, 8);
+  ctx.fillRect(bx+bw-24, by+11, 8, 8);
+  // pupils
+  ctx.fillStyle = s(rage?'#ff0000':'#ff6600');
+  ctx.fillRect(bx+18, by+13, 4, 4);
+  ctx.fillRect(bx+bw-22, by+13, 4, 4);
+
+  // teeth
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = s('#ffffff');
+  for(let i=0;i<5;i++){
+    ctx.fillRect(bx+10+i*10, by+28, 6, 10);
+  }
+  ctx.fillStyle = s('#cccccc');
+  for(let i=0;i<4;i++){
+    ctx.fillRect(bx+15+i*10, by+36, 5, 7);
+  }
+
+  // scars
+  if(!flash){
+    ctx.strokeStyle='#660000'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(bx+22,by+12); ctx.lineTo(bx+28,by+22); ctx.stroke();
+  }
+
+  // ── HP BAR (روی boss) ──
+  ctx.shadowBlur = 0;
+  const barW = bw+20, barX = bx-10, barY = by-28;
+  ctx.fillStyle = '#222'; ctx.fillRect(barX, barY, barW, 10);
+  const pct = boss.hp/boss.maxHp;
+  const barCol = pct>0.5?'#ff4400': pct>0.25?'#ff8800':'#ff0000';
+  ctx.fillStyle = barCol;
+  ctx.shadowColor = barCol; ctx.shadowBlur = 8;
+  ctx.fillRect(barX, barY, barW*pct, 10);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
+  ctx.fillText(boss.hp+'/'+boss.maxHp, bx+bw/2, barY-3);
+
+  ctx.restore();
+  ctx.shadowBlur=0;
+}
+
+// draw boss health bar top of screen
+function drawBossHUD(){
+  if(!boss || !boss.landed) return;
+  const pct  = boss.hp/boss.maxHp;
+  const rage = boss.enraged;
+  const barW = W-60, barX = 30;
+
+  // background strip
+  ctx.fillStyle = '#00000099';
+  ctx.fillRect(0, 48, W, 32);
+
+  // label
+  ctx.textAlign='center';
+  ctx.fillStyle = rage?'#ff4400':'#ff2244';
+  ctx.font='bold 11px Arial Black';
+  ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=8;
+  ctx.fillText((rage?'😡 ':'💀 ')+'BOSS  LVL '+level+(rage?' — ENRAGED!':''), W/2, 60);
+  ctx.shadowBlur=0;
+
+  // bar track
+  ctx.fillStyle='#330000'; ctx.fillRect(barX, 63, barW, 10);
+  // bar fill
+  const col = pct>0.5?'#ff4400':pct>0.25?'#ff8800':'#ff0000';
+  ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=10;
+  ctx.fillRect(barX, 63, barW*pct, 10);
+  ctx.shadowBlur=0;
+
+  // pulse border when enraged
+  if(rage && Math.floor(frame/8)%2===0){
+    ctx.strokeStyle='#ff0000'; ctx.lineWidth=2;
+    ctx.strokeRect(barX-1,62,barW+2,12);
+  }
+  ctx.textAlign='left';
+}
+
+// ═══════════════════════════════════════════════
 //  POWER-UPS
 // ═══════════════════════════════════════════════
 let powerups=[];
@@ -756,6 +1031,7 @@ function startGame(){
   rewardTimer=0;rewardBurstTimer=0;
   gameOverCoinsEarned=0;
   bonusGiven=false;
+  boss=null;bossWarningTimer=0;bossDefeatedTimer=0;bossFlashTimer=0;bossShakeTimer=0;
   currentThemeIdx=0;
   PLAT_LAYOUT=ALL_LAYOUTS[0].map(p=>({...p,isGround:!!p.isGround}));
   platLayoutIdx=0;platTransition=0;platOldLayout=platNewLayout=null;
@@ -892,10 +1168,22 @@ function updateBullets(){
   bullets=bullets.filter(b=>{
     b.x+=b.vx;b.y+=b.vy;
     if(b.x<-20||b.x>W+20||b.y<-20||b.y>H+20)return false;
+
+    // boss hit check
+    if(boss && boss.landed && overlap(b, boss)){
+      if(b.explode){
+        // rocket AOE روی boss
+        hitBoss(4);
+        burst(b.x,b.y,'#ff6600',20);
+        return false;
+      }
+      hitBoss(1);
+      return b.pierce;
+    }
+
     for(let i=enemies.length-1;i>=0;i--){
       if(overlap(b,enemies[i])){
         if(b.explode){
-          // Rocket AOE
           for(let j=enemies.length-1;j>=0;j--){
             if(Math.hypot(enemies[j].x-b.x,enemies[j].y-b.y)<70){
               enemies[j].hp--;enemies[j].hitFlash=8;
@@ -908,7 +1196,7 @@ function updateBullets(){
         enemies[i].hp--;enemies[i].hitFlash=8;
         burst(b.x,b.y,enemies[i].col.body,5);
         if(enemies[i].hp<=0){onKill(enemies[i]);enemies.splice(i,1);}
-        return b.pierce; // piercing bullets continue
+        return b.pierce;
       }
     }
     return true;
@@ -945,7 +1233,27 @@ function updateParticles(){
   floatingTexts=floatingTexts.filter(t=>{t.y-=0.8;t.life--;return t.life>0;});
 }
 
-function updateSpawner(){ spawnTimer++;if(spawnTimer>=spawnInterval()&&enemies.length<maxOnScreen()){spawnTimer=0;spawnEnemy();} }
+function updateSpawner(){
+  // boss level — فقط boss، دشمن معمولی spawn نمیشه
+  if(isBossLevel()){
+    if(!boss && bossWarningTimer===0 && bossDefeatedTimer===0){
+      // اولین بار تو این لول → warning شروع کن
+      bossWarningTimer = 120;
+      enemies = []; // همه دشمن‌های موجود رو پاک کن
+      eBullets = [];
+    }
+    if(bossWarningTimer>0){
+      bossWarningTimer--;
+      if(bossWarningTimer===0) spawnBoss();
+    }
+    return;
+  }
+  // لول معمولی
+  spawnTimer++;
+  if(spawnTimer>=spawnInterval()&&enemies.length<maxOnScreen()){
+    spawnTimer=0;spawnEnemy();
+  }
+}
 function updateRewardTimer(){
   if(P.dead)return;
   rewardTimer++;if(rewardTimer>=600){rewardTimer=0;spawnGuaranteedReward();}
@@ -1843,11 +2151,51 @@ function loop(){
   } else {
     updatePlayer();updateEnemies();updateBullets();
     updatePowerups();updateParticles();updateSpawner();
+    updateBoss();
     updateRewardTimer();updatePlatTransition();
+    if(bossDefeatedTimer>0) bossDefeatedTimer--;
+    if(bossFlashTimer>0)    bossFlashTimer--;
+
+    // screen flash هنگام ورود boss
+    if(bossFlashTimer>0){
+      ctx.fillStyle=`rgba(255,0,0,${bossFlashTimer/18*0.45})`;
+      ctx.fillRect(0,0,W,H);
+    }
 
     drawBackground();drawPlatforms();drawParticles();
-    drawPowerups();drawEnemies();drawBullets();drawPlayer();
+    drawPowerups();drawEnemies();drawBullets();
+    drawBoss();
+    drawPlayer();
     drawFloatingTexts();drawHUD();
+    drawBossHUD();
+
+    // boss warning banner
+    if(bossWarningTimer>0){
+      const a=Math.min(1,bossWarningTimer/30);
+      const pulse=Math.floor(frame/10)%2===0;
+      ctx.globalAlpha=a;
+      ctx.fillStyle=pulse?'#ff0000':'#cc0000';
+      ctx.font='bold 36px Arial Black';
+      ctx.textAlign='center';
+      ctx.shadowColor='#ff0000'; ctx.shadowBlur=40;
+      ctx.fillText('⚠️  BOSS INCOMING!  ⚠️',W/2,H/2-20);
+      ctx.font='bold 16px Arial Black';
+      ctx.fillStyle='#ffcc00';
+      ctx.fillText('LVL '+level+' BOSS — Get Ready!',W/2,H/2+18);
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
+    }
+
+    // boss defeated banner
+    if(bossDefeatedTimer>0){
+      const a=Math.min(1,bossDefeatedTimer/30);
+      ctx.globalAlpha=a;
+      ctx.font='bold 38px Arial Black'; ctx.textAlign='center';
+      ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=40;
+      ctx.fillText('🎉  BOSS DEFEATED!',W/2,H/2);
+      ctx.font='bold 16px Arial Black'; ctx.fillStyle='#00ff88'; ctx.shadowColor='#00ff88'; ctx.shadowBlur=20;
+      ctx.fillText('Bonus coins collected!',W/2,H/2+36);
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='left';
+    }
   }
   requestAnimationFrame(loop);
 }
