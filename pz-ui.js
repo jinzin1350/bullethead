@@ -40,6 +40,9 @@ window.PZUI = {
       }
     });
     PZ.on('room_msg', (msg) => this._handleRoomMsg(msg));
+
+    // حالا که همه listeners ست شدن، init کن
+    PZ.init();
   },
 
   // ── CSS ──

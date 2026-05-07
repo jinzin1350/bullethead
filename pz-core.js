@@ -416,5 +416,4 @@ window.PZ = {
 
 };
 
-// Auto-init
-PZ.init();
+// NOTE: PZ.init() is called by PZUI.inject() after listeners are set up
