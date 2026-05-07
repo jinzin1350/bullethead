@@ -12,6 +12,10 @@
       "rewrite": "/index.html"
     },
     {
+      "route": "/contra",
+      "rewrite": "/contra.html"
+    },
+    {
       "route": "/dashboard",
       "rewrite": "/dashboard.html"
     },
