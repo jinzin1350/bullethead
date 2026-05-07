@@ -245,23 +245,70 @@
 
     /* my games */
     .my-games-list { display: flex; flex-direction: column; gap: 8px; }
-    .my-game-row {
+    /* ── MY GAME CARDS ── */
+    .my-game-card {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px;
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color .15s, transform .12s;
       -webkit-tap-highlight-color: transparent;
     }
-    .my-game-row:hover { border-color: var(--accent); background: var(--card); }
-    .mgr-icon { font-size: 22px; flex-shrink: 0; }
-    .mgr-info { flex: 1; min-width: 0; }
-    .mgr-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mgr-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .mgr-plays { font-size: 13px; color: var(--yellow); font-weight: 700; flex-shrink: 0; }
-    .mgr-arrow { font-size: 16px; color: var(--muted); flex-shrink: 0; }
+    .my-game-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .mgc-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px 10px;
+      cursor: pointer;
+    }
+    .mgc-icon { font-size: 26px; flex-shrink: 0; }
+    .mgc-title { font-family: 'Arial Black', Arial, sans-serif; font-size: 15px; font-weight: 900; color: #fff; }
+    .mgc-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .mgc-arrow { font-size: 18px; color: var(--muted); margin-left: auto; flex-shrink: 0; }
+
+    /* stats row */
+    .mgc-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border);
+    }
+    .mgc-stat {
+      padding: 10px 8px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .mgc-stat:last-child { border-right: none; }
+    .mgc-stat-val { font-size: 15px; font-weight: 900; }
+    .mgc-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    /* players list */
+    .mgc-players {
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    }
+    .mgc-player-chip {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 11px; color: var(--text);
+    }
+
+    /* actions row */
+    .mgc-actions {
+      display: flex; gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .mgc-btn {
+      flex: 1; padding: 9px 8px; border-radius: 8px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      border: none; transition: opacity .15s;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .mgc-btn:hover { opacity: .85; }
+    .mgc-btn-play  { background: linear-gradient(135deg, var(--accent), var(--green)); color: #000; }
+    .mgc-btn-edit  { background: var(--card); border: 1.5px solid var(--border); color: var(--text); }
+    .mgc-btn-copy  { background: var(--card); border: 1.5px solid var(--yellow); color: var(--yellow); }
+
     .empty-state { text-align: center; color: var(--muted); font-size: 13px; padding: 20px; line-height: 1.6; }
 
     /* ════════════════════════════
@@ -1005,6 +1052,7 @@ function checkStep0() {
 async function loadMyGames() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
+
   const { data, error } = await sb.from('game_configs')
     .select('slug, game_title, play_count, created_at, players, color_theme')
     .eq('user_id', user.id)
@@ -1015,37 +1063,80 @@ async function loadMyGames() {
 
   if (error || !data || data.length === 0) {
     labelEl.style.display = 'none';
-    listEl.innerHTML = `
-      <div style="text-align:center;padding:20px 10px;color:var(--muted);font-size:13px;line-height:1.7;">
-        You haven't created any games yet.<br/>
-        Pick a game above and customize it! 👆
-      </div>`;
+    listEl.innerHTML = `<div class="empty-state">No games yet — create your first one above! 🎮</div>`;
     return;
+  }
+
+  // لود scores برای همه بازی‌ها یه بار
+  const slugs = data.map(g => g.slug);
+  const { data: scores } = await sb.from('scores')
+    .select('game_slug, player_name, score, created_at')
+    .in('game_slug', slugs)
+    .order('created_at', { ascending: false });
+
+  // best score و last player per slug
+  const bestMap = {}, lastMap = {};
+  for (const s of (scores || [])) {
+    if (!bestMap[s.game_slug] || s.score > bestMap[s.game_slug].score) bestMap[s.game_slug] = s;
+    if (!lastMap[s.game_slug]) lastMap[s.game_slug] = s; // اولین = آخرین (sorted by created_at desc)
   }
 
   labelEl.style.display = 'block';
   listEl.innerHTML = data.map(g => {
-    const players = g.players || [];
-    const theme   = THEMES.find(t => t.id === g.color_theme) || THEMES[0];
-    const playersTxt = players.length > 0
-      ? '👥 ' + players.slice(0,4).join(', ') + (players.length > 4 ? ` +${players.length-4}` : '')
-      : '👥 No players added';
-    const link = `${location.origin}/game?g=${g.slug}`;
+    const players  = g.players || [];
+    const theme    = THEMES.find(t => t.id === g.color_theme) || THEMES[0];
+    const link     = `${location.origin}/game?g=${g.slug}`;
+    const best     = bestMap[g.slug];
+    const last     = lastMap[g.slug];
+
+    const playersHtml = players.length > 0
+      ? players.slice(0,5).map(p => `<span class="mgc-player-chip">👤 ${p}</span>`).join('')
+        + (players.length > 5 ? `<span style="color:var(--muted);font-size:11px">+${players.length-5}</span>` : '')
+      : `<span style="color:var(--muted)">No players added</span>`;
+
+    const lastText = last
+      ? `Last: ${last.player_name} · ${new Date(last.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`
+      : 'Not played yet';
+
     return `
-    <div class="my-game-row" onclick="loadGame('${g.slug}')">
-      <div class="mgr-icon">🔫</div>
-      <div class="mgr-info">
-        <div class="mgr-name">${g.game_title}</div>
-        <div class="mgr-meta">${theme.icon} ${theme.id} · ${playersTxt}</div>
-        <div class="mgr-meta" style="margin-top:2px;color:#3a5a7a;font-size:10px;font-family:monospace;">${link}</div>
+    <div class="my-game-card">
+      <div class="mgc-header" onclick="loadGame('${g.slug}')">
+        <div class="mgc-icon">${theme.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mgc-title">${g.game_title}</div>
+          <div class="mgc-sub">${lastText}</div>
+        </div>
+        <div class="mgc-arrow">›</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-        <div class="mgr-plays">${g.play_count} 🎮</div>
-        <div style="font-size:10px;color:var(--muted);">${new Date(g.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+
+      <div class="mgc-stats">
+        <div class="mgc-stat">
+          <div class="mgc-stat-val" style="color:var(--green)">${g.play_count}</div>
+          <div class="mgc-stat-lbl">🎮 Plays</div>
+        </div>
+        <div class="mgc-stat">
+          <div class="mgc-stat-val" style="color:var(--yellow)">${best ? best.score.toLocaleString() : '—'}</div>
+          <div class="mgc-stat-lbl">🏆 High Score</div>
+        </div>
+        <div class="mgc-stat">
+          <div class="mgc-stat-val" style="color:var(--accent);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${best ? best.player_name : '—'}</div>
+          <div class="mgc-stat-lbl">👑 Top Player</div>
+        </div>
       </div>
-      <div class="mgr-arrow">›</div>
+
+      <div class="mgc-players">${playersHtml}</div>
+
+      <div class="mgc-actions">
+        <a href="${link}" target="_blank" class="mgc-btn mgc-btn-play">▶ Play</a>
+        <button class="mgc-btn mgc-btn-edit" onclick="loadGame('${g.slug}')">✏️ Edit</button>
+        <button class="mgc-btn mgc-btn-copy" onclick="copyGameLink('${link}')">🔗 Copy</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+function copyGameLink(link) {
+  navigator.clipboard.writeText(link).then(() => showToast('📋 Link copied!'));
 }
 
 // ═══════════════════════════════════════════
