@@ -2107,7 +2107,7 @@ function drawHUD(){
 // ═══════════════════════════════════════════════
 function handleTitleClick(mx,my){
   if(mx>W/2-110&&mx<W/2+110&&my>310&&my<360) startGame();
-  if(mx>W/2-110&&mx<W/2+110&&my>370&&my<420){ state='shop';shopTab='chars';syncControlsVisibility(); }
+  // shop button حذف شد — از HUD بالا دسترسی دارن
 }
 
 function drawTitle(){
@@ -2142,10 +2142,7 @@ function drawTitle(){
   ctx.fillStyle='#000';ctx.font='bold 22px Arial Black';ctx.textBaseline='middle';
   ctx.fillText('▶  PLAY',W/2,311);
 
-  // SHOP button — big
-  roundRect(W/2-110,348,220,52,12,'#1a1a2e','#ffcc00',2);
-  ctx.fillStyle='#ffcc00';ctx.font='bold 20px Arial Black';
-  ctx.fillText('🏪  SHOP',W/2,374);
+  // shop button حذف شد
 
   // Controls hint (small, bottom)
   ctx.fillStyle='#555';ctx.font='11px Arial';ctx.textBaseline='alphabetic';
