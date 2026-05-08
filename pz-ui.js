@@ -12,10 +12,11 @@ window.PZUI = {
 
   // ── INJECT CSS + HTML ──
   inject(config = {}) {
-    this.gameName = config.gameName || 'Game';
-    this.gameSlug = config.gameSlug || 'game';
-    this.onResume = config.onResume || null;
-    this.onPause  = config.onPause  || null;
+    this.gameName      = config.gameName      || 'Game';
+    this.gameSlug      = config.gameSlug      || 'game';
+    this.onResume      = config.onResume      || null;
+    this.onPause       = config.onPause       || null;
+    this._authOptional = config.authOptional  || false; // اگه true، بدون login هم بازی میشه
 
     this._injectCSS();
     this._injectHTML();
@@ -31,13 +32,14 @@ window.PZUI = {
         this._onLogin();
       } else {
         const hasGameSlug = new URLSearchParams(location.search).get('g');
-        if (!hasGameSlug) {
-          // بدون slug → login اجباریه (dashboard یا مستقیم /game)
+        const authOptional = this._authOptional; // بازی‌هایی که auth اختیاریه
+
+        if (!hasGameSlug && !authOptional) {
+          // بدون slug و auth اجباریه → login نشون بده
           this._showAuth();
         }
-        // با slug → guest میتونه بازی کنه بدون login
-        // یه دکمه کوچیک Login نشون بده گوشه صفحه
-        if (hasGameSlug) {
+        // با slug یا auth optional → guest میتونه بازی کنه
+        if (hasGameSlug || authOptional) {
           const loginBtn = document.createElement('div');
           loginBtn.id = 'guest-login-btn';
           loginBtn.style.cssText = `

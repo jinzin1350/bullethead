@@ -669,8 +669,9 @@ function toast(msg, color='#00D9A6'){
 //  PLAYZONE PLATFORM
 // ═══════════════════════════════════════════════════
 PZUI.inject({
-  gameName: 'Snake',
-  gameSlug: 'snake',
+  gameName:     'Snake',
+  gameSlug:     'snake',
+  authOptional: true,   // بدون login هم بازی میشه
   onPause:  () => { if(gameStarted&&!gamePaused) togglePause(); },
   onResume: () => { if(gamePaused) togglePause(); },
 });

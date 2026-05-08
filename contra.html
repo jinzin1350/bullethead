@@ -1590,8 +1590,9 @@ async function loadContraConfig() {
 //  PLAYZONE PLATFORM
 // ═══════════════════════════════════════
 PZUI.inject({
-  gameName: CONTRA_CFG.game_title,
-  gameSlug: CONTRA_CFG.slug || 'contra',
+  gameName:     CONTRA_CFG.game_title,
+  gameSlug:     CONTRA_CFG.slug || 'contra',
+  authOptional: true,   // بدون login هم بازی میشه
   onPause:  () => {
     Object.keys(keys).forEach(k => keys[k] = false);
     if (state === 'playing') state = 'paused';
