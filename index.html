@@ -2752,8 +2752,9 @@ window.addEventListener('resize', resizeCanvas);
 // ── 1. PZUI inject — بعد از loadGameConfig صدا زده میشه ──
 function initPlatform() {
   PZUI.inject({
-    gameName: GAME_CFG.game_title || 'BulletHead',
-    gameSlug: GAME_CFG.slug       || 'bullethead',
+    gameName:     GAME_CFG.game_title || 'BulletHead',
+    gameSlug:     GAME_CFG.slug       || 'bullethead',
+    authOptional: true,
     onPause:  () => {
       Object.keys(keys).forEach(k => keys[k] = false);
       if (state === 'playing') state = 'paused';
@@ -2761,6 +2762,17 @@ function initPlatform() {
     onResume: () => {
       if (state === 'paused') state = 'playing';
       syncControlsVisibility();
+    },
+    // BulletHead shop داخلی خودش رو داره
+    onShop: () => {
+      // بجای PZ shop، shop داخلی بازی رو باز کن
+      if (state === 'playing' || state === 'paused') {
+        state = 'shop';
+        shopTab = 'chars';
+        syncControlsVisibility();
+        return true; // handled
+      }
+      return false; // PZ default shop باز بشه
     },
   });
 }

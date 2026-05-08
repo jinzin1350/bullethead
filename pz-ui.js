@@ -16,7 +16,8 @@ window.PZUI = {
     this.gameSlug      = config.gameSlug      || 'game';
     this.onResume      = config.onResume      || null;
     this.onPause       = config.onPause       || null;
-    this._authOptional = config.authOptional  || false; // اگه true، بدون login هم بازی میشه
+    this._authOptional = config.authOptional  || false;
+    this._onShop       = config.onShop        || null; // اگه بازی shop خودش رو داره
 
     this._injectCSS();
     this._injectHTML();
@@ -40,19 +41,38 @@ window.PZUI = {
         }
         // با slug یا auth optional → guest میتونه بازی کنه
         if (hasGameSlug || authOptional) {
-          const loginBtn = document.createElement('div');
-          loginBtn.id = 'guest-login-btn';
-          loginBtn.style.cssText = `
-            position:fixed;top:8px;right:8px;z-index:8001;
-            padding:6px 12px;border-radius:20px;
-            background:rgba(0,180,216,0.2);border:1px solid #00b4d8;
-            color:#00b4d8;font-size:11px;font-weight:700;
-            cursor:pointer;font-family:'Arial Black',Arial,sans-serif;
-            transition:background .15s;
+          // نشون بده mini HUD با دکمه‌های Home + Login
+          const miniHud = document.createElement('div');
+          miniHud.id = 'guest-mini-hud';
+          miniHud.style.cssText = `
+            position:fixed;top:0;left:0;right:0;z-index:8001;
+            height:42px;
+            background:rgba(0,0,0,0.75);
+            backdrop-filter:blur(8px);
+            border-bottom:1px solid #2a2a5044;
+            display:flex;align-items:center;justify-content:space-between;
+            padding:0 12px;gap:8px;
           `;
-          loginBtn.textContent = '🔑 Login to save score';
-          loginBtn.onclick = () => this._showAuth();
-          document.body.appendChild(loginBtn);
+          miniHud.innerHTML = `
+            <button onclick="window.location.href='/dashboard'" style="
+              padding:5px 12px;border-radius:16px;font-size:11px;font-weight:700;
+              border:1.5px solid #00ff8866;background:transparent;color:#00ff88;
+              cursor:pointer;font-family:'Arial Black',Arial,sans-serif;">
+              🏠 Home
+            </button>
+            <div style="font-size:13px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;
+              background:linear-gradient(90deg,#00b4d8,#00ff88);
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+              🎮 PlayZone
+            </div>
+            <button onclick="PZUI._showAuth()" style="
+              padding:5px 12px;border-radius:16px;font-size:11px;font-weight:700;
+              border:1.5px solid #00b4d8;background:rgba(0,180,216,0.15);color:#00b4d8;
+              cursor:pointer;font-family:'Arial Black',Arial,sans-serif;">
+              🔑 Login
+            </button>
+          `;
+          document.body.appendChild(miniHud);
         }
       }
     });
@@ -188,6 +208,7 @@ window.PZUI = {
         position: fixed; top: 0; left: 0; right: 0;
         height: 42px; z-index: 8000;
         display: none;
+        /* بازی باید زیر HUD جا داشته باشه */
         align-items: center; justify-content: space-between;
         padding: 0 12px;
         background: rgba(0,0,0,0.75);
@@ -387,7 +408,8 @@ window.PZUI = {
         </div>
         <div class="pz-hud-coins">🪙 <span id="pz-hud-coins">0</span></div>
         <div class="pz-hud-right">
-          <button class="pz-hud-btn" onclick="PZUI.openPanel('shop')">🛒 Shop</button>
+          <button class="pz-hud-btn" onclick="PZUI._goHome()" style="border-color:#00ff8866;color:#00ff88">🏠 Home</button>
+          <button class="pz-hud-btn" onclick="PZUI._openShop()">🛒 Shop</button>
           <button class="pz-hud-btn" onclick="PZUI.openPanel('lb')">🏆</button>
           <button class="pz-hud-btn active" onclick="PZUI.openPanel('mp')">👥 2P</button>
         </div>
@@ -423,9 +445,26 @@ window.PZUI = {
   },
 
   // ── LOGIN / LOGOUT ──
+  // ── Home button ──
+  _goHome() {
+    if (this.onPause) this.onPause();
+    window.location.href = '/dashboard';
+  },
+
+  // ── Shop button — اگه بازی shop خودش رو داره، اون رو باز کن ──
+  _openShop() {
+    if (this._onShop) {
+      const handled = this._onShop();
+      if (handled) return; // بازی خودش handle کرد
+    }
+    // PZ default shop
+    this.openPanel('shop');
+  },
+
   _onLogin() {
-    // guest login btn رو حذف کن
+    // guest hud رو حذف کن
     document.getElementById('guest-login-btn')?.remove();
+    document.getElementById('guest-mini-hud')?.remove();
     document.getElementById('pz-hud').classList.add('show');
     this._updateHUD();
     this.closePanel();
