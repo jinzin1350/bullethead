@@ -1657,7 +1657,7 @@ async function loadMyGames() {
   listEl.innerHTML = data.map(g => {
     const players  = g.players || [];
     const theme    = THEMES.find(t => t.id === g.color_theme) || THEMES[0];
-    const gameRoute = g.game === 'contra' ? '/contra' : '/game';
+    const gameRoute = GAME_DEFS[g.game]?.route || '/game';
     const link     = `${location.origin}${gameRoute}?g=${g.slug}`;
     const best     = bestMap[g.slug];
     const last     = lastMap[g.slug];
@@ -1756,7 +1756,7 @@ async function loadGame(slug) {
   livePreview();
 
   // show link — route بر اساس نوع بازی
-  const gameRoute2 = currentGame === 'contra' ? '/contra' : '/game';
+  const gameRoute2 = GAME_DEFS[currentGame]?.route || '/game';
   const link = `${location.origin}${gameRoute2}?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('play-btn-link').href = link;
@@ -1840,7 +1840,7 @@ async function createGame() {
 
   if (error) { showToast('❌ Error: ' + error.message); return; }
 
-  const gameRoute3 = currentGame === 'contra' ? '/contra' : '/game';
+  const gameRoute3 = GAME_DEFS[currentGame]?.route || '/game';
   const link = `${location.origin}${gameRoute3}?g=${slug}`;
   document.getElementById('game-link').value = link;
   document.getElementById('play-btn-link').href = link;
