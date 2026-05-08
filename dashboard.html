@@ -1099,7 +1099,11 @@ async function doLogout() {
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session) {
     showDashboard();
-  } else if (event === 'SIGNED_OUT') {
+  } else if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+    // token باطل شد → پاک کن و login نشون بده
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k);
+    });
     document.getElementById('dashboard-screen').style.display = 'none';
     document.getElementById('login-screen').style.display    = 'flex';
   }
@@ -1949,26 +1953,35 @@ function syncColorFromText(key) {
 // ═══════════════════════════════════════════
 //  FORM CONFIG
 // ═══════════════════════════════════════════
+function _val(id, def='') {
+  return document.getElementById(id)?.value || def;
+}
+
 function getFormConfig() {
   const players = playersList.map(s=>s.trim()).filter(s=>s.length>0);
+
+  // default title بر اساس نوع بازی
+  const defaultTitle = GAME_DEFS[currentGame]?.name || 'Game';
+  const defaultColor = currentGame==='snake' ? '#00D9A6' : '#e82020';
+
   return {
-    game_title:   document.getElementById('f-game-title').value   || 'BulletHead',
-    hero_name:    document.getElementById('f-hero-name').value    || 'Hero',
-    hero_color:   document.getElementById('f-hero-color').value   || '#e82020',
-    msg_start:    document.getElementById('f-msg-start').value    || 'Good luck!',
+    game_title:   _val('f-game-title', defaultTitle),
+    hero_name:    _val('f-hero-name',  'Hero'),
+    hero_color:   _val('f-hero-color', defaultColor),
+    msg_start:    _val('f-msg-start',  'Good luck!'),
     msg_gameover: 'Game Over!',
     players,
     enemy_names: {
-      drone:   document.getElementById('f-enemy-drone').value   || 'Drone',
-      bomber:  document.getElementById('f-enemy-bomber').value  || 'Bomber',
-      speeder: document.getElementById('f-enemy-speeder').value || 'Speeder',
+      drone:   _val('f-enemy-drone',   'Drone'),
+      bomber:  _val('f-enemy-bomber',  'Bomber'),
+      speeder: _val('f-enemy-speeder', 'Speeder'),
     },
     gun_names: {
-      pistol:  document.getElementById('f-gun-pistol').value  || 'Pistol',
-      smg:     document.getElementById('f-gun-smg').value     || 'SMG',
-      shotgun: document.getElementById('f-gun-shotgun').value || 'Shotgun',
-      sniper:  document.getElementById('f-gun-sniper').value  || 'Sniper',
-      rocket:  document.getElementById('f-gun-rocket').value  || 'Rocket',
+      pistol:  _val('f-gun-pistol',  'Pistol'),
+      smg:     _val('f-gun-smg',     'SMG'),
+      shotgun: _val('f-gun-shotgun', 'Shotgun'),
+      sniper:  _val('f-gun-sniper',  'Sniper'),
+      rocket:  _val('f-gun-rocket',  'Rocket'),
     },
     color_theme: selectedTheme,
   };
