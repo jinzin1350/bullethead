@@ -27,11 +27,16 @@
       --muted:            #666688;
     }
     html, body {
-      width:100%; min-height:100vh;
+      width:100%; height:100%;
       background: var(--bg);
       color: var(--text);
       font-family: 'Segoe UI', Arial, sans-serif;
       user-select: none;
+      overflow-x: hidden;
+    }
+    /* موبایل: همه چیز توی صفحه، بدون scroll */
+    @media (max-width: 600px) {
+      html, body { overflow: hidden; height: 100%; }
     }
 
     /* ── HEADER ── */
@@ -52,19 +57,72 @@
     }
     .game-header p { color: var(--muted); font-size: 13px; }
 
-    /* ── LAYOUT ── */
+    /* ── LAYOUT — Desktop ── */
     .game-container {
       display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 16px;
-      max-width: 900px;
+      grid-template-columns: 200px 1fr;
+      gap: 14px;
+      max-width: 860px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 14px;
     }
-    @media (max-width: 680px) {
-      .game-container { grid-template-columns: 1fr; }
-      .sidebar { display: flex; flex-wrap: wrap; gap: 10px; }
-      .sidebar > * { flex: 1; min-width: 140px; }
+
+    /* ── LAYOUT — Mobile ── */
+    @media (max-width: 600px) {
+      .game-header { padding: 8px 12px 6px; }
+      .game-header h1 { font-size: 18px; }
+      .game-header p  { display: none; }
+
+      .game-container {
+        grid-template-columns: 1fr;
+        padding: 6px;
+        gap: 6px;
+        height: calc(100vh - 44px);
+        overflow: hidden;
+      }
+
+      /* sidebar مخفی توی موبایل */
+      .sidebar { display: none; }
+
+      .game-main {
+        gap: 6px;
+        justify-content: flex-start;
+        height: 100%;
+      }
+
+      .score-bar {
+        padding: 6px 10px;
+        gap: 8px;
+        border-radius: 8px;
+      }
+      .score-label { font-size: 9px; }
+      .score-val   { font-size: 16px; }
+
+      .board-wrap {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* D-pad ثابت پایین */
+      .ctrl-row { display: none; } /* pause/restart مخفی — توی D-pad هست */
+
+      .dpad {
+        flex-shrink: 0;
+        margin-bottom: 4px;
+      }
+      .dpad-btn { width: 60px; height: 60px; font-size: 22px; }
+
+      /* پنل difficulty compact */
+      .mobile-diff {
+        display: flex !important;
+        gap: 6px;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+    }
+    @media (min-width: 601px) {
+      .mobile-diff { display: none; }
     }
 
     /* ── SIDEBAR ── */
@@ -334,6 +392,14 @@
     <div class="ctrl-row">
       <button class="ctrl-btn" id="pauseBtn" disabled>⏸ Pause</button>
       <button class="ctrl-btn" id="restartBtn">🔄 Restart</button>
+    </div>
+
+    <!-- Mobile difficulty (فقط موبایل) -->
+    <div class="mobile-diff" style="display:none">
+      <button class="diff-btn" data-difficulty="easy"   style="flex:1;justify-content:center;padding:6px 4px">🐢</button>
+      <button class="diff-btn active" data-difficulty="medium" style="flex:1;justify-content:center;padding:6px 4px">🐍</button>
+      <button class="diff-btn" data-difficulty="hard"   style="flex:1;justify-content:center;padding:6px 4px">⚡</button>
+      <button onclick="initGame();setTimeout(()=>startGame(),300)" style="flex:1;padding:6px 4px;background:var(--card);border:1.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:16px;cursor:pointer">🔄</button>
     </div>
 
     <!-- D-pad (mobile) -->
@@ -622,12 +688,20 @@ document.querySelectorAll('.diff-btn').forEach(b=>{
 pauseBtn.addEventListener('click', togglePause);
 
 restartBtn.addEventListener('click', ()=>{
-  if(gameStarted){ if(confirm('Restart?')) initGame(); }
-  else initGame();
+  initGame();
+  // auto-start بعد از restart — نه نیاز به Space
+  setTimeout(()=>startGame(), 300);
 });
 
-document.getElementById('go-play-again').addEventListener('click', ()=>{ hideGameOver(); initGame(); });
-goModal.addEventListener('click', e=>{ if(e.target===goModal){ hideGameOver(); initGame(); } });
+document.getElementById('go-play-again').addEventListener('click', ()=>{
+  hideGameOver();
+  initGame();
+  setTimeout(()=>startGame(), 300);
+});
+goModal.addEventListener('click', e=>{
+  if(e.target===goModal){ hideGameOver(); initGame(); setTimeout(()=>startGame(),300); }
+});
+// overlay tap → شروع
 gameOverlay.addEventListener('click', ()=>{ if(!gameStarted&&!gameOver) startGame(); });
 
 // D-pad
