@@ -1254,7 +1254,7 @@ document.addEventListener('keydown',e=>{
   if(state==='title'   &&(e.code==='Space'||e.code==='Enter')) startGame();
   if(state==='gameover'&&(e.code==='Space'||e.code==='Enter')) goToShop();
   if(state==='gameover'&&e.code==='KeyR') startGame();
-  if(state==='shop'    &&(e.code==='Escape')) state='title';
+  if(state==='shop'    &&(e.code==='Escape')){ state='title'; if(PZ.isLoggedIn()) document.getElementById('pz-hud')?.classList.add('show'); }
   if(state==='playing' &&(e.code==='KeyJ'||e.code==='ArrowUp')) shootPlayer();
   e.preventDefault();
 });
@@ -2266,7 +2266,11 @@ function drawShop(){
   ctx.fillStyle='#ffcc44';ctx.font='bold 15px Arial Black';ctx.textAlign='left';
   ctx.fillText('🪙 '+coins,10,30);
   // Back button
-  shopBtn('✕ BACK',W-80,8,70,30,'#330000','#ff6666',()=>{ state='title'; });
+  shopBtn('✕ BACK',W-80,8,70,30,'#330000','#ff6666',()=>{
+    state='title';
+    // HUD رو برگردون
+    if(PZ.isLoggedIn()) document.getElementById('pz-hud')?.classList.add('show');
+  });
 
   // Tabs
   const tabs=[['🧑 CHARS','chars'],['🔫 GUNS','guns'],['👕 OUTFIT','outfit']];
@@ -2766,13 +2770,12 @@ function initPlatform() {
     // BulletHead shop داخلی خودش رو داره
     onShop: () => {
       // بجای PZ shop، shop داخلی بازی رو باز کن
-      if (state === 'playing' || state === 'paused') {
-        state = 'shop';
-        shopTab = 'chars';
-        syncControlsVisibility();
-        return true; // handled
-      }
-      return false; // PZ default shop باز بشه
+      state = 'shop';
+      shopTab = 'chars';
+      syncControlsVisibility();
+      // HUD رو مخفی کن تا shop کامل دیده بشه
+      document.getElementById('pz-hud')?.classList.remove('show');
+      return true; // handled
     },
   });
 }
