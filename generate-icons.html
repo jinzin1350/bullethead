@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Icon Generator</title></head>
+<body>
+<canvas id="c"></canvas>
+<div id="links"></div>
+<script>
+// این صفحه رو باز کن و icons رو دانلود کن
+const sizes = [72, 96, 128, 192, 512];
+const links = document.getElementById('links');
+
+sizes.forEach(size => {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+
+  // پس‌زمینه گرادیان
+  const g = ctx.createLinearGradient(0,0,size,size);
+  g.addColorStop(0, '#0a0a14');
+  g.addColorStop(1, '#1a1a35');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.2);
+  ctx.fill();
+
+  // دایره گلو
+  ctx.shadowColor = '#00b4d8';
+  ctx.shadowBlur = size * 0.1;
+  ctx.fillStyle = '#00b4d822';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size*0.38, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // متن 🎮
+  ctx.font = `bold ${size * 0.45}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('🎮', size/2, size/2);
+
+  // "PZ" label کوچیک
+  if (size >= 128) {
+    ctx.font = `bold ${size * 0.12}px 'Arial Black', Arial`;
+    ctx.fillStyle = '#00b4d8';
+    ctx.fillText('PlayZone', size/2, size * 0.85);
+  }
+
+  // دانلود لینک
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = `icon-${size}.png`;
+  a.textContent = `Download icon-${size}.png`;
+  a.style.display = 'block';
+  a.style.margin = '8px';
+  links.appendChild(a);
+  links.appendChild(c);
+  c.style.margin = '8px';
+  c.style.border = '1px solid #ccc';
+});
+</script>
+</body>
+</html>

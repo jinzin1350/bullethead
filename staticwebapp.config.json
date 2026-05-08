@@ -1,7 +1,7 @@
 {
   "navigationFallback": {
     "rewrite": "/landing.html",
-    "exclude": ["/*.js", "/*.css", "/*.jpg", "/*.png", "/*.ico", "/*.sql", "/*.md"]
+    "exclude": ["/*.js", "/*.css", "/*.jpg", "/*.png", "/*.ico", "/*.sql", "/*.md", "/*.json", "/sw.js"]
   },
   "routes": [
     { "route": "/",          "rewrite": "/landing.html"   },
