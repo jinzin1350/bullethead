@@ -2270,6 +2270,8 @@ function drawShop(){
     state='title';
     // HUD رو برگردون
     if(PZ.isLoggedIn()) document.getElementById('pz-hud')?.classList.add('show');
+    const miniHud = document.getElementById('guest-mini-hud');
+    if (miniHud) miniHud.style.display = 'flex';
   });
 
   // Tabs
@@ -2769,13 +2771,16 @@ function initPlatform() {
     },
     // BulletHead shop داخلی خودش رو داره
     onShop: () => {
-      // بجای PZ shop، shop داخلی بازی رو باز کن
       state = 'shop';
       shopTab = 'chars';
       syncControlsVisibility();
-      // HUD رو مخفی کن تا shop کامل دیده بشه
+      // همه overlay ها رو مخفی کن
       document.getElementById('pz-hud')?.classList.remove('show');
-      return true; // handled
+      document.getElementById('pz-overlay')?.classList.remove('show');
+      document.getElementById('guest-mini-hud') && (document.getElementById('guest-mini-hud').style.display = 'none');
+      // مطمئن بشیم canvas resize درست شده
+      setTimeout(resizeCanvas, 50);
+      return true;
     },
   });
 }
